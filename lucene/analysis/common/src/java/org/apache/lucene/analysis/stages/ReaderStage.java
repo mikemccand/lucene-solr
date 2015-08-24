@@ -46,6 +46,7 @@ public class ReaderStage extends Stage {
   @Override
   public void reset(Object item) {
     super.reset(item);
+    System.out.println("R: reset item=" + item);
     if (item instanceof Reader) {
       reader = (Reader) item;
     } else if (item instanceof String) {

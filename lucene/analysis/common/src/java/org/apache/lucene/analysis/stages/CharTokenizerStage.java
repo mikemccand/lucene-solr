@@ -91,6 +91,7 @@ public abstract class CharTokenizerStage extends Stage {
 
   @Override
   public void reset(Object item) {
+    System.out.println("\nC: RESET");
     super.reset(item);
     inputNextRead = 0;
     lastNode = nodes.newNode();
@@ -99,7 +100,6 @@ public abstract class CharTokenizerStage extends Stage {
     pendingToken = false;
     dataLen = 0;
     bufferIndex = 0;
-    //System.out.println("\nRESET");
   }
 
   private int nextInputChar() throws IOException {
@@ -253,12 +253,12 @@ public abstract class CharTokenizerStage extends Stage {
     }
 
     String term = UnicodeUtil.newString(buffer, 0, nextWrite);
-    System.out.println("TOKEN: " + term);
     String origTerm = new String(origBuffer, 0, nextOrigWrite);
     termAttOut.set(origTerm, term);
     assert startOffset != -1;
 
     offsetAtt.set(startOffset, startOffset+origTerm.length());
+    System.out.println("TOKEN: " + term + " " + startOffset + "-" + (startOffset+origTerm.length()));
     int node = nodes.newNode();
     arcAtt.set(lastNode, node);
     lastNode = node;

@@ -64,6 +64,7 @@ public class SplitOnDashFilterStage extends Stage {
 
   @Override
   public boolean next() throws IOException {
+    System.out.println("SPLIT next: parts=" + parts + " nextPart=" + nextPart);
     if (parts != null) {
 
       termAttOut.set(origParts[nextPart], parts[nextPart]);
@@ -97,7 +98,8 @@ public class SplitOnDashFilterStage extends Stage {
     if (prevStage.next()) {
 
       termAttOut.copyFrom(termAttIn);
-      arcAttOut.set(arcAttIn.from(), arcAttIn.to());
+      arcAttOut.copyFrom(arcAttIn);
+      offsetAttOut.copyFrom(offsetAttIn);
       
       parts = termAttIn.get().split("-");
       origParts = termAttIn.getOrigText().split("-");

@@ -307,6 +307,7 @@ public class TestStages extends BaseTokenStreamTestCase {
       Automaton sub = new Automaton();
       subs.add(sub);
       int lastState = 0;
+      sub.createState();
       for(int i=0;i<tokens.length;i++) {
         String token = tokens[i];
         for(int j=0;j<token.length();j++) {
@@ -323,11 +324,12 @@ public class TestStages extends BaseTokenStreamTestCase {
       sub.setAccept(lastState, true);
     }
 
-    Automaton expected = Operations.union(subs);
-    if (!Operations.sameLanguage(expected, a)) {
+    Automaton expected = Operations.determinize(Operations.union(subs), Integer.MAX_VALUE);
+    Automaton da = Operations.determinize(a, Integer.MAX_VALUE);
+    if (!Operations.sameLanguage(expected, da)) {
       //System.out.println("expected:\n" + Automaton.minimize(expected).toDot());
       System.out.println("expected:\n" + expected.toDot());
-      System.out.println("actual:\n" + MinimizationOperations.minimize(a, Integer.MAX_VALUE).toDot());
+      System.out.println("actual:\n" + MinimizationOperations.minimize(da, Integer.MAX_VALUE).toDot());
       System.out.println("actual strings:");
       for (IntsRef s : AutomatonTestUtil.getFiniteStringsRecursive(a, -1)) {
         for(int i=0;i<s.length;i++) {
@@ -379,10 +381,6 @@ public class TestStages extends BaseTokenStreamTestCase {
   }
 
   public void assertStageContents(Stage stage, String input, Object... toVerify) throws IOException {
-    assertStageContents(stage, new StringReader(input), toVerify);
-  }
-
-  public void assertStageContents(Stage stage, Reader input, Object... toVerify) throws IOException {
     // nocommit carry over other things from the base class, e.g. re-run analysis, etc.
     if (toVerify.length == 0) {
       throw new IllegalArgumentException("must have at least terms to verify");
@@ -463,23 +461,29 @@ public class TestStages extends BaseTokenStreamTestCase {
 
       for(int i=0;i<terms.length;i++) {
         boolean result = stage.next();
+        String desc;
+        if (iter == 0) {
+          desc = "token " + i;
+        } else {
+          desc = "2nd pass, token " + i;
+        }
         if (result == false) {
-          throw new RuntimeException("token " + i + ": expected term=" + terms[i] + " but next() returned false");
+          throw new RuntimeException(desc + ": expected term=" + terms[i] + " but next() returned false");
         }
         if (termAtt.get().equals(terms[i]) == false) {
-          throw new RuntimeException("token " + i + ": expected term=" + terms[i] + " but got " + termAtt.get());
+          throw new RuntimeException(desc + ": expected term=" + terms[i] + " but got " + termAtt.get());
         }
         if (fromNodes != null && arcAtt.from() != fromNodes[i]) {
-          throw new RuntimeException("token " + i + ": expected fromNode=" + fromNodes[i] + " but got " + arcAtt.from());
+          throw new RuntimeException(desc + ": expected fromNode=" + fromNodes[i] + " but got " + arcAtt.from());
         }
         if (toNodes != null && arcAtt.to() != toNodes[i]) {
-          throw new RuntimeException("token " + i + ": expected toNode=" + toNodes[i] + " but got " + arcAtt.to());
+          throw new RuntimeException(desc + ": expected toNode=" + toNodes[i] + " but got " + arcAtt.to());
         }
         if (startOffsets != null && offsetAtt.startOffset() != startOffsets[i]) {
-          throw new RuntimeException("token " + i + ": expected startOffset=" + startOffsets[i] + " but got " + offsetAtt.startOffset());
+          throw new RuntimeException(desc + ": expected startOffset=" + startOffsets[i] + " but got " + offsetAtt.startOffset());
         }
         if (endOffsets != null && offsetAtt.endOffset() != endOffsets[i]) {
-          throw new RuntimeException("token " + i + ": expected endOffset=" + endOffsets[i] + " but got " + offsetAtt.endOffset());
+          throw new RuntimeException(desc + ": expected endOffset=" + endOffsets[i] + " but got " + offsetAtt.endOffset());
         }
       }
     }

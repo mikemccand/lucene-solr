@@ -39,6 +39,7 @@ public class AutomatonStage extends Stage {
   /** We add this arc to represent a hole. */
   public static final int HOLE = 257;
 
+  private Automaton.Builder builder;
   private Automaton automaton;
   private Map<Integer,Integer> toStates;
   private Map<Integer,Integer> fromStates;
@@ -57,9 +58,11 @@ public class AutomatonStage extends Stage {
     super.reset(item);
     toStates = new HashMap<>();
     fromStates = new HashMap<>();
-    automaton = new Automaton();
+    builder = new Automaton.Builder();
+    automaton = null;
     // Node 0 is always the start state:
     fromStates.put(0, 0);
+    builder.createState();
   }
 
   public Automaton getAutomaton() {
@@ -71,11 +74,11 @@ public class AutomatonStage extends Stage {
     assert number != 0;
     Integer state = toStates.get(number);
     if (state == null) {
-      state = automaton.createState();
+      state = builder.createState();
       toStates.put(number, state);
       Integer fromState = fromStates.get(number);
       if (fromState != null) {
-        automaton.addTransition(fromState, state, POS_SEP);
+        builder.addTransition(state, fromState, POS_SEP);
       }
     } else {
       assert state != 0;
@@ -88,11 +91,11 @@ public class AutomatonStage extends Stage {
     System.out.println("getFromState " + number);
     Integer state = fromStates.get(number);
     if (state == null) {
-      state = automaton.createState();
+      state = builder.createState();
       fromStates.put(number, state);
       Integer toState = toStates.get(number);
       if (toState != null) {
-        automaton.addTransition(toState, state, POS_SEP);
+        builder.addTransition(toState, state, POS_SEP);
       }
     }
 
@@ -116,15 +119,17 @@ public class AutomatonStage extends Stage {
         if (i == term.length()-1) {
           toState = getToState(arcAtt.to());
         } else {
-          toState = automaton.createState();
+          toState = builder.createState();
         }
-        automaton.addTransition(lastState, toState, term.charAt(i));
+        System.out.println("  trans " + lastState + "-" + toState + ": " + term.charAt(i));
+        builder.addTransition(lastState, toState, term.charAt(i));
         lastState = toState;
       }    
       return true;
     } else {
       // Assume any to state w/ no transitions is final:
       int count = 0;
+      automaton = builder.finish();
       for(Map.Entry<Integer,Integer> ent : toStates.entrySet()) {
         int state = ent.getValue();
         if (automaton.getNumTransitions(state) == 0) {

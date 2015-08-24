@@ -378,6 +378,12 @@ final public class Operations {
     if (a1 == a2) {
       return true;
     }
+    if (a1.isDeterministic() == false) {
+      throw new IllegalArgumentException("a1 must be deterministic");
+    }
+    if (a2.isDeterministic() == false) {
+      throw new IllegalArgumentException("a2 must be deterministic");
+    }
     return subsetOf(a2, a1) && subsetOf(a1, a2);
   }
 
