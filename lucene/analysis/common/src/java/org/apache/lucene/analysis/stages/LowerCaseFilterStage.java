@@ -37,7 +37,7 @@ public class LowerCaseFilterStage extends Stage {
   
   @Override
   public final boolean next() throws IOException {
-    if (prevStage.next()) {
+    if (in.next()) {
       final String term = termAttIn.get();
       int length = term.length();
       final char[] bufferOut = new char[length];

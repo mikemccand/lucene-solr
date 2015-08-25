@@ -117,7 +117,7 @@ public abstract class CharTokenizerStage extends Stage {
     System.out.println("C: nextInputChar inputNextRead=" + inputNextRead + " len=" + textAttIn.getLength());
     if (inputNextRead == textAttIn.getLength()) {
       inputNextRead = 0;
-      if (prevStage.next() == false) {
+      if (in.next() == false) {
         //System.out.println("END");
         end = true;
         return -1;
@@ -175,7 +175,7 @@ public abstract class CharTokenizerStage extends Stage {
 
       if (inputNextRead == textAttIn.getLength()) {
         inputNextRead = 0;
-        if (prevStage.next() == false) {
+        if (in.next() == false) {
           end = true;
           break;
         }

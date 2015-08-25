@@ -102,7 +102,7 @@ public abstract class JFlexTokenizerStage extends Stage {
       }
 
       if (nextReadText == textAttIn.getLength()) {
-        if (prevStage.next() == false) {
+        if (in.next() == false) {
           end = true;
           return -1;
         }

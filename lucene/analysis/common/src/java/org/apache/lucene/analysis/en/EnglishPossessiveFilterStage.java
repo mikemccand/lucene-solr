@@ -35,7 +35,7 @@ public final class EnglishPossessiveFilterStage extends Stage {
 
   @Override
   public boolean next() throws IOException {
-    if (prevStage.next()) {
+    if (in.next()) {
       String term = termAttIn.get();
     
       if (term.length() >= 2) {

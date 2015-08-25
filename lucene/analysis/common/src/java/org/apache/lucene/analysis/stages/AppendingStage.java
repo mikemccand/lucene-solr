@@ -90,7 +90,7 @@ public final class AppendingStage extends Stage {
     frontier.clear();
     frontier.add(0);
     if (values.length != 0) {
-      prevStage.reset(new StringReader(values[0]));
+      in.reset(new StringReader(values[0]));
     }
   }
   
@@ -103,7 +103,7 @@ public final class AppendingStage extends Stage {
 
     assert upto < values.length;
 
-    if (prevStage.next()) {
+    if (in.next()) {
       // Current value still has further tokens:
       arcAttOut.set(arcAttIn.from() + nodeShift, arcAttIn.to() + nodeShift);
       frontier.add(arcAttIn.to());
@@ -133,7 +133,7 @@ public final class AppendingStage extends Stage {
       offsetShift = offsetAttIn.endOffset() + offsetGap;
       frontier.clear();
       frontier.add(0);
-      prevStage.reset(new StringReader(values[upto]));
+      in.reset(new StringReader(values[upto]));
 
       return true;
     } else {

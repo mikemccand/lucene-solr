@@ -385,7 +385,7 @@ public class SynonymFilterStage extends Stage {
       }
 
       System.out.println("  input.next()");
-      if (prevStage.next()) {
+      if (in.next()) {
 
         termAttOut.copyFrom(termAttIn);
         typeAttOut.copyFrom(typeAttIn);

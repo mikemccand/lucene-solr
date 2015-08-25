@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis.miscellaneous;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -19,37 +19,42 @@ package org.apache.lucene.analysis.stages;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
-import org.apache.lucene.analysis.util.CharArraySet;
+import org.apache.lucene.analysis.stages.Stage;
+import org.apache.lucene.analysis.stages.attributes.KeywordAttribute;
 
-/** Marks stop words as deleted */
-public class StopFilterStage extends Stage {
+/**
+ * Marks terms as keywords via the {@link KeywordAttribute}.
+ * 
+ * @see KeywordAttribute
+ */
+public abstract class KeywordMarkerFilterStage extends Stage {
 
-  private final CharArraySet stopWords;
-  private final TermAttribute termAtt;
-  private final DeletedAttribute delAttIn;
-  private final DeletedAttribute delAttOut;
+  private final KeywordAttribute keywordAttIn = getIfExists(KeywordAttribute.class);
+  private final KeywordAttribute keywordAttOut = create(KeywordAttribute.class);
 
-  public StopFilterStage(Stage prevStage, CharArraySet stopWords) {
-    super(prevStage);
-    this.stopWords = stopWords;
-    termAtt = get(TermAttribute.class);
-    delAttIn = get(DeletedAttribute.class);
-    delAttOut = create(DeletedAttribute.class);
+  /**
+   * Creates a new {@link KeywordMarkerFilter}
+   * @param in the input stream
+   */
+  protected KeywordMarkerFilterStage(Stage in) {
+    super(in);
   }
 
   @Override
-  public boolean next() throws IOException {
+  public final boolean next() throws IOException {
     if (in.next()) {
-      if ((delAttIn != null && delAttIn.deleted()) || stopWords.contains(termAtt.get())) {
-        delAttOut.set(true);
+      if (isKeyword()) { 
+        keywordAttOut.set(true);
+      } else if (keywordAttIn != null) {
+        keywordAttOut.copyFrom(keywordAttIn);
       } else {
-        delAttOut.set(false);
+        keywordAttOut.set(false);
       }
       return true;
     } else {
       return false;
     }
   }
+  
+  protected abstract boolean isKeyword();
 }

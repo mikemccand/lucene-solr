@@ -95,7 +95,7 @@ public class SplitOnDashFilterStage extends Stage {
       return true;
     }
 
-    if (prevStage.next()) {
+    if (in.next()) {
 
       termAttOut.copyFrom(termAttIn);
       arcAttOut.copyFrom(arcAttIn);

@@ -135,7 +135,7 @@ public class InsertDeletedPunctuationStage extends Stage {
       return true;
     }
 
-    if (prevStage.next()) {
+    if (in.next()) {
       System.out.println("INS: prev=" + termAttIn.get());
       int startOffset = offsetAttIn.startOffset();
       assert startOffset <= punctFilter.punct.length;

@@ -61,7 +61,7 @@ public class HTMLTextStage extends Stage {
   private int nextInputChar() throws IOException {
     assert end == false;
     if (inputNextRead == textAttIn.getLength()) {
-      if (prevStage.next() == false) {
+      if (in.next() == false) {
         //System.out.println("END");
         end = true;
         return -1;
@@ -78,7 +78,7 @@ public class HTMLTextStage extends Stage {
   private int peek() throws IOException {
     assert end == false;
     if (inputNextRead == textAttIn.getLength()) {
-      if (prevStage.next() == false) {
+      if (in.next() == false) {
         //System.out.println("END");
         end = true;
         return -1;

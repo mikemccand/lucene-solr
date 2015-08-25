@@ -29,6 +29,8 @@ import java.util.Map;
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.CharFilter;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
+import org.apache.lucene.analysis.en.PorterStemFilterStage;
+import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilterStage;
 import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
 import org.apache.lucene.analysis.stages.attributes.Attribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
@@ -203,7 +205,7 @@ public class TestStages extends BaseTokenStreamTestCase {
     public boolean next() throws IOException {
       System.out.println("\nnext");
       if (firstPass) {
-        if (prevStage.next() == false) {
+        if (in.next() == false) {
           firstPass = false;
           it = tokens.iterator();
           nodeMap.put(0, maxToNode);
@@ -300,6 +302,20 @@ public class TestStages extends BaseTokenStreamTestCase {
     assertMatches("foo <p> bar baz",
                   new StandardTokenizerStage(new HTMLTextStage(new ReaderStage())),
                   "foo <p> bar baz");
+  }
+
+  public void testPorterStemmerBasic() throws Exception {
+    assertMatches("dogs are running",
+                  new PorterStemFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                  "dog ar run");
+  }
+
+  public void testPorterStemmerKeyword() throws Exception {
+    CharArraySet set = new CharArraySet(1, true);
+    set.add("running");
+    assertMatches("dogs are running",
+                  new PorterStemFilterStage(new SetKeywordMarkerFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), set)),
+                  "dog ar running");
   }
 
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space

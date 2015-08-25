@@ -68,7 +68,7 @@ class AssertingStage extends Stage {
 
   @Override
   public boolean next() throws IOException {
-    if (prevStage.next()) {
+    if (in.next()) {
       int from = arcAtt.from();
       int to = arcAtt.to();
 

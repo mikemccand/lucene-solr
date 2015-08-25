@@ -104,7 +104,7 @@ public class AutomatonStage extends Stage {
 
   @Override
   public boolean next() throws IOException {
-    if (prevStage.next()) {
+    if (in.next()) {
       String term = termAtt.get();
       System.out.println("GOT: " + term + " arc=" + arcAtt);
       if (term.length() == 0) {

@@ -74,7 +74,7 @@ public class CharArraySet extends AbstractSet<Object> {
   }
 
   /** Create set from the specified map (internal only), used also by {@link CharArrayMap#keySet()} */
-  CharArraySet(final CharArrayMap<Object> map){
+  CharArraySet(final CharArrayMap<Object> map) {
     this.map = map;
   }
   

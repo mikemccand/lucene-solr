@@ -38,7 +38,7 @@ public abstract class Stage {
   // To generate new nodes:
   protected final Nodes nodes;
 
-  protected final Stage prevStage;
+  protected final Stage in;
 
   /** Which Attributes this stage defines */
   private final Map<Class<? extends Attribute>, Attribute> atts = new LinkedHashMap<Class<? extends Attribute>, Attribute>();
@@ -51,12 +51,12 @@ public abstract class Stage {
   /** Only set if state needs to buffer tokens. */
   private List<Attribute> allAtts;
 
-  protected Stage(Stage prevStage) {
-    this.prevStage = prevStage;
-    if (prevStage == null) {
+  protected Stage(Stage in) {
+    this.in = in;
+    if (in == null) {
       this.nodes = new Nodes();
     } else {
-      this.nodes = prevStage.nodes;
+      this.nodes = in.nodes;
     }
   }
 
@@ -74,7 +74,7 @@ public abstract class Stage {
   protected List<AttributePair> copyOtherAtts() {
     // nocommit need test coverage of this
     List<AttributePair> pairs = new ArrayList<>();
-    Stage stage = prevStage;
+    Stage stage = in;
     while (stage != null) {
       for(Map.Entry<Class<? extends Attribute>,Attribute> ent : stage.atts.entrySet()) {
         Attribute in = ent.getValue();
@@ -84,7 +84,7 @@ public abstract class Stage {
         }
       }
 
-      stage = stage.prevStage;
+      stage = stage.in;
     }
 
     return pairs;
@@ -125,24 +125,24 @@ public abstract class Stage {
   }
 
   public final <A extends Attribute> A get(Class<A> attClass) {
-    if (prevStage == null) {
+    if (in == null) {
       throw new IllegalArgumentException("no stage sets attribute " + attClass);
     }
-    Attribute attImpl = prevStage.atts.get(attClass);
+    Attribute attImpl = in.atts.get(attClass);
     if (attImpl == null) {
-      return prevStage.get(attClass);
+      return in.get(attClass);
     }
 
     return attClass.cast(attImpl);
   }
 
   public final <A extends Attribute> A getIfExists(Class<A> attClass) {
-    if (prevStage == null) {
+    if (in == null) {
       return null;
     }
-    Attribute attImpl = prevStage.atts.get(attClass);
+    Attribute attImpl = in.atts.get(attClass);
     if (attImpl == null) {
-      return prevStage.getIfExists(attClass);
+      return in.getIfExists(attClass);
     }
 
     return attClass.cast(attImpl);
@@ -151,8 +151,8 @@ public abstract class Stage {
   public abstract boolean next() throws IOException;
 
   public void reset(Object item) {
-    if (prevStage != null) {
-      prevStage.reset(item);
+    if (in != null) {
+      in.reset(item);
     } else {
       nodes.reset();
     }
