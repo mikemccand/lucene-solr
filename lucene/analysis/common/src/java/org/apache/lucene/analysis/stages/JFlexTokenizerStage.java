@@ -25,6 +25,7 @@ import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 import org.apache.lucene.analysis.stages.attributes.TextAttribute;
+import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
 
 
 /** Wraps any JFlex generated tokenizer, but takes care of any incoming character mappings or tokens. */
@@ -34,9 +35,9 @@ public abstract class JFlexTokenizerStage extends Stage {
   protected final TextReader reader;
   private final TextAttribute textAttIn;
   private final OffsetAttribute offsetAttOut;
-  private final TermAttribute termAttIn;
   private final ArcAttribute arcAttOut;
 
+  private final TermAttribute termAttIn;
   protected final TermAttribute termAttOut;
 
   private int lastNode;
@@ -63,6 +64,11 @@ public abstract class JFlexTokenizerStage extends Stage {
     if (getIfExists(DeletedAttribute.class) == null) {
       // nocommit we may want to delete?  need to have separate delAttIn/Out if so:
       create(DeletedAttribute.class);
+    }
+
+    if (getIfExists(TypeAttribute.class) == null) {
+      TypeAttribute typeAtt = create(TypeAttribute.class);
+      typeAtt.set(CharTokenizerStage.TYPE);
     }
 
     reader = new TextReader();

@@ -20,6 +20,7 @@ package org.apache.lucene.analysis.stages;
 import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -31,6 +32,7 @@ import java.util.Set;
 class AssertingStage extends Stage {
   final ArcAttribute arcAtt;
   final TermAttribute termAtt;
+  final TypeAttribute typeAtt;
   final OffsetAttribute offsetAtt;
   private int lastFrom;
   private int tokenCount;
@@ -45,6 +47,7 @@ class AssertingStage extends Stage {
     arcAtt = get(ArcAttribute.class);
     offsetAtt = get(OffsetAttribute.class);
     termAtt = get(TermAttribute.class);
+    typeAtt = get(TypeAttribute.class);
   }
 
   @Override
@@ -87,14 +90,18 @@ class AssertingStage extends Stage {
       int startOffset = offsetAtt.startOffset();
       int endOffset = offsetAtt.endOffset();
 
-      if (endOffset != startOffset + termAtt.getOrigText().length()) {
-        throw new IllegalStateException("token " + tokenCount + ": startOffset=" + startOffset + " origText=" + termAtt.getOrigText() + " but endOffset=" + endOffset);
-      }
+      boolean isRealToken = typeAtt.get().equals(CharTokenizerStage.TYPE);
 
-      if (itemString != null) {
-        String slice = itemString.substring(startOffset, endOffset);
-        if (slice.equals(termAtt.getOrigText()) == false) {
-          throw new IllegalStateException("token " + tokenCount + ": origText=" + termAtt.getOrigText() + " but inputString[" + startOffset + ":" + endOffset + "] is " + slice);
+      if (isRealToken) {
+        if (endOffset != startOffset + termAtt.getOrigText().length()) {
+          throw new IllegalStateException("token " + tokenCount + ": startOffset=" + startOffset + " origText=" + termAtt.getOrigText() + " but endOffset=" + endOffset);
+        }
+
+        if (itemString != null) {
+          String slice = itemString.substring(startOffset, endOffset);
+          if (slice.equals(termAtt.getOrigText()) == false) {
+            throw new IllegalStateException("token " + tokenCount + ": origText=" + termAtt.getOrigText() + " but inputString[" + startOffset + ":" + endOffset + "] is " + slice);
+          }
         }
       }
 

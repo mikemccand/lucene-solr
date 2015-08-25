@@ -17,27 +17,31 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.Arrays;
+
 import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
 import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 import org.apache.lucene.analysis.stages.attributes.TextAttribute;
+import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
 import org.apache.lucene.analysis.util.CharacterUtils.CharacterBuffer;
 import org.apache.lucene.analysis.util.CharacterUtils;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.UnicodeUtil;
 import org.apache.lucene.util.Version;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.Arrays;
-
 // nocommit factor out another abstract class, that deals with pre-tokens, so that sub-class is just fed characters and produces tokens
 
 /** Simple tokenizer to split incoming {@link TextAttribute} chunks on
  *  delimiter characters as specified by a subclass overriding {@link #isTokenChar}. */
 public abstract class CharTokenizerStage extends Stage {
+
+  public final static String TYPE = "TOKEN";
+
   private static final int MAX_WORD_LEN = 255;
   private static final int IO_BUFFER_SIZE = 4096;
 
@@ -86,6 +90,10 @@ public abstract class CharTokenizerStage extends Stage {
     // We never delete tokens, but subsequent stages want to see this:
     if (getIfExists(DeletedAttribute.class) == null) {
       create(DeletedAttribute.class);
+    }
+    if (getIfExists(TypeAttribute.class) == null) {
+      TypeAttribute typeAtt = create(TypeAttribute.class);
+      typeAtt.set(TYPE);
     }
   }
 

@@ -20,6 +20,7 @@ package org.apache.lucene.analysis.stages;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
 import org.apache.lucene.analysis.stages.attributes.Attribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
 import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.util.ArrayUtil;
@@ -49,9 +51,15 @@ import org.apache.lucene.util.fst.FST;
 
 public class SynonymFilterStage extends Stage {
 
+  public static final String TYPE = "SYNONYM";
+
   // We change the term:
   private final TermAttribute termAttIn;
   private final TermAttribute termAttOut;
+
+  // We change the type:
+  private final TypeAttribute typeAttIn;
+  private final TypeAttribute typeAttOut;
 
   // We change the to/from:
   private final ArcAttribute arcAttIn;
@@ -115,6 +123,7 @@ public class SynonymFilterStage extends Stage {
     final int toNode;
 
     public OutputToken(String text, int startOffset, int endOffset, int fromNode, int toNode) {
+      System.out.println("OUTPUT: " + text);
       this.text = text;
       this.startOffset = startOffset;
       this.endOffset = endOffset;
@@ -138,6 +147,8 @@ public class SynonymFilterStage extends Stage {
     super(prevStage);
     termAttIn = get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
+    typeAttIn = get(TypeAttribute.class);
+    typeAttOut = create(TypeAttribute.class);
     arcAttIn = get(ArcAttribute.class);
     arcAttOut = create(ArcAttribute.class);
     offsetAttIn = get(OffsetAttribute.class);
@@ -264,31 +275,33 @@ public class SynonymFilterStage extends Stage {
         scratchChars = ArrayUtil.grow(scratchChars, scratchBytes.length);
       }
       int numChars = UnicodeUtil.UTF8toUTF16(scratchBytes, scratchChars);
-
+      
       int lastStart = 0;
       int lastNode = match.fromNode;
 
       for (int chIDX=0;chIDX<=numChars;chIDX++) {
         if (chIDX == numChars || scratchChars[chIDX] == SynonymMap.WORD_SEPARATOR) {
           final int outputLen = chIDX - lastStart;
-
+          
           // Caller is not allowed to have empty string in
           // the output:
           assert outputLen > 0: "output contains empty string: " + scratchChars;
 
           int toNode;
-          if (chIDX == scratchChars.length) {
+          if (chIDX == numChars) {
             toNode = arcAttIn.to();
           } else {
             toNode = nodes.newNode();
             lastStart = 1+chIDX;
           }
+          System.out.println("scratch: " + Arrays.toString(scratchChars));
+          System.out.println("lastStart=" + lastStart);
 
           // These offsets make sense for "domain name service ->
           // DNS", but for "DNS -> domain name service" it's a
           // little weird because each of the 3 output tokens will
           // have the same offsets as the original DNS token:
-          pendingOutputs.add(new OutputToken(new String(scratchChars, lastStart, outputLen),
+          pendingOutputs.add(new OutputToken(new String(scratchChars, lastStart, lastStart+outputLen),
                                              match.startOffset, offsetAttIn.endOffset(),
                                              lastNode, toNode));
           lastNode = toNode;
@@ -348,8 +361,9 @@ public class SynonymFilterStage extends Stage {
     while (true) {
       OutputToken token = pendingOutputs.pollFirst();
       if (token != null) {
-        // nocommit what origText?
+        // nocommit what origText?  we could "glom" origText from the inputs..
         termAttOut.set("", token.text);
+        typeAttOut.set(TYPE);
         offsetAttOut.set(token.startOffset, token.endOffset);
         arcAttOut.set(token.fromNode, token.toNode);
         System.out.println("  ret: buffered output term=" + termAttOut);
@@ -374,6 +388,7 @@ public class SynonymFilterStage extends Stage {
       if (prevStage.next()) {
 
         termAttOut.copyFrom(termAttIn);
+        typeAttOut.copyFrom(typeAttIn);
         arcAttOut.copyFrom(arcAttIn);
         offsetAttOut.copyFrom(offsetAttIn);
 
