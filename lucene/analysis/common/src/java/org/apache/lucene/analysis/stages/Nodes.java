@@ -17,7 +17,7 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
-class Nodes {
+public class Nodes {
   private int nextNodeID;
 
   public int newNode() {

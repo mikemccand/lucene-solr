@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis.synonym;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -26,12 +26,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.lucene.analysis.stages.Stage;
 import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
 import org.apache.lucene.analysis.stages.attributes.Attribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
-import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;

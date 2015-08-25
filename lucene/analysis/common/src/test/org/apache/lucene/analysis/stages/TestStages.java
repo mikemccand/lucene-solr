@@ -34,6 +34,7 @@ import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SynonymMap;
+import org.apache.lucene.analysis.synonym.SynonymFilterStage;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
