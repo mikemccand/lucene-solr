@@ -28,13 +28,14 @@ import java.util.Map;
 
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
 import org.apache.lucene.analysis.stages.attributes.Attribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
-import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
+import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
@@ -144,6 +145,12 @@ public class TestStages extends BaseTokenStreamTestCase {
     protected boolean isTokenChar(int c) {
       return Character.isWhitespace(c) == false && c != ',';
     }
+  }
+
+  public void testEnglishPossesiveFilter() throws Exception {
+    assertMatches("the dog's food",
+                  new EnglishPossessiveFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                  "the dog food");
   }
 
   public void testInsertDeletedPunctuation() throws Exception {
