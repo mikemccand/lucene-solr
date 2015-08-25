@@ -71,7 +71,8 @@ public class InsertDeletedPunctuationStage extends Stage {
   }
 
   private static class FindPunctuationCharFilter extends CharFilter {
-    FixedBitSet wasPunct = new FixedBitSet(128);
+    // TODO: we could be smarter here: we only need a rolling buffer with the "last" chunk available:
+    char[] punct = new char[128];
     private int pos;
 
     public FindPunctuationCharFilter(Reader input) {
@@ -88,13 +89,12 @@ public class InsertDeletedPunctuationStage extends Stage {
       int count = input.read(buffer, offset, length);
       for(int i=0;i<count;i++) {
         if (isPunct(buffer[offset+i])) {
-          if (wasPunct.length() <= pos) {
-            int nextSize = ArrayUtil.oversize(pos+1, 1);
-            FixedBitSet nextBits = new FixedBitSet(nextSize);
-            nextBits.or(wasPunct);
-            wasPunct = nextBits;
+          if (punct.length <= pos) {
+            punct = ArrayUtil.grow(punct, pos+1);
           }
-          wasPunct.set(pos);
+          punct[pos] = buffer[offset+i];
+        } else {
+          punct[pos] = 0;
         }
         pos++;
       }
@@ -138,28 +138,33 @@ public class InsertDeletedPunctuationStage extends Stage {
     if (prevStage.next()) {
       System.out.println("INS: prev=" + termAttIn.get());
       int startOffset = offsetAttIn.startOffset();
-      assert startOffset <= punctFilter.wasPunct.length();
+      assert startOffset <= punctFilter.punct.length;
+      int punctStartOffset = -1;
+      int punctEndOffset = -1;
       for(int i=lastEndOffset;i<startOffset;i++) {
-        if (punctFilter.wasPunct.get(i)) {
+        if (punctFilter.punct[i] != 0) {
           // The gap between the end of the last token,
           // and this token, had punctuation:
-          lastPunct = true;
-          break;
+          if (punctStartOffset == -1) {
+            punctStartOffset = i;
+          }
+          punctEndOffset = i;
         }
       }
-      System.out.println("INS: punct?=" + lastPunct);
+      System.out.println("INS: punct?=" + (punctStartOffset != -1));
 
-      if (lastPunct) {
+      if (punctStartOffset != -1) {
         // We insert a new node and token here:
 
         int node = nodes.newNode();
         arcAttOut.set(arcAttIn.from(), node);
         delAttOut.set(true);
-        offsetAttOut.set(lastEndOffset, startOffset);
+        offsetAttOut.set(punctStartOffset, punctEndOffset+1);
         // nocommit: copy over the actual punct chars for origText:
-        termAttOut.set(punctToken, punctToken);
+        termAttOut.set(new String(punctFilter.punct, punctStartOffset, punctEndOffset+1-punctStartOffset), punctToken);
         insertedNode = node;
         System.out.println("INS: ret punct " + termAttOut.get());
+        lastPunct = true;
       } else {
         copyToken();
         System.out.println("INS: ret non-punct " + termAttOut.get());
