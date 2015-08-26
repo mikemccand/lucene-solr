@@ -18,9 +18,12 @@ package org.apache.lucene.analysis;
  */
 
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.util.Arrays;
 
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.en.PorterStemFilter;
@@ -31,36 +34,29 @@ import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.Stage;
 import org.apache.lucene.analysis.stages.StopFilterStage;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.analysis.synonym.SolrSynonymParser;
+import org.apache.lucene.analysis.synonym.SynonymFilterStage;
+import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.IntsRefBuilder;
 
 public class EnglishTokenizerDemo {
 
-  static class Pair<T> implements Comparable<Pair<T>> {
-    BytesRef input;
-    T output;
-
-    public Pair(BytesRef input, T output) {
-      this.input = input;
-      this.output = output;
-    }
-
-    @Override
-    public int compareTo(Pair<T> other) {
-      return input.compareTo(other.input);
-    }
-  }
-
   @SuppressWarnings({ "rawtypes", "unchecked" })
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
 
     String text = args[0];
+    String syns = args[1];
+    System.out.println("SYNS: " + syns);
+
+    SolrSynonymParser parser = new SolrSynonymParser(true, true, new WhitespaceAnalyzer());
+    parser.parse(new StringReader(syns));
 
     Stage stage = new ReaderStage();
     stage = new StandardTokenizerStage(stage);
     stage = new EnglishPossessiveFilterStage(stage);
     stage = new LowerCaseFilterStage(stage);
+    stage = new SynonymFilterStage(stage, parser.build(), true);
     stage = new StopFilterStage(stage, EnglishAnalyzer.getDefaultStopSet());
     // nocommit StemExclusionSet
     stage = new PorterStemFilterStage(stage);

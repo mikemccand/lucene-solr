@@ -209,11 +209,33 @@ public class SynonymFilterStage extends Stage {
 
     boolean result = false;
 
+    int startOffset;
+    int fromNode;
+    if (match == null) {
+      startOffset = offsetAttIn.startOffset();
+      fromNode = arcAttIn.from();
+    } else {
+      startOffset = match.startOffset;
+      fromNode = match.fromNode;
+    }
+
     // Entire token matched; now see if this is a final
     // state:
     if (scratchArc.isFinal()) {
       // A match!
-      addMatch(match, fst.outputs.add(output, scratchArc.nextFinalOutput));
+      PartialMatch finalMatch;
+      if (match == null) {
+        // Single token match
+        finalMatch = new PartialMatch(startOffset,
+                                      fromNode,
+                                      arcAttIn.to(),
+                                      new FST.Arc<BytesRef>().copyFrom(scratchArc),
+                                      fst.outputs.add(output, scratchArc.output));
+      } else {
+        finalMatch = match;
+      }
+
+      addMatch(finalMatch, fst.outputs.add(output, scratchArc.nextFinalOutput));
       result = true;
     }
 
@@ -223,15 +245,6 @@ public class SynonymFilterStage extends Stage {
       // More matching is possible -- accum the output (if
       // any) of the WORD_SEP arc and add a new
       // PartialMatch:
-      int startOffset;
-      int fromNode;
-      if (match == null) {
-        startOffset = offsetAttIn.startOffset();
-        fromNode = arcAttIn.from();
-      } else {
-        startOffset = match.startOffset;
-        fromNode = match.fromNode;
-      }
 
       //System.out.println("  incr mayChange node=" + fromNode);
       //System.out.println("  add pending to node=" + arcAttIn.to());
@@ -292,19 +305,19 @@ public class SynonymFilterStage extends Stage {
             toNode = arcAttIn.to();
           } else {
             toNode = nodes.newNode();
-            lastStart = 1+chIDX;
           }
           System.out.println("scratch: " + Arrays.toString(scratchChars));
-          System.out.println("lastStart=" + lastStart);
+          System.out.println("lastStart=" + lastStart + " outputLen=" + outputLen);
 
           // These offsets make sense for "domain name service ->
           // DNS", but for "DNS -> domain name service" it's a
           // little weird because each of the 3 output tokens will
           // have the same offsets as the original DNS token:
-          pendingOutputs.add(new OutputToken(new String(scratchChars, lastStart, lastStart+outputLen),
+          pendingOutputs.add(new OutputToken(new String(scratchChars, lastStart, outputLen),
                                              match.startOffset, offsetAttIn.endOffset(),
                                              lastNode, toNode));
           lastNode = toNode;
+          lastStart = 1+chIDX;
         }
       }
     }
@@ -359,9 +372,11 @@ public class SynonymFilterStage extends Stage {
     System.out.println("\nS: next pendingMatches.size()=" + pendingMatches.size());
 
     while (true) {
-      OutputToken token = pendingOutputs.pollFirst();
-      if (token != null) {
+      OutputToken token = pendingOutputs.peek();
+      InputToken tokenIn = pendingInputs.peek();
+      if (token != null && (tokenIn == null || token.fromNode == tokenIn.fromNode)) {
         // nocommit what origText?  we could "glom" origText from the inputs..
+        pendingOutputs.pollFirst();
         termAttOut.set("", token.text);
         typeAttOut.set(TYPE);
         offsetAttOut.set(token.startOffset, token.endOffset);
@@ -370,7 +385,6 @@ public class SynonymFilterStage extends Stage {
         return true;
       }
       
-      InputToken tokenIn = pendingInputs.peek();
       if (tokenIn != null && (done || pendingMatches.isEmpty() || tokenIn.fromNode != pendingMatches.get(0).fromNode)) {
         // Restore a previous input token:
         System.out.println("  ret: buffered input: " + tokenIn);

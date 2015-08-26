@@ -28,6 +28,7 @@ import java.util.Map;
 
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.en.PorterStemFilterStage;
 import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilterStage;
@@ -36,6 +37,7 @@ import org.apache.lucene.analysis.stages.attributes.Attribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
+import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
 import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.analysis.util.CharArraySet;
@@ -77,6 +79,28 @@ public class TestStages extends BaseTokenStreamTestCase {
     assertMatches("a b c",
                   new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
                   "a b c", "x");
+  }
+
+  public void testSynSingleToken() throws Exception {
+    SynonymMap.Builder b = new SynonymMap.Builder(true);
+    add(b, "a", "x");
+    SynonymMap map = b.build();
+    assertMatches("a b c foo",
+                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                  "a b c foo", "x b c foo");
+    assertMatches("a b c",
+                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                  "a b c", "x b c");
+  }
+
+  public void testSynDNS() throws Exception {
+    SolrSynonymParser parser = new SolrSynonymParser(true, true, new WhitespaceAnalyzer());
+    parser.parse(new StringReader("dns, domain name service"));
+    SynonymMap map = parser.build();
+
+    assertMatches("dns is down",
+                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                  "dns is down", "domain name service is down");
   }
 
   public void testSynAfterDecompound() throws Exception {
