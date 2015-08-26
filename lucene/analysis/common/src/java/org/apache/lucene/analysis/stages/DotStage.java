@@ -124,12 +124,13 @@ public class DotStage extends Stage {
       }
 
       if (origText.equals(term) == false) {
-        dot.append('/');
+        dot.append(" [");
         if (delAtt.deleted()) {
           dot.append(escape(origText));
         } else {
           dot.append(origText);
         }
+        dot.append(']');
       }
       if (delAtt.deleted()) {
         dot.append("</S>>");
