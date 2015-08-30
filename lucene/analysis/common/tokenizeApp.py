@@ -11,7 +11,6 @@ import localconstants
 def application(environ, startResponse):
 
   path = environ.get('PATH_INFO', '')
-  print('path %s' % path)
   if path != '/' and not path.startswith('/tokenize.py'):
     # e.g. /favicon.ico:
     startResponse('404 NOT FOUND', [('Content-Type', 'text/plain')])
@@ -20,12 +19,12 @@ def application(environ, startResponse):
   _l = []
   w = _l.append
 
-  args = cgi.parse(environ=environ)
-  #print('GOT ARGS: %s' % str(args))
+  args = cgi.parse(environ=environ, keep_blank_values=True)
   if 'text' in args:
     text = args['text'][0]
   else:
     text = 'dns is down'
+  print('TEXT: %s' % text)
 
   if 'syns' in args:
     syns = args['syns'][0]

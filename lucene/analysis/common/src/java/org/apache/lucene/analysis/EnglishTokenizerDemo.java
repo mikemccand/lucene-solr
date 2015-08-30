@@ -31,8 +31,10 @@ import org.apache.lucene.analysis.en.PorterStemFilterStage;
 import org.apache.lucene.analysis.stages.DotStage;
 import org.apache.lucene.analysis.stages.LowerCaseFilterStage;
 import org.apache.lucene.analysis.stages.ReaderStage;
+import org.apache.lucene.analysis.stages.SplitOnDashFilterStage;
 import org.apache.lucene.analysis.stages.Stage;
 import org.apache.lucene.analysis.stages.StopFilterStage;
+import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
@@ -47,16 +49,20 @@ public class EnglishTokenizerDemo {
 
     String text = args[0];
     String syns = args[1];
-    System.out.println("SYNS: " + syns);
+    syns = syns.trim();
 
     SolrSynonymParser parser = new SolrSynonymParser(true, true, new WhitespaceAnalyzer());
     parser.parse(new StringReader(syns));
 
     Stage stage = new ReaderStage();
     stage = new StandardTokenizerStage(stage);
+    //stage = new WhitespaceTokenizerStage(stage);
+    stage = new SplitOnDashFilterStage(stage);
     stage = new EnglishPossessiveFilterStage(stage);
     stage = new LowerCaseFilterStage(stage);
-    stage = new SynonymFilterStage(stage, parser.build(), true);
+    if (syns.length() != 0) {
+      stage = new SynonymFilterStage(stage, parser.build(), true);
+    }
     stage = new StopFilterStage(stage, EnglishAnalyzer.getDefaultStopSet());
     // nocommit StemExclusionSet
     stage = new PorterStemFilterStage(stage);

@@ -17,14 +17,15 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.util.CharacterUtils;
-import org.apache.lucene.util.Attribute;
-
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Arrays;
+
+import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
+import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
+import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.util.CharacterUtils;
+import org.apache.lucene.util.Attribute;
 
 /** Simple example of decompounder-as-filter, just dividing
  *  a word at its dashes and keeping the original. */
@@ -103,6 +104,7 @@ public class SplitOnDashFilterStage extends Stage {
       
       parts = termAttIn.get().split("-");
       origParts = termAttIn.getOrigText().split("-");
+      System.out.println("SPLIT: parts=" + Arrays.toString(parts));
 
       // NOTE: not perfect, e.g. you could have a prior Stage that removed one dash and inserted another:
       if (origParts.length != parts.length) {
