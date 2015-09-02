@@ -1,5 +1,7 @@
 package org.apache.lucene.analysis.stages.attributes;
 
+import java.util.Arrays;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -25,11 +27,10 @@ public class OffsetAttribute extends Attribute {
   public OffsetAttribute() {
   }
 
-  public int startOffset() {
-    return startOffset;
-  }
-
-  public void set(int startOffset, int endOffset) {
+  /** If mapping is non-null, it encodes how characters from term translate back to characters from origText
+   *  pairwise (numCharsTerm, numCharsOrig, numCharsTerm, numCharsOrig...).  If mapping is null it means the
+   *  chars map to each other one for one. */
+  public void set(int startOffset, int endOffset, int[] mapping) {
 
     // TODO: we could assert that this is set-once, ie,
     // current values are -1?  Very few token filters should
@@ -44,6 +45,7 @@ public class OffsetAttribute extends Attribute {
 
     this.startOffset = startOffset;
     this.endOffset = endOffset;
+    this.mapping = mapping;
   }
 
   // nocommit this is redundant w/ origText?  remove it?
@@ -51,13 +53,14 @@ public class OffsetAttribute extends Attribute {
     return endOffset;
   }
 
-  public void clear() {
-    // TODO: we could use -1 as default here?  Then we can
-    // assert in setOffset...
-    startOffset = 0;
-    endOffset = 0;
+  public int startOffset() {
+    return startOffset;
   }
-  
+
+  public int[] mapping() {
+    return mapping;
+  }
+
   @Override
   public boolean equals(Object other) {
     if (other == this) {
@@ -66,29 +69,46 @@ public class OffsetAttribute extends Attribute {
     
     if (other instanceof OffsetAttribute) {
       OffsetAttribute o = (OffsetAttribute) other;
-      return o.startOffset == startOffset && o.endOffset == endOffset;
+      if (o.startOffset != startOffset) {
+        return false;
+      }
+      if (o.endOffset != endOffset) {
+        return false;
+      }
+      if (o.mapping == null) {
+        if (mapping != null) {
+          return false;
+        }
+      } else if (mapping == null) {
+        return false;
+      } else {
+        return Arrays.equal(o.mapping, mapping);
+      }
     }
     
-    return false;
+    return true;
   }
 
   @Override
   public int hashCode() {
     int code = startOffset;
     code = code * 31 + endOffset;
+    if (mapping != null) {
+      code = code * 31 + Arrays.hashCode(mapping);
+    }
     return code;
   } 
 
   @Override
   public void copyFrom(Attribute other) {
     OffsetAttribute t = (OffsetAttribute) other;
-    set(t.startOffset, t.endOffset);
+    set(t.startOffset, t.endOffset, t.mapping);
   }  
 
   @Override
   public OffsetAttribute copy() {
     OffsetAttribute att = new OffsetAttribute();
-    att.set(startOffset, endOffset);
+    att.set(startOffset, endOffset, mapping);
     return att;
   }  
 }

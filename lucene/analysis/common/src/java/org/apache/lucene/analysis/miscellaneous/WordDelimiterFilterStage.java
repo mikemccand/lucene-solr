@@ -17,23 +17,25 @@
  
 package org.apache.lucene.analysis.miscellaneous;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
+
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.stages.Stage;
 import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
+import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
 import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
 import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.InPlaceMergeSorter;
 import org.apache.lucene.util.RamUsageEstimator;
-
-import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * Splits words into subwords and performs optional transformations on subword
@@ -170,8 +172,6 @@ public final class WordDelimiterFilterStage extends Stage {
   private final OffsetAttribute offsetAttOut = create(OffsetAttribute.class);
   private final ArcAttribute arcAttIn = get(ArcAttribute.class);
   private final ArcAttribute arcAttOut = create(ArcAttribute.class);
-  private final TypeAttribute typeAttIn = get(TypeAttribute.class);
-  private final TypeAttribute typeAttOut = create(TypeAttribute.class);
   private final DeletedAttribute delAttIn = get(DeletedAttribute.class);
   private final DeletedAttribute delAttOut = create(DeletedAttribute.class);
 
@@ -179,33 +179,12 @@ public final class WordDelimiterFilterStage extends Stage {
   private final WordDelimiterIterator iterator;
 
   // used for concatenating runs of similar typed subwords (word,number)
-  private final WordDelimiterConcatenation concat = new WordDelimiterConcatenation();
-
-  // number of subwords last output by concat.
-  private int lastConcatCount = 0;
+  private final StringBuilder concat = new StringBuilder();
 
   // used for catenate all
-  private final WordDelimiterConcatenation concatAll = new WordDelimiterConcatenation();
+  private final StringBuilder concatAll = new StringBuilder();
 
-  private char savedBuffer[] = new char[1024];
-  private int savedStartOffset;
-  private int savedEndOffset;
-
-  private int curFromNode;
-  private int curToNode;
-  private boolean curDeleted;
-
-  private String savedType;
-  private boolean hasSavedState = false;
-  // if length by start + end offsets doesn't match the term text then assume
-  // this is a synonym and don't adjust the offsets.
-  private boolean hasIllegalOffsets = false;
-
-  // for a run of the same subword type within a word, have we output anything?
-  private boolean hasOutputToken = false;
-  // when preserve original is on, have we output any token following it?
-  // this token must have posInc=0!
-  private boolean hasOutputFollowingOriginal = false;
+  final LinkedList<WordPart> wordParts = new LinkedList<>();
 
   /**
    * Creates a new WordDelimiterFilter
@@ -235,234 +214,194 @@ public final class WordDelimiterFilterStage extends Stage {
     this(in, WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE, configurationFlags, protWords);
   }
 
-  @Override
-  public boolean incrementToken() throws IOException {
-    while (true) {
-      if (!hasSavedState) {
-        // process a new input word
-        if (!input.incrementToken()) {
-          return false;
-        }
+  // nocommit what about illegal offsets?
 
-        String term = termAttIn.get();
-        char[] termBuffer = term.toCharArray();
+  static class WordPart {
+    final String term;
+    final int startOffset;
+    final int endOffset;
+    final int wordType;
+    int fromNode;
+    int toNode;
 
-        iterator.setText(termBuffer, termBuffer.length);
-        iterator.next();
+    // True when this is an original word part (not a concatenation):
+    boolean isOrigPart;
 
-        termAttOut.copyFrom(termAttIn);
-        arcAttOut.copyFrom(arcAttIn);
-        offsetAttOut.copyFrom(offsetAttIn);
-        typeAttOut.copyFrom(typeAttIn);
-
-        // word of no delimiters, or protected word: just return it
-        if ((iterator.current == 0 && iterator.end == termLength) ||
-            (protWords != null && protWords.contains(termBuffer, 0, termLength))) {
-          delAttOut.copyFrom(delAttIn);
-          return true;
-        }
-        
-        // word of simply delimiters
-        if (iterator.end == WordDelimiterIterator.DONE) {
-          delAttOut.set(delAttIn.get() || has(PRESERVE_ORIGINAL) == false);
-          return true;
-        }
-
-        saveState();
-
-        hasOutputToken = false;
-        lastConcatCount = 0;
-        
-        if (has(PRESERVE_ORIGINAL)) {
-          delAttOut.copyFrom(delAttIn);
-        } else {
-          delAttOut.set();
-        }
-
-        return true;
-      }
-      
-      // at the end of the string, output any concatenations
-      if (iterator.end == WordDelimiterIterator.DONE) {
-        if (!concat.isEmpty()) {
-          if (flushConcatenation(concat)) {
-            buffer();
-            continue;
-          }
-        }
-        
-        if (!concatAll.isEmpty()) {
-          // only if we haven't output this same combo above!
-          if (concatAll.subwordCount > lastConcatCount) {
-            concatAll.writeAndClear();
-            buffer();
-            continue;
-          }
-          concatAll.clear();
-        }
-        
-        if (bufferedPos < bufferedLen) {
-          if (bufferedPos == 0) {
-            sorter.sort(0, bufferedLen);
-          }
-          clearAttributes();
-          restoreState(buffered[bufferedPos++]);
-          if (first && posIncAttribute.getPositionIncrement() == 0) {
-            // can easily happen with strange combinations (e.g. not outputting numbers, but concat-all)
-            posIncAttribute.setPositionIncrement(1);
-          }
-          first = false;
-          return true;
-        }
-        
-        // no saved concatenations, on to the next input word
-        bufferedPos = bufferedLen = 0;
-        hasSavedState = false;
-        continue;
-      }
-      
-      // word surrounded by delimiters: always output
-      if (iterator.isSingleWord()) {
-        generatePart(true);
-        iterator.next();
-        first = false;
-        return true;
-      }
-      
-      int wordType = iterator.type();
-      
-      // do we already have queued up incompatible concatenations?
-      if (!concat.isEmpty() && (concat.type & wordType) == 0) {
-        if (flushConcatenation(concat)) {
-          hasOutputToken = false;
-          buffer();
-          continue;
-        }
-        hasOutputToken = false;
-      }
-      
-      // add subwords depending upon options
-      if (shouldConcatenate(wordType)) {
-        if (concat.isEmpty()) {
-          concat.type = wordType;
-        }
-        concatenate(concat);
-      }
-      
-      // add all subwords (catenateAll)
-      if (has(CATENATE_ALL)) {
-        concatenate(concatAll);
-      }
-      
-      // if we should output the word or number part
-      if (shouldGenerateParts(wordType)) {
-        generatePart(false);
-        buffer();
-      }
-        
-      iterator.next();
+    public WordPart(String term, int startOffset, int endOffset, int wordType) {
+      this(term, startOffset, endOffset, wordType, -1, -1, true);
     }
+
+    public WordPart(String term, int startOffset, int endOffset, int wordType, int fromNode, int toNode, boolean isOrigPart) {
+      this.term = term;
+      this.startOffset = startOffset;
+      this.endOffset = endOffset;
+      this.wordType = wordType;
+      this.fromNode = fromNode;
+      this.toNode = toNode;
+      this.isOrigPart = isOrigPart;
+    }
+  }
+
+  @Override
+  public boolean next() throws IOException {
+
+    WordPart wordPart = wordParts.pollFirst();
+    if (wordPart != null) {
+      // We still have word parts buffered from last token:
+      termAttOut.set(wordPart.term, wordPart.term);
+      arcAttOut.set(wordPart.fromNode, wordPart.toNode);
+      offsetAttOut.set(wordPart.startOffset, wordPart.endOffset, null);
+      delAttOut.set(false);
+      return true;
+    }
+
+    // Now process a new input word
+    if (in.next() == false) {
+      return false;
+    }
+
+    String term = termAttIn.get();
+    char[] termBuffer = term.toCharArray();
+
+    // nocommit copy any other atts too?
+
+    termAttOut.copyFrom(termAttIn);
+    arcAttOut.copyFrom(arcAttIn);
+    offsetAttOut.copyFrom(offsetAttIn);
+    delAttOut.copyFrom(delAttIn);
+
+    // Protected word?
+    if (protWords != null && protWords.contains(termBuffer, 0, termBuffer.length)) {
+      return true;
+    }
+
+    iterator.setText(termBuffer, termBuffer.length);
+    iterator.next();
+
+    // Word has no sub-tokens?
+    if (iterator.current == 0 && iterator.end == termLength) {
+      delAttOut.copyFrom(delAttIn);
+      return true;
+    }
+        
+    // Word has only delimiters?
+    if (iterator.end == WordDelimiterIterator.DONE) {
+      if (has(PRESERVE_ORIGINAL) == false) {
+        delAttOut.set(true);
+      }
+      return true;
+    }
+
+    // First pass: iterate and save word parts:
+    do {
+      wordParts.add(new WordPart(iterator.current, iterator.end, iterator.type));
+    } while (iterate.next() != WordDelimiterIterator.DONE);
+
+    int lastNode = arcAttIn.from();
+
+    int concatStartIndex = 0;
+    int concatType = 0;
+
+    int index = 0;
+    WordPart lastWordPart;
+    String lastConcatTerm = null;
+
+    // Second pass: build concatenations
+    for(WordPart wordPart : wordParts) {
+      int nextNode;
+
+      boolean isLastWordPart = wordPart == wordParts.getLast();
+
+      if (isLastWordPart) {
+        nextNode = arcAttIn.to();
+      } else {
+        nextNode = newNode();
+      }
+      wordPart.fromNode = lastNode;
+      wordPart.toNode = nextNode;
+      lastNode = nextNode;
+
+      if (shouldConcatenate(wordPart.wordType)) {
+        if (concat.isEmpty() == false && ((concatType & wordPart.wordType) == 0)) {
+          // Word part type changed:
+          if (index - concatStartIndex >= 2) {
+            // OK we have a least 2 word parts, or we have only 1 but we are not generating parts, so now we output their concat,
+            // carefully inserting the pending output back where this concat started:
+            WordPart startWordPart = wordParts.get(lastConcatStart);
+            lastConcatTerm = concat.buffer.toString();
+            wordParts.add(concatStart+1,
+                          new WordPart(lastConcatTerm,
+                                       startWordPart.startOffset, lastWordPart.endOffset,
+                                       startWordPart.fromNode, lastWordPart.toNode,
+                                       false));
+          } else {
+            // This way, even if we are not generating word parts, we will output this one since it's a concat:
+            lastWordPart.isOrigPart = false;
+          }
+
+          concat.clear();
+          lastConcatStartIndex = index;
+        }
+
+        concatType = wordType;
+
+        concat.append(wordPart.term);
+      }
+
+      if (has(CATENATE_ALL)) {
+        concatAll.buffer.append(wordPart.term);
+      }
+
+      index++;
+      lastWordPart = wordPart;
+    }
+
+    // Output final concat?
+    if (concat.length() > 0) {
+      if (index - concatStartIndex >= 2) {
+        WordPart startWordPart = wordParts.get(lastConcatStart);
+        lastConcatTerm = 
+          wordParts.add(concatStart+1,
+                        new WordPart(concat.toString(),
+                                     startWordPart.startOffset, lastWordPart.endOffset,
+                                     startWordPart.fromNode, lastWordPart.toNode,
+                                     false));
+          
+      } else {
+        lastWordPart.isOrigPart = false;
+      }
+    }
+
+    // Output all word parts concatenated, only if we haven't output this same combo above!
+    if (concatAll.length() < term.length() && (lastConcatTerm == null || lastConcatTerm.length() < concatAll.length() )) {
+      wordParts.add(concatStart,
+                    new WordPart(concatAll.toString(),
+                                 offsetAttIn.startOffset(), offsetAttIn.endOffset(),
+                                 arcAttIn.from(), arcAttIn.to(),
+                                 false));
+    }
+
+    // Third pass: maybe remove word parts:
+    Iterator<WordPart> it = wordParts.iterator();
+    while (it.hasNext()) {
+      WordPart wordPart = it.next();
+      if (wordPart.isOrigPart && shouldGenerateParts(wordPart.wordType) == false) {
+        it.remove();
+      }
+    }
+        
+    return true;
   }
 
   @Override
   public void reset() throws IOException {
     super.reset();
-    hasSavedState = false;
+    wordParts.clear();
     concat.clear();
     concatAll.clear();
-    accumPosInc = bufferedPos = bufferedLen = 0;
   }
 
   // ================================================= Helper Methods ================================================
-
-  
-  private AttributeSource.State buffered[] = new AttributeSource.State[8];
-  private int startOff[] = new int[8];
-  private int posInc[] = new int[8];
-  private int bufferedLen = 0;
-  private int bufferedPos = 0;
-  
-  private class OffsetSorter extends InPlaceMergeSorter {
-    @Override
-    protected int compare(int i, int j) {
-      int cmp = Integer.compare(startOff[i], startOff[j]);
-      if (cmp == 0) {
-        cmp = Integer.compare(posInc[j], posInc[i]);
-      }
-      return cmp;
-    }
-
-    @Override
-    protected void swap(int i, int j) {
-      AttributeSource.State tmp = buffered[i];
-      buffered[i] = buffered[j];
-      buffered[j] = tmp;
-      
-      int tmp2 = startOff[i];
-      startOff[i] = startOff[j];
-      startOff[j] = tmp2;
-      
-      tmp2 = posInc[i];
-      posInc[i] = posInc[j];
-      posInc[j] = tmp2;
-    }
-  }
-  
-  final OffsetSorter sorter = new OffsetSorter();
-  
-  private void buffer() {
-    if (bufferedLen == buffered.length) {
-      int newSize = ArrayUtil.oversize(bufferedLen+1, 8);
-      buffered = Arrays.copyOf(buffered, newSize);
-      startOff = Arrays.copyOf(startOff, newSize);
-      posInc = Arrays.copyOf(posInc, newSize);
-    }
-    startOff[bufferedLen] = offsetAttribute.startOffset();
-    posInc[bufferedLen] = posIncAttribute.getPositionIncrement();
-    buffered[bufferedLen] = captureState();
-    bufferedLen++;
-  }
-  
-  /**
-   * Saves the existing attribute states
-   */
-  private void saveState() {
-    // otherwise, we have delimiters, save state
-    savedStartOffset = offsetAttribute.startOffset();
-    savedEndOffset = offsetAttribute.endOffset();
-    // if length by start + end offsets doesn't match the term text then assume this is a synonym and don't adjust the offsets.
-    hasIllegalOffsets = (savedEndOffset - savedStartOffset != termAttribute.length());
-    savedType = typeAttribute.type();
-
-    if (savedBuffer.length < termAttribute.length()) {
-      savedBuffer = new char[ArrayUtil.oversize(termAttribute.length(), RamUsageEstimator.NUM_BYTES_CHAR)];
-    }
-
-    System.arraycopy(termAttribute.buffer(), 0, savedBuffer, 0, termAttribute.length());
-    iterator.text = savedBuffer;
-
-    curFromNode = arcAttIn.from();
-    curToNode = arcAttIn.to();
-    curDeleted = delAttIn.get();
-        
-    hasSavedState = true;
-  }
-
-  /**
-   * Flushes the given WordDelimiterConcatenation by either writing its concat and then clearing, or just clearing.
-   *
-   * @param concatenation WordDelimiterConcatenation that will be flushed
-   * @return {@code true} if the concatenation was written before it was cleared, {@code false} otherwise
-   */
-  private boolean flushConcatenation(WordDelimiterConcatenation concatenation) {
-    lastConcatCount = concatenation.subwordCount;
-    if (concatenation.subwordCount != 1 || !shouldGenerateParts(concatenation.type)) {
-      concatenation.writeAndClear();
-      return true;
-    }
-    concatenation.clear();
-    return false;
-  }
 
   /**
    * Determines whether to concatenate a word or number if the current word is the given type
@@ -482,72 +421,6 @@ public final class WordDelimiterFilterStage extends Stage {
    */
   private boolean shouldGenerateParts(int wordType) {
     return (has(GENERATE_WORD_PARTS) && isAlpha(wordType)) || (has(GENERATE_NUMBER_PARTS) && isDigit(wordType));
-  }
-
-  /**
-   * Concatenates the saved buffer to the given WordDelimiterConcatenation
-   *
-   * @param concatenation WordDelimiterConcatenation to concatenate the buffer to
-   */
-  private void concatenate(WordDelimiterConcatenation concatenation) {
-    if (concatenation.isEmpty()) {
-      concatenation.startOffset = savedStartOffset + iterator.current;
-    }
-    concatenation.append(savedBuffer, iterator.current, iterator.end - iterator.current);
-    concatenation.endOffset = savedStartOffset + iterator.end;
-  }
-
-  /**
-   * Generates a word/number part, updating the appropriate attributes
-   *
-   * @param isSingleWord {@code true} if the generation is occurring from a single word, {@code false} otherwise
-   */
-  private void generatePart(boolean isSingleWord) {
-    clearAttributes();
-    termAttribute.copyBuffer(savedBuffer, iterator.current, iterator.end - iterator.current);
-
-    int startOffset = savedStartOffset + iterator.current;
-    int endOffset = savedStartOffset + iterator.end;
-    
-    if (hasIllegalOffsets) {
-      // historically this filter did this regardless for 'isSingleWord', 
-      // but we must do a sanity check:
-      if (isSingleWord && startOffset <= savedEndOffset) {
-        offsetAttribute.setOffset(startOffset, savedEndOffset);
-      } else {
-        offsetAttribute.setOffset(savedStartOffset, savedEndOffset);
-      }
-    } else {
-      offsetAttribute.setOffset(startOffset, endOffset);
-    }
-    posIncAttribute.setPositionIncrement(position(false));
-    typeAttribute.setType(savedType);
-  }
-
-  /**
-   * Get the position increment gap for a subword or concatenation
-   *
-   * @param inject true if this token wants to be injected
-   * @return position increment gap
-   */
-  private int position(boolean inject) {
-    int posInc = accumPosInc;
-
-    if (hasOutputToken) {
-      accumPosInc = 0;
-      return inject ? 0 : Math.max(1, posInc);
-    }
-
-    hasOutputToken = true;
-    
-    if (!hasOutputFollowingOriginal) {
-      // the first token following the original is 0 regardless
-      hasOutputFollowingOriginal = true;
-      return 0;
-    }
-    // clear the accumulated position increment
-    accumPosInc = 0;
-    return Math.max(1, posInc);
   }
 
   /**
@@ -571,16 +444,6 @@ public final class WordDelimiterFilterStage extends Stage {
   }
 
   /**
-   * Checks if the given word type includes {@link #SUBWORD_DELIM}
-   *
-   * @param type Word type to check
-   * @return {@code true} if the type contains SUBWORD_DELIM, {@code false} otherwise
-   */
-  static boolean isSubwordDelim(int type) {
-    return (type & SUBWORD_DELIM) != 0;
-  }
-
-  /**
    * Checks if the given word type includes {@link #UPPER}
    *
    * @param type Word type to check
@@ -600,79 +463,6 @@ public final class WordDelimiterFilterStage extends Stage {
     return (flags & flag) != 0;
   }
 
-  // ================================================= Inner Classes =================================================
-
-  /**
-   * A WDF concatenated 'run'
-   */
-  final class WordDelimiterConcatenation {
-    final StringBuilder buffer = new StringBuilder();
-    int startOffset;
-    int endOffset;
-    int type;
-    int subwordCount;
-
-    /**
-     * Appends the given text of the given length, to the concetenation at the given offset
-     *
-     * @param text Text to append
-     * @param offset Offset in the concetenation to add the text
-     * @param length Length of the text to append
-     */
-    void append(char text[], int offset, int length) {
-      buffer.append(text, offset, length);
-      subwordCount++;
-    }
-
-    /**
-     * Writes the concatenation to the attributes
-     */
-    void write() {
-      clearAttributes();
-      if (termAttribute.length() < buffer.length()) {
-        termAttribute.resizeBuffer(buffer.length());
-      }
-      char termbuffer[] = termAttribute.buffer();
-      
-      buffer.getChars(0, buffer.length(), termbuffer, 0);
-      termAttribute.setLength(buffer.length());
-        
-      if (hasIllegalOffsets) {
-        offsetAttribute.setOffset(savedStartOffset, savedEndOffset);
-      }
-      else {
-        offsetAttribute.setOffset(startOffset, endOffset);
-      }
-      posIncAttribute.setPositionIncrement(position(true));
-      typeAttribute.setType(savedType);
-      accumPosInc = 0;
-    }
-
-    /**
-     * Determines if the concatenation is empty
-     *
-     * @return {@code true} if the concatenation is empty, {@code false} otherwise
-     */
-    boolean isEmpty() {
-      return buffer.length() == 0;
-    }
-
-    /**
-     * Clears the concatenation and resets its state
-     */
-    void clear() {
-      buffer.setLength(0);
-      startOffset = endOffset = type = subwordCount = 0;
-    }
-
-    /**
-     * Convenience method for the common scenario of having to write the concetenation and then clearing its state
-     */
-    void writeAndClear() {
-      write();
-      clear();
-    }
-  }
   // questions:
   // negative numbers?  -42 indexed as just 42?
   // dollar sign?  $42

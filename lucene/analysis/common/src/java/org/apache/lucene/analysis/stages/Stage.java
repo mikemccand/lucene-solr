@@ -36,7 +36,7 @@ import java.util.Set;
 public abstract class Stage {
 
   // To generate new nodes:
-  protected final Nodes nodes;
+  private final Nodes nodes;
 
   protected final Stage in;
 
@@ -162,6 +162,10 @@ public abstract class Stage {
     // Confirm it really is defined, else it's silly to delete it:
     get(attClass);
     deletedAtts.add(attClass);
+  }
+
+  protected int newNode() {
+    return nodes.newNode();
   }
 
   // nocommit should we impl close()?  why?

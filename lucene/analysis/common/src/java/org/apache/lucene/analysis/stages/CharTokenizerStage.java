@@ -110,38 +110,7 @@ public abstract class CharTokenizerStage extends Stage {
     bufferIndex = 0;
   }
 
-  private int nextInputChar() throws IOException {
-    if (end) {
-      return -1;
-    }
-    System.out.println("C: nextInputChar inputNextRead=" + inputNextRead + " len=" + textAttIn.getLength());
-    if (inputNextRead == textAttIn.getLength()) {
-      inputNextRead = 0;
-      if (in.next() == false) {
-        //System.out.println("END");
-        end = true;
-        return -1;
-      }
-      if (termAttIn != null && termAttIn.getOrigText().length() != 0) {
-        // The stage before us just sent its own token, which we must pass-through:
-        return -2;
-      }
-      assert textAttIn.getLength() > 0;
-    }
-
-    if (textAttIn.getLength() == 1) {
-      System.out.println("  length 1 incr " + textAttIn.getOrigLength());
-      offset += textAttIn.getOrigLength();
-    } else {
-      offset++;
-    }
-
-    char c = textAttIn.getBuffer()[inputNextRead++];
-    //System.out.println("NEXT: " + c);
-    return c;
-  }
-
-  private void setPreToken() {
+  private void copyPreToken() {
     termAttOut.copyFrom(termAttIn);
     int node = nodes.newNode();
     arcAtt.set(lastNode, node);
@@ -160,7 +129,7 @@ public abstract class CharTokenizerStage extends Stage {
     }
 
     if (pendingToken) {
-      setPreToken();
+      copyPreToken();
       return true;
     }
 
@@ -168,40 +137,59 @@ public abstract class CharTokenizerStage extends Stage {
     int nextOrigWrite = 0;
     int startOffset = -1;
     int lastHighSurrogate = -1;
+    int mappedPending = 0;
 
+    token:
     while (true) {
 
       int charStartOffset = offset;
 
       if (inputNextRead == textAttIn.getLength()) {
-        inputNextRead = 0;
-        if (in.next() == false) {
-          end = true;
-          break;
+
+        // Because stage before us could send us TextAtt that mapped to empty string (e.g. deleted punct or something):
+        while (true) {
+
+          if (in.next() == false) {
+            end = true;
+            break token;
+          }
+
+          inputNextRead = 0;
+
+          if (termAttIn != null && termAttIn.getOrigText().length() != 0) {
+            // Stage before us now wants to pass through a pre-token:
+            if (nextWrite > 0) {
+              // ... but we have our own token to output first:
+              pendingToken = true;
+              break token;
+            } else { 
+              // ... or not, so we just return the pre-token now:
+              copyPreToken();
+              return true;
+            }
+          }
+          
+          int textLength = textAttIn.getLength();
+
+          if (textAttIn.getChanged()) {
+            // Text was remapped before us:
+            mappedPending = textAttIn.getLength();
+            offset += textAttIn.getOrigLength();
+          }
+
+          if (textLength > 0) {
+            break;
+          }
         }
-      }
-
-      if (termAttIn != null && termAttIn.getOrigText().length() != 0) {
-        if (nextWrite > 0) {
-          pendingToken = true;
-          break;
-        } else {
-          setPreToken();
-          return true;
-        }
-      }
-
-      assert textAttIn.getLength() > 0;
-
-      if (textAttIn.getLength() == 1) {
-        int origLength = textAttIn.getOrigLength();
-        System.out.println("  length 1 incr " + origLength);
-        offset += origLength;
-      } else {
-        offset++;
       }
 
       char c = textAttIn.getBuffer()[inputNextRead++];
+      if (mappedPending > 0) {
+        // We are still inside a mapped chunk of text:
+        mappedPending--;
+      } else {
+        offset++;
+      }
 
       int utf32;
 
@@ -233,23 +221,12 @@ public abstract class CharTokenizerStage extends Stage {
           startOffset = charStartOffset;
         }
         buffer[nextWrite++] = utf32;
-        if (textAttIn.getLength() == 1) {
-          int origLength = textAttIn.getOrigLength();
-          if (nextOrigWrite + origLength > origBuffer.length) {
-            origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + origLength);
-          }
-          System.out.println("nextOrigWrite=" + nextOrigWrite + " origLength=" + origLength + " origBuffer.length=" + origBuffer.length + " textAttIn.origBuff.length=" + textAttIn.getOrigBuffer().length);
-          System.arraycopy(textAttIn.getOrigBuffer(), 0, origBuffer, nextOrigWrite, origLength);
-          nextOrigWrite += origLength;
-        } else if (textAttIn.getLength() != textAttIn.getOrigLength()) {
-          throw new IllegalStateException("can't yet handle mapping to more than one character");
-        } else {
-          if (nextOrigWrite + 1 > origBuffer.length) {
-            origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + 1);
-          }
-          origBuffer[nextOrigWrite] = textAttIn.getOrigBuffer()[inputNextRead-1];
-          nextOrigWrite++;
+        int origToCopy = offset - charStartOffset;
+        if (nextOrigWrite + origToCopy > origBuffer.length) {
+          origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + origToCopy);
         }
+        System.arraycopy(textAttIn.getOrigBuffer(), charStartOffset, origBuffer, nextOrigWrite, origToCopy);
+        nextOrigWrite += origToCopy;
       }
     }
 
@@ -258,6 +235,13 @@ public abstract class CharTokenizerStage extends Stage {
       assert end;
       offsetAtt.set(offset, offset);
       return false;
+    }
+
+    if (mappedPending != 0) {
+      // nocommit need test case
+      // nocommit add more details here
+      // nocommit should we "relax" this and make a best effort instead?
+      throw new IllegalArgumentException("cannot split token inside a mapping");
     }
 
     String term = UnicodeUtil.newString(buffer, 0, nextWrite);

@@ -304,6 +304,8 @@ public class TestStages extends BaseTokenStreamTestCase {
                   "foo <p> bar baz");
   }
 
+  // nocommit test "char filter" that removes characters
+
   public void testHTMLEscape() throws Exception {
     assertMatches("foo &Eacute;mily bar baz",
                   new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),

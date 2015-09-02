@@ -24,20 +24,28 @@ public class TextAttribute extends Attribute {
 
   private char[] origBuffer;
   private int origLength;
+  private boolean changed;
+
+  public void set(String text, String origText) {
+    // nocommit what are sharing semantics here!
+    char[] chars = text.toCharArray();
+    char[] origChars = origText.toCharArray();
+    set(chars, chars.length, origChars, origChars.length, true);
+  }
 
   public void set(char[] buffer, int length) {
     // nocommit what are sharing semantics here!
-    if (buffer.length < length) {
-      throw new IllegalArgumentException("buffer.length=" + buffer.length + " but length=" + length);
-    }
-    this.buffer = buffer;
-    this.length = length;
-    this.origBuffer = buffer;
-    this.origLength = length;
+    set(buffer, length, buffer, length, false);
   }
 
   public void set(char[] buffer, int length,
                   char[] origBuffer, int origLength) {
+    set(buffer, length, origBuffer, origLength, true);
+  }
+
+  public void set(char[] buffer, int length,
+                  char[] origBuffer, int origLength,
+                  boolean changed) {
     // nocommit what are sharing semantics here!
     if (buffer.length < length) {
       throw new IllegalArgumentException("buffer.length=" + buffer.length + " but length=" + length);
@@ -49,14 +57,7 @@ public class TextAttribute extends Attribute {
     this.length = length;
     this.origBuffer = origBuffer;
     this.origLength = origLength;
-  }
-
-  public void set(String text, String origText) {
-    // nocommit what are sharing semantics here!
-    this.buffer = text.toCharArray();
-    this.length = this.buffer.length;
-    this.origBuffer = origText.toCharArray();
-    this.origLength = this.origBuffer.length;
+    this.changed = changed;
   }
 
   public char[] getBuffer() {
@@ -75,11 +76,16 @@ public class TextAttribute extends Attribute {
     return origLength;
   }
 
+  /** True if buffer and origBuffer are different. */
+  public boolean getChanged() {
+    return changed;
+  }
+
   @Override
   public String toString() {
     // NOTE: make String from char[] since it can legally end with only high surrogate
     // nocommit fixme w/ origText/length
-    return "TextAttribute length=" + length;
+    return "TextAttribute length=" + length + " origLength=" + origLength = " changed=" + changed;
   }
 
   @Override
@@ -87,7 +93,8 @@ public class TextAttribute extends Attribute {
     TextAttribute t = (TextAttribute) other;
     // nocommit what are sharing semantics here!
     set(t.buffer.clone(), t.length,
-        t.origBuffer.clone(), t.origLength);
+        t.origBuffer.clone(), t.origLength,
+        t.changed);
   }
 
   @Override
@@ -95,12 +102,5 @@ public class TextAttribute extends Attribute {
     TextAttribute att = new TextAttribute();
     att.copyFrom(this);
     return att;
-  }
-
-  public void clear() {
-    buffer = null;
-    length = 0;
-    origBuffer = null;
-    origLength = 0;
   }
 }

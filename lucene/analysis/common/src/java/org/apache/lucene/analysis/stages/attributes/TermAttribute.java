@@ -52,9 +52,4 @@ public class TermAttribute extends Attribute {
     att.copyFrom(this);
     return att;
   }
-
-  public void clear() {
-    term = "";
-    origText = "";
-  }
 }
