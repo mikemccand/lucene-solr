@@ -47,10 +47,10 @@ public class TextAttribute extends Attribute {
                   char[] origBuffer, int origLength,
                   boolean changed) {
     // nocommit what are sharing semantics here!
-    if (buffer.length < length) {
+    if (buffer != null && buffer.length < length) {
       throw new IllegalArgumentException("buffer.length=" + buffer.length + " but length=" + length);
     }
-    if (origBuffer.length < origLength) {
+    if (origBuffer != null && origBuffer.length < origLength) {
       throw new IllegalArgumentException("origBuffer.length=" + origBuffer.length + " but origLength=" + origLength);
     }
     this.buffer = buffer;
@@ -85,7 +85,7 @@ public class TextAttribute extends Attribute {
   public String toString() {
     // NOTE: make String from char[] since it can legally end with only high surrogate
     // nocommit fixme w/ origText/length
-    return "TextAttribute length=" + length + " origLength=" + origLength = " changed=" + changed;
+    return "TextAttribute length=" + length + " origLength=" + origLength + " changed=" + changed;
   }
 
   @Override

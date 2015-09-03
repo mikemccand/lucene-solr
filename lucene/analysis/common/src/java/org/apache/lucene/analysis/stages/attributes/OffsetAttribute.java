@@ -22,9 +22,14 @@ import java.util.Arrays;
 public class OffsetAttribute extends Attribute {
   private int startOffset;
   private int endOffset;
+  private int[] mapping;
   
   /** Initialize this attribute with startOffset and endOffset of 0. */
   public OffsetAttribute() {
+  }
+
+  public void set(int startOffset, int endOffset) {
+    set(startOffset, endOffset, null);
   }
 
   /** If mapping is non-null, it encodes how characters from term translate back to characters from origText
@@ -82,7 +87,7 @@ public class OffsetAttribute extends Attribute {
       } else if (mapping == null) {
         return false;
       } else {
-        return Arrays.equal(o.mapping, mapping);
+        return Arrays.equals(o.mapping, mapping);
       }
     }
     

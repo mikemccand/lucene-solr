@@ -55,8 +55,7 @@ public class ReaderStage extends Stage {
     } else {
       throw new IllegalArgumentException("item must be a String or Reader; got: " + item);
     }
-    // nocommit sort of awkward we clear atts here?
-    textAttOut.clear();
+    textAttOut.set(null, 0, null, 0);
   }
   
   @Override

@@ -269,7 +269,7 @@ public class TestStages extends BaseTokenStreamTestCase {
     private int remapNode(int node) {
       Integer newNode = nodeMap.get(node);
       if (newNode == null) {
-        newNode = nodes.newNode();
+        newNode = newNode();
         nodeMap.put(node, newNode);
       }
       

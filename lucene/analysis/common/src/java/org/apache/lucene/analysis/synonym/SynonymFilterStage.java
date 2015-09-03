@@ -304,7 +304,7 @@ public class SynonymFilterStage extends Stage {
           if (chIDX == numChars) {
             toNode = arcAttIn.to();
           } else {
-            toNode = nodes.newNode();
+            toNode = newNode();
           }
           System.out.println("scratch: " + Arrays.toString(scratchChars));
           System.out.println("lastStart=" + lastStart + " outputLen=" + outputLen);

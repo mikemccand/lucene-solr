@@ -96,9 +96,8 @@ public class HTMLTextStage extends Stage {
     inputNextRead = 0;
     outputNextWrite = 0;
     end = false;
-    // nocommit sort of awkward we clear atts here?
-    textAttOut.clear();
-    termAttOut.clear();
+    textAttOut.set(null, 0, null, 0);
+    termAttOut.set("", "");
   }
 
   private void append(int ch) {
@@ -118,16 +117,16 @@ public class HTMLTextStage extends Stage {
     System.out.println("H: fillToken '" + tag + "'");
     termAttOut.set(tag, tag);
     outputNextWrite = 0;
-    textAttOut.clear();
+    textAttOut.set(null, 0, null, 0);
     delAttOut.set(true);
   }
 
   /** Return a chunk of text */
   private void fillText() {
     System.out.println("H: fillText '" + new String(buffer, 0, outputNextWrite) + "'");
-    textAttOut.set(buffer, outputNextWrite, buffer, outputNextWrite);
+    textAttOut.set(buffer, outputNextWrite);
     outputNextWrite = 0;
-    termAttOut.clear();
+    termAttOut.set("", "");
     delAttOut.set(false);
   }
 
@@ -136,7 +135,7 @@ public class HTMLTextStage extends Stage {
     char[] mappedChars = mapped.toCharArray();
     textAttOut.set(mappedChars, mappedChars.length, buffer, outputNextWrite);
     outputNextWrite = 0;
-    termAttOut.clear();
+    termAttOut.set("", "");
     delAttOut.set(false);
   }
 

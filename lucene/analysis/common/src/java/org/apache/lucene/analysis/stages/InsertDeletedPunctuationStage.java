@@ -156,7 +156,7 @@ public class InsertDeletedPunctuationStage extends Stage {
       if (punctStartOffset != -1) {
         // We insert a new node and token here:
 
-        int node = nodes.newNode();
+        int node = newNode();
         arcAttOut.set(arcAttIn.from(), node);
         delAttOut.set(true);
         offsetAttOut.set(punctStartOffset, punctEndOffset+1);

@@ -80,7 +80,7 @@ public abstract class JFlexTokenizerStage extends Stage {
     nextReadText = 0;
     reader.reset();
     init(reader);
-    lastNode = nodes.newNode();
+    lastNode = newNode();
     offset = 0;
   }
 
@@ -100,6 +100,7 @@ public abstract class JFlexTokenizerStage extends Stage {
         // Force tokenizer to finish this chunk of text before we interleave the pre-token into our output:
         return -1;
       }
+      System.out.println("TextReader.read nextReadText=" + nextReadText + " vs " + textAttIn.getLength());
 
       if (nextReadText == textAttIn.getLength()) {
         if (in.next() == false) {
@@ -132,7 +133,7 @@ public abstract class JFlexTokenizerStage extends Stage {
   public boolean next() throws IOException {
     if (readNextToken()) {
       // nocommit get incoming char mappings working:
-      int node = nodes.newNode();
+      int node = newNode();
       arcAttOut.set(lastNode, node);
       lastNode = node;
       int start = getTokenStart();
@@ -148,7 +149,7 @@ public abstract class JFlexTokenizerStage extends Stage {
       offset += termAttIn.getOrigText().length();
       reader.preToken = false;
 
-      int node = nodes.newNode();
+      int node = newNode();
       arcAttOut.set(lastNode, node);
       lastNode = node;
 

@@ -90,6 +90,15 @@ class AssertingStage extends Stage {
       int startOffset = offsetAtt.startOffset();
       int endOffset = offsetAtt.endOffset();
 
+      if (itemString != null) {
+        if (startOffset >= itemString.length()) {
+          throw new IllegalStateException("token " + tokenCount + ": startOffset=" + startOffset + " is beyond end of input string length=" + itemString.length());
+        }
+        if (endOffset > itemString.length()) {
+          throw new IllegalStateException("token " + tokenCount + ": endOffset=" + endOffset + " is beyond end of input string length=" + itemString.length());
+        }
+      }
+
       boolean isRealToken = typeAtt.get().equals(CharTokenizerStage.TYPE);
 
       if (isRealToken) {

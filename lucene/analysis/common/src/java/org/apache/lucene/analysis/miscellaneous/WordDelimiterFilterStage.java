@@ -245,12 +245,12 @@ public final class WordDelimiterFilterStage extends Stage {
   @Override
   public boolean next() throws IOException {
 
-    WordPart wordPart = wordParts.pollFirst();
-    if (wordPart != null) {
+    WordPart wordPartOut = wordParts.pollFirst();
+    if (wordPartOut != null) {
       // We still have word parts buffered from last token:
-      termAttOut.set(wordPart.term, wordPart.term);
-      arcAttOut.set(wordPart.fromNode, wordPart.toNode);
-      offsetAttOut.set(wordPart.startOffset, wordPart.endOffset, null);
+      termAttOut.set(wordPartOut.term, wordPartOut.term);
+      arcAttOut.set(wordPartOut.fromNode, wordPartOut.toNode);
+      offsetAttOut.set(wordPartOut.startOffset, wordPartOut.endOffset, null);
       delAttOut.set(false);
       return true;
     }
@@ -279,7 +279,7 @@ public final class WordDelimiterFilterStage extends Stage {
     iterator.next();
 
     // Word has no sub-tokens?
-    if (iterator.current == 0 && iterator.end == termLength) {
+    if (iterator.current == 0 && iterator.end == termBuffer.length) {
       delAttOut.copyFrom(delAttIn);
       return true;
     }
@@ -294,8 +294,8 @@ public final class WordDelimiterFilterStage extends Stage {
 
     // First pass: iterate and save word parts:
     do {
-      wordParts.add(new WordPart(iterator.current, iterator.end, iterator.type));
-    } while (iterate.next() != WordDelimiterIterator.DONE);
+      wordParts.add(new WordPart(new String(termBuffer, iterator.current, iterator.end), iterator.current, iterator.end, iterator.type()));
+    } while (iterator.next() != WordDelimiterIterator.DONE);
 
     int lastNode = arcAttIn.from();
 
@@ -303,11 +303,11 @@ public final class WordDelimiterFilterStage extends Stage {
     int concatType = 0;
 
     int index = 0;
-    WordPart lastWordPart;
+    WordPart lastWordPart = null;
     String lastConcatTerm = null;
 
     // Second pass: build concatenations
-    for(WordPart wordPart : wordParts) {
+    for (WordPart wordPart : wordParts) {
       int nextNode;
 
       boolean isLastWordPart = wordPart == wordParts.getLast();
@@ -322,16 +322,17 @@ public final class WordDelimiterFilterStage extends Stage {
       lastNode = nextNode;
 
       if (shouldConcatenate(wordPart.wordType)) {
-        if (concat.isEmpty() == false && ((concatType & wordPart.wordType) == 0)) {
+        if (concat.length() > 0 && ((concatType & wordPart.wordType) == 0)) {
           // Word part type changed:
           if (index - concatStartIndex >= 2) {
             // OK we have a least 2 word parts, or we have only 1 but we are not generating parts, so now we output their concat,
             // carefully inserting the pending output back where this concat started:
-            WordPart startWordPart = wordParts.get(lastConcatStart);
-            lastConcatTerm = concat.buffer.toString();
-            wordParts.add(concatStart+1,
+            WordPart startWordPart = wordParts.get(concatStartIndex);
+            lastConcatTerm = concat.toString();
+            wordParts.add(concatStartIndex+1,
                           new WordPart(lastConcatTerm,
                                        startWordPart.startOffset, lastWordPart.endOffset,
+                                       concatType,
                                        startWordPart.fromNode, lastWordPart.toNode,
                                        false));
           } else {
@@ -339,17 +340,17 @@ public final class WordDelimiterFilterStage extends Stage {
             lastWordPart.isOrigPart = false;
           }
 
-          concat.clear();
-          lastConcatStartIndex = index;
+          concat.setLength(0);
+          concatStartIndex = index;
         }
 
-        concatType = wordType;
+        concatType = iterator.type();
 
         concat.append(wordPart.term);
       }
 
       if (has(CATENATE_ALL)) {
-        concatAll.buffer.append(wordPart.term);
+        concatAll.append(wordPart.term);
       }
 
       index++;
@@ -359,13 +360,14 @@ public final class WordDelimiterFilterStage extends Stage {
     // Output final concat?
     if (concat.length() > 0) {
       if (index - concatStartIndex >= 2) {
-        WordPart startWordPart = wordParts.get(lastConcatStart);
-        lastConcatTerm = 
-          wordParts.add(concatStart+1,
-                        new WordPart(concat.toString(),
-                                     startWordPart.startOffset, lastWordPart.endOffset,
-                                     startWordPart.fromNode, lastWordPart.toNode,
-                                     false));
+        WordPart startWordPart = wordParts.get(concatStartIndex);
+        lastConcatTerm = concat.toString();
+        wordParts.add(concatStartIndex+1,
+                      new WordPart(lastConcatTerm,
+                                   startWordPart.startOffset, lastWordPart.endOffset,
+                                   concatType,
+                                   startWordPart.fromNode, lastWordPart.toNode,
+                                   false));
           
       } else {
         lastWordPart.isOrigPart = false;
@@ -373,10 +375,11 @@ public final class WordDelimiterFilterStage extends Stage {
     }
 
     // Output all word parts concatenated, only if we haven't output this same combo above!
-    if (concatAll.length() < term.length() && (lastConcatTerm == null || lastConcatTerm.length() < concatAll.length() )) {
-      wordParts.add(concatStart,
+    if (concatAll.length() < term.length() && (lastConcatTerm == null || lastConcatTerm.length() < concatAll.length())) {
+      wordParts.add(1,
                     new WordPart(concatAll.toString(),
                                  offsetAttIn.startOffset(), offsetAttIn.endOffset(),
+                                 0,
                                  arcAttIn.from(), arcAttIn.to(),
                                  false));
     }
@@ -394,11 +397,11 @@ public final class WordDelimiterFilterStage extends Stage {
   }
 
   @Override
-  public void reset() throws IOException {
-    super.reset();
+  public void reset(Object item) {
+    super.reset(item);
     wordParts.clear();
-    concat.clear();
-    concatAll.clear();
+    concat.setLength(0);
+    concatAll.setLength(0);
   }
 
   // ================================================= Helper Methods ================================================

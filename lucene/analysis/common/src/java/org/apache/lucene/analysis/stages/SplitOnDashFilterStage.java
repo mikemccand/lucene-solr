@@ -88,7 +88,7 @@ public class SplitOnDashFilterStage extends Stage {
         to = arcAttIn.to();
         parts = null;
       } else {
-        to = nodes.newNode();
+        to = newNode();
         nextPart++;
       }
       arcAttOut.set(from, to);
