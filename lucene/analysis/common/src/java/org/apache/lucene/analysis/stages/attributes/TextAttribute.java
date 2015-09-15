@@ -24,28 +24,25 @@ public class TextAttribute extends Attribute {
 
   private char[] origBuffer;
   private int origLength;
-  private boolean changed;
 
+  // nocommit reverse order of these args, to match term?
+
+  /** Sets a mapped text chunk */
   public void set(String text, String origText) {
     // nocommit what are sharing semantics here!
     char[] chars = text.toCharArray();
     char[] origChars = origText.toCharArray();
-    set(chars, chars.length, origChars, origChars.length, true);
+    set(chars, chars.length, origChars, origChars.length);
   }
 
+  /** Sets the un-mapped text chunk */
   public void set(char[] buffer, int length) {
     // nocommit what are sharing semantics here!
-    set(buffer, length, buffer, length, false);
+    set(buffer, length, null, 0);
   }
 
   public void set(char[] buffer, int length,
                   char[] origBuffer, int origLength) {
-    set(buffer, length, origBuffer, origLength, true);
-  }
-
-  public void set(char[] buffer, int length,
-                  char[] origBuffer, int origLength,
-                  boolean changed) {
     // nocommit what are sharing semantics here!
     if (buffer != null && buffer.length < length) {
       throw new IllegalArgumentException("buffer.length=" + buffer.length + " but length=" + length);
@@ -57,7 +54,6 @@ public class TextAttribute extends Attribute {
     this.length = length;
     this.origBuffer = origBuffer;
     this.origLength = origLength;
-    this.changed = changed;
   }
 
   public char[] getBuffer() {
@@ -68,6 +64,7 @@ public class TextAttribute extends Attribute {
     return length;
   }
 
+  /** This returns null if origText == text (not mapped) */
   public char[] getOrigBuffer() {
     return origBuffer;
   }
@@ -76,16 +73,11 @@ public class TextAttribute extends Attribute {
     return origLength;
   }
 
-  /** True if buffer and origBuffer are different. */
-  public boolean getChanged() {
-    return changed;
-  }
-
   @Override
   public String toString() {
     // NOTE: make String from char[] since it can legally end with only high surrogate
     // nocommit fixme w/ origText/length
-    return "TextAttribute length=" + length + " origLength=" + origLength + " changed=" + changed;
+    return "TextAttribute length=" + length + " origLength=" + origLength;
   }
 
   @Override
@@ -93,8 +85,7 @@ public class TextAttribute extends Attribute {
     TextAttribute t = (TextAttribute) other;
     // nocommit what are sharing semantics here!
     set(t.buffer.clone(), t.length,
-        t.origBuffer.clone(), t.origLength,
-        t.changed);
+        t.origBuffer.clone(), t.origLength);
   }
 
   @Override

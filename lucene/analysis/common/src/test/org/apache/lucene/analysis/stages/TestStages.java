@@ -306,10 +306,16 @@ public class TestStages extends BaseTokenStreamTestCase {
 
   // nocommit test "char filter" that removes characters
 
-  public void testHTMLEscape() throws Exception {
+  public void testHTMLEscape1() throws Exception {
     assertMatches("foo &Eacute;mily bar baz",
                   new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
                   "foo \u00c9mily bar baz");
+  }
+
+  public void testHTMLEscape2() throws Exception {
+    assertMatches("foo&nbsp;bar",
+                  new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
+                  "foo bar");
   }
 
   public void testStandardTokenizer1() throws Exception {
@@ -417,6 +423,7 @@ public class TestStages extends BaseTokenStreamTestCase {
     }
   }
 
+  // nocommit break out to TestSyns
   private void add(SynonymMap.Builder b, String input, String output) {
     if (VERBOSE) {
       System.out.println("  add input=" + input + " output=" + output);
@@ -429,6 +436,8 @@ public class TestStages extends BaseTokenStreamTestCase {
 
     b.add(inputCharsRef.get(), outputCharsRef.get(), true);
   }
+
+  // nocommit make a SpoonFeedingTextStage!
 
   public void assertStageContents(Stage stage, String input, Object... toVerify) throws IOException {
     // nocommit carry over other things from the base class, e.g. re-run analysis, etc.

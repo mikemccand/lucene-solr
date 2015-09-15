@@ -200,7 +200,9 @@ public class HTMLTextStage extends Stage {
     } else {
       // Escape entity
       String s = new String(buffer, 1, outputNextWrite-2);
-      if (s.equals("eacute")) {
+      if (s.equals("nbsp")) {
+        code = 32;
+      } else if (s.equals("eacute")) {
         code = 233;
       } else if (s.equals("Eacute")) {
         code = 201;
