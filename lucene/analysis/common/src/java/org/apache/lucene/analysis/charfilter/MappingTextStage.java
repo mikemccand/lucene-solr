@@ -83,7 +83,7 @@ public class MappingTextStage extends Stage {
   public MappingTextStage(Stage in, NormalizeCharMap normMap) {
     super(in);
 
-    textAttIn = in.get(TextAttribute.class);
+    textAttIn = get(TextAttribute.class);
     textAttOut = create(TextAttribute.class);
 
     map = normMap.map;
@@ -146,6 +146,7 @@ public class MappingTextStage extends Stage {
       }
       bufferIn.add(new Chunk(origText, text));
     }
+    System.out.println("M: findNextMatch bufferIn.size()=" + bufferIn.size());
 
     Chunk firstChunk = bufferIn.get(0);
 
@@ -153,12 +154,14 @@ public class MappingTextStage extends Stage {
     for(int matchStart=0;matchStart<firstChunk.text.length;matchStart++) {
 
       char firstCH = firstChunk.text[matchStart];
+      System.out.println("  try matchStart=" + matchStart + " vs length=" + firstChunk.text.length + " ch=" + (char) firstCH);
 
       FST.Arc<CharsRef> arc = cachedRootArcs.get(Character.valueOf(firstCH));
       if (arc != null) {
         // A possible match begins here
 
         if (FST.targetHasArcs(arc) == false) {
+          System.out.println("    single-char match!");
 
           // Fast path: match is a single (non-surrogate-pair) character match:
           assert arc.isFinal();
@@ -252,10 +255,12 @@ public class MappingTextStage extends Stage {
           }
 
           if (lastMatch != null) {
+            System.out.println("    match len=" + lastMatchLen);
 
             // There is a match
 
             if (matchStart > 0) {
+              System.out.println("    pre-chunk");
 
               // First a chunk of un-mapped text:
               if (firstChunk.origText != null) {
@@ -309,7 +314,9 @@ public class MappingTextStage extends Stage {
               assert upto <= lastMatchLen;
               if (upto == lastMatchLen) {
                 // Remove the chunk(s) we just remapped:
+                System.out.println("CLEAR: nextChunk=" + nextChunk + " vs len=" + bufferIn.size() + " charStart=" + charStart + " length=" + length + " vs " + chunk.text.length);
                 bufferIn.subList(0, nextChunk).clear();
+                System.out.println("  after: " + bufferIn.size());
                 if (charStart + length < chunk.text.length) {
 
                   // Leave last chunk of un-mapped text: slice it and leave in our input buffer:
@@ -321,10 +328,15 @@ public class MappingTextStage extends Stage {
                   int start = charStart + length;
                   char[] newChars = new char[chunk.text.length - start];
                   System.arraycopy(chunk.text, start, newChars, 0, newChars.length);
+                  System.out.println("  newChars=" + new String(newChars));
                   bufferIn.add(0, new Chunk(null, newChars));
                 }       
                 // Finally, add the output match:
-                bufferOut.add(new Chunk(origChars, chars));
+                if (origChars == null) {
+                  origChars = chars;
+                }
+                bufferOut.add(new Chunk(origChars, toCharArray(lastMatch)));
+                System.out.println("  added: " + bufferOut.get(bufferOut.size()-1));
                 return;
               }
 
@@ -347,13 +359,27 @@ public class MappingTextStage extends Stage {
     bufferIn.remove(0);
   }
 
+  private void printBuffers() {
+    System.out.println("  bufferIn:");
+    for(Chunk chunk : bufferIn) {
+      System.out.println("    " + chunk);
+    }
+    System.out.println("  bufferOut:");
+    for(Chunk chunk : bufferOut) {
+      System.out.println("    " + chunk);
+    }
+  }
+
   @Override
   public boolean next() throws IOException {
     while (true) {
+      System.out.println("M: cycle");
+      printBuffers();
 
       if (bufferOut.isEmpty() == false) {
         Chunk chunk = bufferOut.get(0);
         bufferOut.remove(0);
+        System.out.println("  now send " + chunk);
         if (chunk.origText != null) {
           textAttOut.set(chunk.origText, chunk.origText.length, chunk.text, chunk.text.length);
         } else {

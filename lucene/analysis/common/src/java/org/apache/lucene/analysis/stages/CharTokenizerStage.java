@@ -177,7 +177,7 @@ public abstract class CharTokenizerStage extends Stage {
           
           int textLength = textAttIn.getLength();
 
-          if (textAttIn.getChanged()) {
+          if (textAttIn.getOrigBuffer() != null) {
             // Text was remapped before us:
             System.out.println("  text was changed: " + textAttIn.getLength() + " vs " + textAttIn.getOrigLength());
             mappedPending = textAttIn.getLength();
@@ -237,7 +237,13 @@ public abstract class CharTokenizerStage extends Stage {
         if (nextOrigWrite + origToCopy > origBuffer.length) {
           origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + origToCopy);
         }
-        System.arraycopy(textAttIn.getOrigBuffer(), origInputNextRead, origBuffer, nextOrigWrite, origToCopy);
+        char[] buffer;
+        if (textAttIn.getOrigBuffer() == null) {
+          buffer = textAttIn.getBuffer();
+        } else {
+          buffer = textAttIn.getOrigBuffer();
+        }
+        System.arraycopy(buffer, origInputNextRead, origBuffer, nextOrigWrite, origToCopy);
         nextOrigWrite += origToCopy;
         origInputNextRead += origToCopy;
       }

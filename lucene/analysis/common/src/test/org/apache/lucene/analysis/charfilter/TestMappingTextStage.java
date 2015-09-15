@@ -17,6 +17,8 @@ package org.apache.lucene.analysis.charfilter;
  * limitations under the License.
  */
 
+import java.util.Arrays;
+
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.Stage;
@@ -28,7 +30,7 @@ public class TestMappingTextStage extends BaseTokenStreamTestCase {
   public void testBasic() throws Exception {
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("aa", "x");
-    assertMatches(new MappingTextStage(new ReaderStage(), b.build()), "blah aa blah", "blah x blah");
+    assertMatches(new MappingTextStage(new ReaderStage(), b.build()), "blah aa fee", "blah x fee");
     // nocommit verify offsets too?
   }
 
@@ -36,9 +38,26 @@ public class TestMappingTextStage extends BaseTokenStreamTestCase {
     StringBuilder output = new StringBuilder();
     StringBuilder origOutput = new StringBuilder();
     TextAttribute textAtt = stage.get(TextAttribute.class);
-    while (stage.next()) {
+    stage.reset(text);
+    while (true) {
+      System.out.println("TEST: next");
+      if (stage.next() == false) {
+        System.out.println("  done!");
+        break;
+      }
+
+      System.out.println("  got: " + new String(textAtt.getBuffer(), 0, textAtt.getLength()) + (textAtt.getOrigBuffer() != null ? (" orig=" + new String(textAtt.getOrigBuffer(), 0, textAtt.getOrigLength())) : ""));
+
       output.append(textAtt.getBuffer(), 0, textAtt.getLength());
-      origOutput.append(textAtt.getOrigBuffer(), 0, textAtt.getOrigLength());
+      char[] orig = textAtt.getOrigBuffer();
+      int origLength;
+      if (orig == null) {
+        orig = textAtt.getBuffer();
+        origLength = textAtt.getLength();
+      } else {
+        origLength = textAtt.getOrigLength();
+      }
+      origOutput.append(orig, 0, origLength);
     }
     assertEquals(expected, output.toString());
     assertEquals(text, origOutput.toString());

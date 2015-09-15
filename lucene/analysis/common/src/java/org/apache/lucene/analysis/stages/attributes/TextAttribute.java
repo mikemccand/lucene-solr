@@ -84,8 +84,12 @@ public class TextAttribute extends Attribute {
   public void copyFrom(Attribute other) {
     TextAttribute t = (TextAttribute) other;
     // nocommit what are sharing semantics here!
+    if (t.origBuffer == null) {
+      set(t.buffer.clone(), t.length);
+    } else {
     set(t.buffer.clone(), t.length,
         t.origBuffer.clone(), t.origLength);
+    }
   }
 
   @Override

@@ -124,9 +124,10 @@ public abstract class Stage {
     }
   }
 
+  // nocommit this API is confusing ob1?  it's natural for the stage to do in.get ... but that's a sneaky bug!!
   public final <A extends Attribute> A get(Class<A> attClass) {
     if (in == null) {
-      throw new IllegalArgumentException("no stage sets attribute " + attClass);
+      throw new IllegalArgumentException("no stage sets attribute " + attClass + " (stage=" + this + ")");
     }
     Attribute attImpl = in.atts.get(attClass);
     if (attImpl == null) {
