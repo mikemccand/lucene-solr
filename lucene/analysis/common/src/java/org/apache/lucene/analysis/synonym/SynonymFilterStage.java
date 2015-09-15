@@ -143,15 +143,15 @@ public class SynonymFilterStage extends Stage {
     }
   }
 
-  public SynonymFilterStage(Stage prevStage, SynonymMap synonyms, boolean ignoreCase) {
-    super(prevStage);
-    termAttIn = get(TermAttribute.class);
+  public SynonymFilterStage(Stage in, SynonymMap synonyms, boolean ignoreCase) {
+    super(in);
+    termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
-    typeAttIn = get(TypeAttribute.class);
+    typeAttIn = in.get(TypeAttribute.class);
     typeAttOut = create(TypeAttribute.class);
-    arcAttIn = get(ArcAttribute.class);
+    arcAttIn = in.get(ArcAttribute.class);
     arcAttOut = create(ArcAttribute.class);
-    offsetAttIn = get(OffsetAttribute.class);
+    offsetAttIn = in.get(OffsetAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);
     this.synonyms = synonyms;
     this.ignoreCase = ignoreCase;

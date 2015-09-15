@@ -53,11 +53,11 @@ public class DotStage extends Stage {
 
   private final Set<Integer> seenNodes = new HashSet<>();
 
-  public DotStage(Stage prevStage) {
-    super(prevStage);
-    arcAtt = get(ArcAttribute.class);
-    termAtt = get(TermAttribute.class);
-    delAtt = get(DeletedAttribute.class);
+  public DotStage(Stage in) {
+    super(in);
+    arcAtt = in.get(ArcAttribute.class);
+    termAtt = in.get(TermAttribute.class);
+    delAtt = in.get(DeletedAttribute.class);
   }
 
   public String getDotFile() {

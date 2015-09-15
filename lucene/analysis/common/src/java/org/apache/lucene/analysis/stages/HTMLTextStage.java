@@ -44,15 +44,15 @@ public class HTMLTextStage extends Stage {
 
   private boolean end;
 
-  public HTMLTextStage(Stage prevStage) {
-    super(prevStage);
-    System.out.println("PREV: " + prevStage);
-    if (getIfExists(TermAttribute.class) != null) {
+  public HTMLTextStage(Stage in) {
+    super(in);
+    System.out.println("PREV: " + in);
+    if (in.getIfExists(TermAttribute.class) != null) {
       // nocommit need test:
       throw new IllegalArgumentException("this filter cannot handle incoming tokens");
     }
     buffer = new char[4096];
-    textAttIn = get(TextAttribute.class);
+    textAttIn = in.get(TextAttribute.class);
     textAttOut = create(TextAttribute.class);
     termAttOut = create(TermAttribute.class);
     delAttOut = create(DeletedAttribute.class);

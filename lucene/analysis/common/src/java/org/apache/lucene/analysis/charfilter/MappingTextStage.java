@@ -83,7 +83,7 @@ public class MappingTextStage extends Stage {
   public MappingTextStage(Stage in, NormalizeCharMap normMap) {
     super(in);
 
-    textAttIn = get(TextAttribute.class);
+    textAttIn = in.get(TextAttribute.class);
     textAttOut = create(TextAttribute.class);
 
     map = normMap.map;
@@ -154,7 +154,7 @@ public class MappingTextStage extends Stage {
     for(int matchStart=0;matchStart<firstChunk.text.length;matchStart++) {
 
       char firstCH = firstChunk.text[matchStart];
-      System.out.println("  try matchStart=" + matchStart + " vs length=" + firstChunk.text.length + " ch=" + (char) firstCH);
+      System.out.println("  try matchStart=" + matchStart + " vs length=" + firstChunk.text.length + " ch=" + firstCH);
 
       FST.Arc<CharsRef> arc = cachedRootArcs.get(Character.valueOf(firstCH));
       if (arc != null) {

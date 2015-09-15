@@ -29,7 +29,7 @@ import org.apache.lucene.analysis.stages.attributes.KeywordAttribute;
  */
 public abstract class KeywordMarkerFilterStage extends Stage {
 
-  private final KeywordAttribute keywordAttIn = getIfExists(KeywordAttribute.class);
+  private final KeywordAttribute keywordAttIn = in.getIfExists(KeywordAttribute.class);
   private final KeywordAttribute keywordAttOut = create(KeywordAttribute.class);
 
   /**

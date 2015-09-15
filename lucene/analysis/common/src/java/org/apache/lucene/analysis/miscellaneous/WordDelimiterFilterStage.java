@@ -166,13 +166,13 @@ public final class WordDelimiterFilterStage extends Stage {
 
   private final int flags;
     
-  private final TermAttribute termAttIn = get(TermAttribute.class);
+  private final TermAttribute termAttIn = in.get(TermAttribute.class);
   private final TermAttribute termAttOut = create(TermAttribute.class);
-  private final OffsetAttribute offsetAttIn = get(OffsetAttribute.class);
+  private final OffsetAttribute offsetAttIn = in.get(OffsetAttribute.class);
   private final OffsetAttribute offsetAttOut = create(OffsetAttribute.class);
-  private final ArcAttribute arcAttIn = get(ArcAttribute.class);
+  private final ArcAttribute arcAttIn = in.get(ArcAttribute.class);
   private final ArcAttribute arcAttOut = create(ArcAttribute.class);
-  private final DeletedAttribute delAttIn = get(DeletedAttribute.class);
+  private final DeletedAttribute delAttIn = in.get(DeletedAttribute.class);
   private final DeletedAttribute delAttOut = create(DeletedAttribute.class);
 
   // used for iterating word delimiter breaks

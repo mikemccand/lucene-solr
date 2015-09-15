@@ -72,9 +72,9 @@ public abstract class CharTokenizerStage extends Stage {
 
   private boolean pendingToken;
 
-  public CharTokenizerStage(Stage prevStage) {
-    super(prevStage);
-    textAttIn = get(TextAttribute.class);
+  public CharTokenizerStage(Stage in) {
+    super(in);
+    textAttIn = in.get(TextAttribute.class);
     offsetAtt = create(OffsetAttribute.class);
 
     // Don't let our following stages see the TextAttribute, because we consume that and make
@@ -83,16 +83,16 @@ public abstract class CharTokenizerStage extends Stage {
 
     // This can be non-null if we have a pre-tokenizer before, e.g. an HTML filter, that
     // turns markup like <p> into deleted tokens:
-    termAttIn = getIfExists(TermAttribute.class);
+    termAttIn = in.getIfExists(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
 
     arcAtt = create(ArcAttribute.class);
 
     // We never delete tokens, but subsequent stages want to see this:
-    if (getIfExists(DeletedAttribute.class) == null) {
+    if (in.getIfExists(DeletedAttribute.class) == null) {
       create(DeletedAttribute.class);
     }
-    if (getIfExists(TypeAttribute.class) == null) {
+    if (in.getIfExists(TypeAttribute.class) == null) {
       TypeAttribute typeAtt = create(TypeAttribute.class);
       typeAtt.set(TYPE);
     }

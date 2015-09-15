@@ -109,6 +109,10 @@ public abstract class Stage {
   protected final <A extends Attribute> A create(Class<A> attClass) {
     Attribute att = atts.get(attClass);
     if (att == null) {
+      if (deletedAtts.contains(attClass)) {
+        throw new IllegalStateException("do not both delete and create the same attribute");
+      }
+
       try {
         att = attClass.newInstance();
       } catch (InstantiationException e) {
@@ -126,27 +130,29 @@ public abstract class Stage {
 
   // nocommit this API is confusing ob1?  it's natural for the stage to do in.get ... but that's a sneaky bug!!
   public final <A extends Attribute> A get(Class<A> attClass) {
-    if (in == null) {
-      throw new IllegalArgumentException("no stage sets attribute " + attClass + " (stage=" + this + ")");
+    Attribute attImpl = atts.get(attClass);
+    if (attImpl != null) {
+      return attClass.cast(attImpl);
     }
-    Attribute attImpl = in.atts.get(attClass);
-    if (attImpl == null) {
+
+    if (in != null) {
       return in.get(attClass);
     }
 
-    return attClass.cast(attImpl);
+    throw new IllegalArgumentException("no stage sets attribute " + attClass + " (stage=" + this + ")");
   }
 
   public final <A extends Attribute> A getIfExists(Class<A> attClass) {
-    if (in == null) {
-      return null;
+    Attribute attImpl = atts.get(attClass);
+    if (attImpl != null) {
+      return attClass.cast(attImpl);
     }
-    Attribute attImpl = in.atts.get(attClass);
-    if (attImpl == null) {
+
+    if (in != null) {
       return in.getIfExists(attClass);
     }
 
-    return attClass.cast(attImpl);
+    return null;
   }
 
   public abstract boolean next() throws IOException;
@@ -161,7 +167,11 @@ public abstract class Stage {
 
   protected <A extends Attribute> void delete(Class<A> attClass) {
     // Confirm it really is defined, else it's silly to delete it:
-    get(attClass);
+    in.get(attClass);
+    if (atts.containsKey(attClass)) {
+      // nocommit need test here
+      throw new IllegalStateException("do not both delete and create the same attribute");
+    }
     deletedAtts.add(attClass);
   }
 

@@ -55,14 +55,14 @@ public class InsertDeletedPunctuationStage extends Stage {
 
   private int insertedNode;
 
-  public InsertDeletedPunctuationStage(Stage prevStage, String punctToken) {
-    super(prevStage);
+  public InsertDeletedPunctuationStage(Stage in, String punctToken) {
+    super(in);
     this.punctToken = punctToken;
 
-    delAttIn = get(DeletedAttribute.class);
-    offsetAttIn = get(OffsetAttribute.class);
-    arcAttIn = get(ArcAttribute.class);
-    termAttIn = get(TermAttribute.class);
+    delAttIn = in.get(DeletedAttribute.class);
+    offsetAttIn = in.get(OffsetAttribute.class);
+    arcAttIn = in.get(ArcAttribute.class);
+    termAttIn = in.get(TermAttribute.class);
 
     delAttOut = create(DeletedAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);

@@ -42,12 +42,12 @@ class AssertingStage extends Stage {
   private final Map<Integer,Integer> nodeToEndOffset = new HashMap<>();
   private String itemString;
 
-  public AssertingStage(Stage prevStage) {
-    super(prevStage);
-    arcAtt = get(ArcAttribute.class);
-    offsetAtt = get(OffsetAttribute.class);
-    termAtt = get(TermAttribute.class);
-    typeAtt = get(TypeAttribute.class);
+  public AssertingStage(Stage in) {
+    super(in);
+    arcAtt = in.get(ArcAttribute.class);
+    offsetAtt = in.get(OffsetAttribute.class);
+    termAtt = in.get(TermAttribute.class);
+    typeAtt = in.get(TypeAttribute.class);
   }
 
   @Override

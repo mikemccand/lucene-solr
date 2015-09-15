@@ -28,10 +28,10 @@ public class LowerCaseFilterStage extends Stage {
   private final TermAttribute termAttOut;
   private final TermAttribute termAttIn;
 
-  public LowerCaseFilterStage(Stage prevStage) {
-    super(prevStage);
+  public LowerCaseFilterStage(Stage in) {
+    super(in);
     charUtils = CharacterUtils.getInstance();
-    termAttIn = get(TermAttribute.class);
+    termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
   }
   

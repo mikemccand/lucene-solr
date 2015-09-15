@@ -56,9 +56,9 @@ import org.apache.lucene.analysis.stages.attributes.TermAttribute;
 */
 public final class PorterStemFilterStage extends Stage {
   private final PorterStemmer stemmer = new PorterStemmer();
-  private final TermAttribute termAttIn = get(TermAttribute.class);
+  private final TermAttribute termAttIn = in.get(TermAttribute.class);
   private final TermAttribute termAttOut = create(TermAttribute.class);
-  private final KeywordAttribute keywordAttIn = getIfExists(KeywordAttribute.class);
+  private final KeywordAttribute keywordAttIn = in.getIfExists(KeywordAttribute.class);
 
   public PorterStemFilterStage(Stage in) {
     super(in);

@@ -26,11 +26,11 @@ import org.apache.lucene.analysis.stages.attributes.TermAttribute;
  * TokenFilter that removes possessives (trailing 's) from words.
  */
 public final class EnglishPossessiveFilterStage extends Stage {
-  private final TermAttribute termAttIn = get(TermAttribute.class);
+  private final TermAttribute termAttIn = in.get(TermAttribute.class);
   private final TermAttribute termAttOut = create(TermAttribute.class);
 
-  public EnglishPossessiveFilterStage(Stage prevStage) {
-    super(prevStage);
+  public EnglishPossessiveFilterStage(Stage in) {
+    super(in);
   }
 
   @Override

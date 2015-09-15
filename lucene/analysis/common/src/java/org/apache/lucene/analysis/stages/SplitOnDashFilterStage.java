@@ -47,13 +47,13 @@ public class SplitOnDashFilterStage extends Stage {
   private int nextPart;
   private int partOffset;
 
-  public SplitOnDashFilterStage(Stage prevStage) {
-    super(prevStage);
-    termAttIn = get(TermAttribute.class);
+  public SplitOnDashFilterStage(Stage in) {
+    super(in);
+    termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
-    arcAttIn = get(ArcAttribute.class);
+    arcAttIn = in.get(ArcAttribute.class);
     arcAttOut = create(ArcAttribute.class);
-    offsetAttIn = get(OffsetAttribute.class);
+    offsetAttIn = in.get(OffsetAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);
   }
 

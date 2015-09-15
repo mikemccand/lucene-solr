@@ -31,11 +31,11 @@ public class StopFilterStage extends Stage {
   private final DeletedAttribute delAttIn;
   private final DeletedAttribute delAttOut;
 
-  public StopFilterStage(Stage prevStage, CharArraySet stopWords) {
-    super(prevStage);
+  public StopFilterStage(Stage in, CharArraySet stopWords) {
+    super(in);
     this.stopWords = stopWords;
-    termAtt = get(TermAttribute.class);
-    delAttIn = get(DeletedAttribute.class);
+    termAtt = in.get(TermAttribute.class);
+    delAttIn = in.get(DeletedAttribute.class);
     delAttOut = create(DeletedAttribute.class);
   }
 

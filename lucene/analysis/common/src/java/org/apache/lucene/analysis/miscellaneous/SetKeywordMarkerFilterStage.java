@@ -27,7 +27,7 @@ import org.apache.lucene.analysis.util.CharArraySet;
  * {@link KeywordAttribute#set(boolean)} to <code>true</code>.
  */
 public final class SetKeywordMarkerFilterStage extends KeywordMarkerFilterStage {
-  private final TermAttribute termAtt = get(TermAttribute.class);
+  private final TermAttribute termAtt = in.get(TermAttribute.class);
   private final CharArraySet keywordSet;
 
   /**

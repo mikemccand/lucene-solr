@@ -44,9 +44,9 @@ public abstract class JFlexTokenizerStage extends Stage {
   private int offset;
   private int nextReadText;
 
-  public JFlexTokenizerStage(Stage prevStage) {
-    super(prevStage);
-    textAttIn = get(TextAttribute.class);
+  public JFlexTokenizerStage(Stage in) {
+    super(in);
+    textAttIn = in.get(TextAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);
 
     // Don't let our following stages see the TextAttribute, because we consume that and make
@@ -55,18 +55,18 @@ public abstract class JFlexTokenizerStage extends Stage {
 
     // This can be non-null if we have a pre-tokenizer before, e.g. an HTML filter, that
     // turns markup like <p> into deleted tokens:
-    termAttIn = getIfExists(TermAttribute.class);
+    termAttIn = in.getIfExists(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
 
     arcAttOut = create(ArcAttribute.class);
 
     // We never delete tokens, but subsequent stages want to see this:
-    if (getIfExists(DeletedAttribute.class) == null) {
+    if (in.getIfExists(DeletedAttribute.class) == null) {
       // nocommit we may want to delete?  need to have separate delAttIn/Out if so:
       create(DeletedAttribute.class);
     }
 
-    if (getIfExists(TypeAttribute.class) == null) {
+    if (in.getIfExists(TypeAttribute.class) == null) {
       TypeAttribute typeAtt = create(TypeAttribute.class);
       typeAtt.set(CharTokenizerStage.TYPE);
     }

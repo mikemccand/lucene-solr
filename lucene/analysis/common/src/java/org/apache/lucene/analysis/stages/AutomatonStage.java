@@ -47,10 +47,10 @@ public class AutomatonStage extends Stage {
   private final TermAttribute termAtt;
   private int nextNode;
 
-  public AutomatonStage(Stage prevStage) {
-    super(prevStage);
-    arcAtt = get(ArcAttribute.class);
-    termAtt = get(TermAttribute.class);
+  public AutomatonStage(Stage in) {
+    super(in);
+    arcAtt = in.get(ArcAttribute.class);
+    termAtt = in.get(TermAttribute.class);
   }
 
   @Override

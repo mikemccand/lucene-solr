@@ -214,11 +214,11 @@ public class TestStages extends BaseTokenStreamTestCase {
     private Iterator<List<Attribute>> it;
     private final Map<Integer,Integer> nodeMap = new HashMap<>();
 
-    public ReplayTwiceStage(Stage prevStage) {
-      super(prevStage);
-      termAttIn = get(TermAttribute.class);
+    public ReplayTwiceStage(Stage in) {
+      super(in);
+      termAttIn = in.get(TermAttribute.class);
       termAttOut = create(TermAttribute.class);
-      arcAttIn = get(ArcAttribute.class);
+      arcAttIn = in.get(ArcAttribute.class);
       arcAttOut = create(ArcAttribute.class);
 
       // nocommit test that a random other att is in fact preserved:

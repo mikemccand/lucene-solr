@@ -58,21 +58,21 @@ public final class AppendingStage extends Stage {
   }
 
   // nocommit why not make an AppendingReader instead?
-  public AppendingStage(Stage prevStage, String breakToken) {
-    super(prevStage);
+  public AppendingStage(Stage in, String breakToken) {
+    super(in);
 
     this.breakToken = breakToken;
 
-    termAttIn = get(TermAttribute.class);
+    termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
 
-    arcAttIn = get(ArcAttribute.class);
+    arcAttIn = in.get(ArcAttribute.class);
     arcAttOut = create(ArcAttribute.class);
 
-    delAttIn = get(DeletedAttribute.class);
+    delAttIn = in.get(DeletedAttribute.class);
     delAttOut = create(DeletedAttribute.class);
 
-    offsetAttIn = get(OffsetAttribute.class);
+    offsetAttIn = in.get(OffsetAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);
 
     this.offsetGap = breakToken.length();
