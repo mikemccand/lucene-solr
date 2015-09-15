@@ -25,24 +25,22 @@ public class TextAttribute extends Attribute {
   private char[] origBuffer;
   private int origLength;
 
-  // nocommit reverse order of these args, to match term?
-
   /** Sets a mapped text chunk */
-  public void set(String text, String origText) {
+  public void set(String origText, String text) {
     // nocommit what are sharing semantics here!
     char[] chars = text.toCharArray();
     char[] origChars = origText.toCharArray();
-    set(chars, chars.length, origChars, origChars.length);
+    set(origChars, origChars.length, chars, chars.length);
   }
 
   /** Sets the un-mapped text chunk */
   public void set(char[] buffer, int length) {
     // nocommit what are sharing semantics here!
-    set(buffer, length, null, 0);
+    set(null, 0, buffer, length);
   }
 
-  public void set(char[] buffer, int length,
-                  char[] origBuffer, int origLength) {
+  public void set(char[] origBuffer, int origLength,
+                  char[] buffer, int length) {
     // nocommit what are sharing semantics here!
     if (buffer != null && buffer.length < length) {
       throw new IllegalArgumentException("buffer.length=" + buffer.length + " but length=" + length);
@@ -87,8 +85,8 @@ public class TextAttribute extends Attribute {
     if (t.origBuffer == null) {
       set(t.buffer.clone(), t.length);
     } else {
-    set(t.buffer.clone(), t.length,
-        t.origBuffer.clone(), t.origLength);
+      set(t.origBuffer.clone(), t.origLength,
+          t.buffer.clone(), t.length);
     }
   }
 

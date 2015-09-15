@@ -96,7 +96,7 @@ public class HTMLTextStage extends Stage {
     inputNextRead = 0;
     outputNextWrite = 0;
     end = false;
-    textAttOut.set(null, 0, null, 0);
+    textAttOut.set(null, 0);
     termAttOut.set("", "");
   }
 
@@ -117,7 +117,7 @@ public class HTMLTextStage extends Stage {
     System.out.println("H: fillToken '" + tag + "'");
     termAttOut.set(tag, tag);
     outputNextWrite = 0;
-    textAttOut.set(null, 0, null, 0);
+    textAttOut.set(null, 0);
     delAttOut.set(true);
   }
 
@@ -133,7 +133,7 @@ public class HTMLTextStage extends Stage {
   private void fillMappedText(String mapped) {
     System.out.println("H: fillMappedText '" + new String(buffer, 0, outputNextWrite) + "' -> '" + new String(mapped) + "'");
     char[] mappedChars = mapped.toCharArray();
-    textAttOut.set(mappedChars, mappedChars.length, buffer, outputNextWrite);
+    textAttOut.set(buffer, outputNextWrite, mappedChars, mappedChars.length);
     outputNextWrite = 0;
     termAttOut.set("", "");
     delAttOut.set(false);

@@ -55,7 +55,7 @@ public class ReaderStage extends Stage {
     } else {
       throw new IllegalArgumentException("item must be a String or Reader; got: " + item);
     }
-    textAttOut.set(null, 0, null, 0);
+    textAttOut.set(null, 0);
   }
   
   @Override
