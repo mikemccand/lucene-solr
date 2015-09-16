@@ -24,6 +24,7 @@ import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SpoonFeedingReaderStage;
 import org.apache.lucene.analysis.stages.Stage;
+import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
 import org.apache.lucene.analysis.stages.attributes.TextAttribute;
 
 // nocommit extend LTC?

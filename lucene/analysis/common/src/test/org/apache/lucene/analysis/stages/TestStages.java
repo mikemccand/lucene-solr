@@ -28,6 +28,8 @@ import java.util.Map;
 
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.charfilter.MappingTextStage;
+import org.apache.lucene.analysis.charfilter.NormalizeCharMap;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.en.PorterStemFilterStage;
@@ -350,6 +352,50 @@ public class TestStages extends BaseTokenStreamTestCase {
                   "dog ar running");
   }
 
+  public void testMapBeforeTokenizing1() throws Exception {
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("aa", "x");
+    Stage stage = new ReaderStage();
+    stage = new SpoonFeedingReaderStage(stage, random());
+    stage = new MappingTextStage(stage, b.build());
+    stage = new WhitespaceTokenizerStage(stage);
+    assertStageContents(stage, "fooaa baar boo aabaz",
+                        new String[] {"foox", "bxr", "boo", "xbaz"},
+                        new String[] {"fooaa", "baar", null, "aabaz"},
+                        new int[] {0, 6, 11, 15},
+                        new int[] {5, 10, 14, 20});
+  }
+
+  public void testMapBeforeTokenizing2() throws Exception {
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("aa", " ");
+    Stage stage = new ReaderStage();
+    stage = new SpoonFeedingReaderStage(stage, random());
+    stage = new MappingTextStage(stage, b.build());
+    stage = new WhitespaceTokenizerStage(stage);
+    assertStageContents(stage, "fooaabar",
+                        new String[] {"foo", "bar"},
+                        new String[] {null, null},
+                        new int[] {0, 5},
+                        new int[] {3, 8});
+  }
+
+  public void testIllegalMapBeforeTokenizing() throws Exception {
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("aa", "x x");
+    Stage stage = new ReaderStage();
+    stage = new SpoonFeedingReaderStage(stage, random());
+    stage = new MappingTextStage(stage, b.build());
+    stage = new WhitespaceTokenizerStage(stage);
+    stage.reset("fooaabar");
+    try {
+      stage.next();
+      fail("did not hit exception");
+    } catch (IllegalArgumentException iae) {
+      // expected
+    }
+  }
+
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space
 
   // nocommit break out separate test classes for each
@@ -437,8 +483,7 @@ public class TestStages extends BaseTokenStreamTestCase {
     b.add(inputCharsRef.get(), outputCharsRef.get(), true);
   }
 
-  // nocommit make a SpoonFeedingTextStage!
-
+  // nocommit move to base class
   public void assertStageContents(Stage stage, String input, Object... toVerify) throws IOException {
     // nocommit carry over other things from the base class, e.g. re-run analysis, etc.
     if (toVerify.length == 0) {
@@ -515,6 +560,7 @@ public class TestStages extends BaseTokenStreamTestCase {
     }
 
     for(int iter=0;iter<2;iter++) {
+      System.out.println("TEST: iter=" + iter);
 
       stage.reset(input);
 

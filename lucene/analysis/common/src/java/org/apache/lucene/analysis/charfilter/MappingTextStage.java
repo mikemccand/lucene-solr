@@ -108,6 +108,10 @@ public class MappingTextStage extends Stage {
     bufferIn.clear();
     bufferOut.clear();
     end = false;
+    textAttOut.clear();
+    if (termAttOut != null) {
+      termAttOut.clear();
+    }
   }
 
   private static char[] toCharArray(CharsRef slice) {
