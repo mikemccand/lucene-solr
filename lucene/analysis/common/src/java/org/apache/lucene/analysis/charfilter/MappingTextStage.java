@@ -42,9 +42,6 @@ import org.apache.lucene.util.fst.Outputs;
 
 public class MappingTextStage extends Stage {
 
-  final List<Chunk> bufferIn = new ArrayList<>();
-  final List<Chunk> bufferOut = new ArrayList<>();
-
   private final Outputs<CharsRef> outputs = CharSequenceOutputs.getSingleton();
   private final FST<CharsRef> map;
   private final FST.BytesReader fstReader;
@@ -54,6 +51,9 @@ public class MappingTextStage extends Stage {
   private final TextAttribute textAttOut;
   private final TermAttribute termAttIn;
   private final TermAttribute termAttOut;
+
+  private final List<Chunk> bufferIn = new ArrayList<>();
+  private final List<Chunk> bufferOut = new ArrayList<>();
 
   private boolean end;
 
@@ -158,6 +158,7 @@ public class MappingTextStage extends Stage {
 
       FST.Arc<CharsRef> arc = cachedRootArcs.get(Character.valueOf(firstCH));
       if (arc != null) {
+        System.out.println("    arc != null");
         // A possible match begins here
 
         if (FST.targetHasArcs(arc) == false) {
@@ -167,7 +168,7 @@ public class MappingTextStage extends Stage {
           assert arc.isFinal();
 
           // nocommit are we supposed to use arc.finalOutput?
-          assert arc.nextFinalOutput == null;
+          assert arc.nextFinalOutput == outputs.getNoOutput(): "got " + arc.nextFinalOutput;
 
           if (firstChunk.origText != null) {
             // Incoming chunk was already remapped by a prior stage
@@ -182,6 +183,7 @@ public class MappingTextStage extends Stage {
               // First a chunk of un-mapped text:
               char[] chars = new char[matchStart];
               System.arraycopy(firstChunk.text, 0, chars, 0, matchStart);
+              System.out.println("first chunk: " + new String(chars));
               bufferOut.add(new Chunk(null, chars));
             }
 
@@ -193,7 +195,7 @@ public class MappingTextStage extends Stage {
             if (matchStart < firstChunk.text.length-1) {
               // Still some text remaining for the current input: slice it out and leave in the input:
               char[] slice = new char[firstChunk.text.length-1-matchStart];
-              System.arraycopy(firstChunk.text, matchStart, slice, 0, slice.length);
+              System.arraycopy(firstChunk.text, matchStart+1, slice, 0, slice.length);
               bufferIn.set(0, new Chunk(null, slice));
             }
           }

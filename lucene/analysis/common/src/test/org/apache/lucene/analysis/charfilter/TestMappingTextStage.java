@@ -27,40 +27,60 @@ import org.apache.lucene.analysis.stages.attributes.TextAttribute;
 // nocommit extend LTC?
 public class TestMappingTextStage extends BaseTokenStreamTestCase {
 
-  public void testBasic() throws Exception {
+  public void testBasicMultiChar() throws Exception {
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("aa", "x");
-    assertMatches(new MappingTextStage(new ReaderStage(), b.build()), "blah aa fee", "blah x fee");
+    NormalizeCharMap map = b.build();
+    assertMatches(new MappingTextStage(new ReaderStage(), map), "blah aa fee", "blah x fee");
+    assertMatches(new MappingTextStage(new ReaderStage(), map), "blah aa fee aa", "blah x fee x");
+    // nocommit verify offsets too?
+  }
+
+  // nocommit randomized test
+
+  public void testBasicSingleChar() throws Exception {
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("a", "x");
+    NormalizeCharMap map = b.build();
+    // nocommit:
+    assertMatches(new MappingTextStage(new ReaderStage(), map), "fooafee", "fooxfee");
+    System.out.println("\nTEST: now test 2nd");
+    assertMatches(new MappingTextStage(new ReaderStage(), map), "fooabar", "fooxbxr");
     // nocommit verify offsets too?
   }
 
   private void assertMatches(Stage stage, String text, String expected) throws Exception {
-    StringBuilder output = new StringBuilder();
-    StringBuilder origOutput = new StringBuilder();
     TextAttribute textAtt = stage.get(TextAttribute.class);
-    stage.reset(text);
-    while (true) {
-      System.out.println("TEST: next");
-      if (stage.next() == false) {
-        System.out.println("  done!");
-        break;
-      }
 
-      System.out.println("  got: " + new String(textAtt.getBuffer(), 0, textAtt.getLength()) + (textAtt.getOrigBuffer() != null ? (" orig=" + new String(textAtt.getOrigBuffer(), 0, textAtt.getOrigLength())) : ""));
+    // nocommit also do a partial consume
+    // Do it twice to make sure reset works:
+    for (int iter=0;iter<2;iter++) {
+      StringBuilder output = new StringBuilder();
+      StringBuilder origOutput = new StringBuilder();
+      stage.reset(text);
+      while (true) {
+        System.out.println("TEST: next");
+        if (stage.next() == false) {
+          System.out.println("  done!");
+          break;
+        }
 
-      output.append(textAtt.getBuffer(), 0, textAtt.getLength());
-      char[] orig = textAtt.getOrigBuffer();
-      int origLength;
-      if (orig == null) {
-        orig = textAtt.getBuffer();
-        origLength = textAtt.getLength();
-      } else {
-        origLength = textAtt.getOrigLength();
+        System.out.println("  got: " + new String(textAtt.getBuffer(), 0, textAtt.getLength()) + (textAtt.getOrigBuffer() != null ? (" orig=" + new String(textAtt.getOrigBuffer(), 0, textAtt.getOrigLength())) : ""));
+
+        output.append(textAtt.getBuffer(), 0, textAtt.getLength());
+        char[] orig = textAtt.getOrigBuffer();
+        int origLength;
+        if (orig == null) {
+          orig = textAtt.getBuffer();
+          origLength = textAtt.getLength();
+        } else {
+          origLength = textAtt.getOrigLength();
+        }
+        origOutput.append(orig, 0, origLength);
       }
-      origOutput.append(orig, 0, origLength);
+      assertEquals("iter=" + iter, expected, output.toString());
+      assertEquals("iter=" + iter, text, origOutput.toString());
     }
-    assertEquals(expected, output.toString());
-    assertEquals(text, origOutput.toString());
   }
 
   // nocommit spoonfeeding stage
