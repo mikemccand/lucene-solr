@@ -19,11 +19,10 @@ package org.apache.lucene.analysis.en;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.TokenFilter;
+import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.KeywordAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.KeywordAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 
 /** Transforms the token stream as per the Porter stemming algorithm.
     Note: the input to the stemming filter must already be in lower case,
@@ -65,9 +64,9 @@ public final class PorterStemFilterStage extends Stage {
   }
 
   @Override
-  public final boolean next() throws IOException {
+  public boolean next() throws IOException {
     if (in.next()) {
-      if ((keywordAttIn == null || keywordAttIn.get() == false)) {
+      if (keywordAttIn == null || keywordAttIn.get() == false) {
         termAttOut.set(termAttIn.getOrigText(),
                        stemmer.stem(termAttIn.get()));
       } else {

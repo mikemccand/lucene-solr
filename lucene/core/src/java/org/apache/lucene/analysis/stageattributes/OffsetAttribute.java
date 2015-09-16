@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages.attributes;
+package org.apache.lucene.analysis.stageattributes;
 
 import java.util.Arrays;
 

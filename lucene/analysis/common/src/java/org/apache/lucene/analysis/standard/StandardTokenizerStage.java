@@ -20,8 +20,8 @@ package org.apache.lucene.analysis.standard;
 import java.io.IOException;
 import java.io.Reader;
 
+import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stages.JFlexTokenizerStage;
-import org.apache.lucene.analysis.stages.Stage;
 
 public class StandardTokenizerStage extends JFlexTokenizerStage {
 

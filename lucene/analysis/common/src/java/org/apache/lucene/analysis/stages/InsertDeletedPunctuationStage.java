@@ -17,17 +17,17 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
-import org.apache.lucene.analysis.CharFilter;
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.util.ArrayUtil;
-import org.apache.lucene.util.FixedBitSet;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+
+import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.util.ArrayUtil;
 
 /** Uses a CharFilter to detect when punctuation occurs in the
  *  input in between two tokens, and then as a Stage it will

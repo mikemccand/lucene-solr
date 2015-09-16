@@ -18,15 +18,13 @@
 package org.apache.lucene.analysis.charfilter;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.analysis.CharFilter; // javadocs
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TextAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
 import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.fst.CharSequenceOutputs;
 import org.apache.lucene.util.fst.FST;
@@ -127,8 +125,6 @@ public class MappingTextStage extends Stage {
   private void findNextMatch() throws IOException {
     
     // nocommit make sure fast path just sends att straight through
-
-    int chunkUpto = 0;
 
     if (bufferIn.isEmpty()) {
       if (end || in.next() == false) {

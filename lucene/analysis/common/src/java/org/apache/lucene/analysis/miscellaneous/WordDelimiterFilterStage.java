@@ -18,24 +18,17 @@
 package org.apache.lucene.analysis.miscellaneous;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.apache.lucene.analysis.TokenFilter;
-import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.util.ArrayUtil;
-import org.apache.lucene.util.AttributeSource;
-import org.apache.lucene.util.InPlaceMergeSorter;
-import org.apache.lucene.util.RamUsageEstimator;
 
 /**
  * Splits words into subwords and performs optional transformations on subword

@@ -17,19 +17,14 @@ package org.apache.lucene.analysis.stages;
 * limitations under the License.
 */
 
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.automaton.Automaton;
-import org.apache.lucene.util.automaton.Transition;
-
 import java.io.IOException;
-import java.io.Reader;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 
 /** Pass-through stage that builds a "dot string" from the incoming tokens,
  *  so you can visualize the graph using graphviz tools. */

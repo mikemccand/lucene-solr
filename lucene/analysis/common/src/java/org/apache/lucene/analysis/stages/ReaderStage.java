@@ -17,14 +17,12 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TextAttribute;
-import org.apache.lucene.analysis.util.CharacterUtils;
-import org.apache.lucene.util.Attribute;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
 
 /** Reads incoming chars from a {@code java.io.Reader} into {@link TextAttribute} */
 public class ReaderStage extends Stage {

@@ -18,7 +18,7 @@ package org.apache.lucene.analysis.standard;
  */
 
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 
 /**
  * This class implements Word Break rules from the Unicode Text Segmentation 

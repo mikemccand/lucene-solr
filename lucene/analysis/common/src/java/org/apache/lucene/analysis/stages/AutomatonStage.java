@@ -17,16 +17,14 @@ package org.apache.lucene.analysis.stages;
 * limitations under the License.
 */
 
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.automaton.Automaton;
-import org.apache.lucene.util.automaton.Transition;
-
 import java.io.IOException;
-import java.io.Reader;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.util.automaton.Automaton;
 
 /** Pass-through stage that builds an Automaton from the
  *  input tokens it sees. */
@@ -45,7 +43,6 @@ public class AutomatonStage extends Stage {
   private Map<Integer,Integer> fromStates;
   private final ArcAttribute arcAtt;
   private final TermAttribute termAtt;
-  private int nextNode;
 
   public AutomatonStage(Stage in) {
     super(in);

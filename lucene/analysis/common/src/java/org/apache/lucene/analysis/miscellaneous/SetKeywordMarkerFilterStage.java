@@ -15,10 +15,9 @@ package org.apache.lucene.analysis.miscellaneous;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.KeywordAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.KeywordAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 
 /**

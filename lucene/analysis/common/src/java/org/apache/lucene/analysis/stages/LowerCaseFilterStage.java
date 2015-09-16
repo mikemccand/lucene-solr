@@ -19,9 +19,9 @@ package org.apache.lucene.analysis.stages;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.util.CharacterUtils;
-import org.apache.lucene.util.Attribute;
 
 public class LowerCaseFilterStage extends Stage {
   private final CharacterUtils charUtils;

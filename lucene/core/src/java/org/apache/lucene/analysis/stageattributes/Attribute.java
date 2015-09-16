@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages.attributes;
+package org.apache.lucene.analysis.stageattributes;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,44 +17,11 @@ package org.apache.lucene.analysis.stages.attributes;
  * limitations under the License.
  */
 
-// TODO: CharSequence again?
-public class TermAttribute extends Attribute {
-  private String origText;
-  private String term;
+/**
+ * Base interface for attributes.
+ */
 
-  public void set(String origText, String term) {
-    this.origText = origText;
-    this.term = term;
-  }
-
-  public String get() {
-    return term;
-  }
-
-  public String getOrigText() {
-    return origText;
-  }
-
-  @Override
-  public String toString() {
-    return term;
-  }
-
-  @Override
-  public void copyFrom(Attribute other) {
-    TermAttribute t = (TermAttribute) other;
-    set(t.origText, t.term);
-  }
-
-  @Override
-  public TermAttribute copy() {
-    TermAttribute att = new TermAttribute();
-    att.copyFrom(this);
-    return att;
-  }
-
-  public void clear() {
-    origText = null;
-    term = null;
-  }
+public abstract class Attribute {
+  public abstract void copyFrom(Attribute other);
+  public abstract Attribute copy();
 }

@@ -18,7 +18,6 @@ package org.apache.lucene.analysis.synonym;
  */
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -26,16 +25,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.Attribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.Attribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TypeAttribute;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.UnicodeUtil;
 import org.apache.lucene.util.fst.FST;
 

@@ -19,9 +19,10 @@ package org.apache.lucene.analysis.stages;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TextAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.UnicodeUtil;
 
@@ -35,7 +36,6 @@ public class HTMLTextStage extends Stage {
   private final TextAttribute textAttOut;
   private final TermAttribute termAttOut;
   private final DeletedAttribute delAttOut;
-  private int offset;
   private int inputNextRead;
 
   // Mapped text buffer
@@ -69,7 +69,6 @@ public class HTMLTextStage extends Stage {
       assert textAttIn.getLength() > 0;
       inputNextRead = 0;
     }
-    offset++;
     char c = textAttIn.getBuffer()[inputNextRead++];
     //System.out.println("NEXT: " + c);
     return c;
@@ -92,7 +91,6 @@ public class HTMLTextStage extends Stage {
   @Override
   public void reset(Object item) {
     super.reset(item);
-    offset = 0;
     inputNextRead = 0;
     outputNextWrite = 0;
     end = false;

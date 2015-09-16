@@ -19,8 +19,8 @@ package org.apache.lucene.analysis.miscellaneous;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.KeywordAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.KeywordAttribute;
 
 /**
  * Marks terms as keywords via the {@link KeywordAttribute}.

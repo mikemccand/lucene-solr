@@ -17,30 +17,20 @@ package org.apache.lucene.analysis;
  * limitations under the License.
  */
 
-import java.io.IOException;
-import java.io.LineNumberReader;
-import java.io.PrintWriter;
 import java.io.StringReader;
-import java.util.Arrays;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
-import org.apache.lucene.analysis.en.PorterStemFilter;
 import org.apache.lucene.analysis.en.PorterStemFilterStage;
 import org.apache.lucene.analysis.stages.DotStage;
 import org.apache.lucene.analysis.stages.LowerCaseFilterStage;
 import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SplitOnDashFilterStage;
-import org.apache.lucene.analysis.stages.Stage;
 import org.apache.lucene.analysis.stages.StopFilterStage;
-import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
-import org.apache.lucene.analysis.synonym.SynonymMap;
-import org.apache.lucene.util.IntsRef;
-import org.apache.lucene.util.IntsRefBuilder;
 
 public class EnglishTokenizerDemo {
 

@@ -18,7 +18,6 @@ package org.apache.lucene.analysis.stages;
  */
 
 import java.io.IOException;
-import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,36 +25,33 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.analysis.BaseTokenStreamTestCase;
-import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.AssertingStage;
+import org.apache.lucene.analysis.BaseStageTestCase;
+import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.charfilter.MappingTextStage;
 import org.apache.lucene.analysis.charfilter.NormalizeCharMap;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.en.PorterStemFilterStage;
 import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilterStage;
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.Attribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.Attribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
 import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
-import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.automaton.Automaton;
 import org.apache.lucene.util.automaton.AutomatonTestUtil;
 import org.apache.lucene.util.automaton.MinimizationOperations;
 import org.apache.lucene.util.automaton.Operations;
-import org.apache.lucene.util.automaton.Transition;
 import org.apache.lucene.util.fst.Util;
 
-public class TestStages extends BaseTokenStreamTestCase {
+public class TestStages extends BaseStageTestCase {
 
   public void testSimple() throws Exception {
     assertMatches("This is a test",
@@ -452,8 +448,8 @@ public class TestStages extends BaseTokenStreamTestCase {
   private void assertMatches(Object item, Stage end, String... expectedStrings) throws IOException {
     AutomatonStage a = new AutomatonStage(new AssertingStage(end));
     DotStage toDot = new DotStage(a);
-    TermAttribute termAtt = toDot.get(TermAttribute.class);
-    ArcAttribute arcAtt = toDot.get(ArcAttribute.class);
+    //TermAttribute termAtt = toDot.get(TermAttribute.class);
+    //ArcAttribute arcAtt = toDot.get(ArcAttribute.class);
     for(int i=0;i<2;i++) {
       if (i == 1) {
         System.out.println("\nTEST: now reset and tokenize again");
@@ -481,116 +477,5 @@ public class TestStages extends BaseTokenStreamTestCase {
     SynonymMap.Builder.join(output.split(" +"), outputCharsRef);
 
     b.add(inputCharsRef.get(), outputCharsRef.get(), true);
-  }
-
-  // nocommit move to base class
-  public void assertStageContents(Stage stage, String input, Object... toVerify) throws IOException {
-    // nocommit carry over other things from the base class, e.g. re-run analysis, etc.
-    if (toVerify.length == 0) {
-      throw new IllegalArgumentException("must have at least terms to verify");
-    }
-
-    int upto = 0;
-
-    String[] terms = (String[]) toVerify[upto];
-    if (terms == null) {
-      throw new IllegalArgumentException("terms must not be null");
-    }
-    upto++;
-
-    String[] origTerms;
-    if (upto < toVerify.length && toVerify[upto] instanceof String[]) {
-      origTerms = (String[]) toVerify[upto];
-      upto++;
-    } else {
-      origTerms = null;
-    }
-
-    int[] startOffsets;
-    if (upto < toVerify.length) {
-      startOffsets = (int[]) toVerify[upto];
-      upto++;
-    } else {
-      startOffsets = null;
-    }
-
-    int[] endOffsets;
-    if (upto < toVerify.length) {
-      endOffsets = (int[]) toVerify[upto];
-      upto++;
-    } else {
-      endOffsets = null;
-    }
-
-    int[] fromNodes;
-    if (upto < toVerify.length) {
-      fromNodes = (int[]) toVerify[upto];
-      upto++;
-    } else {
-      fromNodes = null;
-    }
-
-    int[] toNodes;
-    if (upto < toVerify.length) {
-      toNodes = (int[]) toVerify[upto];
-      upto++;
-    } else {
-      toNodes = null;
-    }
-
-    if (upto != toVerify.length) {
-      throw new IllegalArgumentException("too many things to verify!");
-    }
-
-    stage = new AssertingStage(stage);
-
-    TermAttribute termAtt = stage.get(TermAttribute.class);
-    if (termAtt == null) {
-      throw new RuntimeException("stage is missing TermAttribute");
-    }
-
-    ArcAttribute arcAtt = stage.get(ArcAttribute.class);
-    if (arcAtt == null && (fromNodes != null || toNodes != null)) {
-      throw new RuntimeException("stage is missing ArcAttribute");
-    }
-
-    OffsetAttribute offsetAtt = stage.get(OffsetAttribute.class);
-    if (offsetAtt == null && (startOffsets != null || endOffsets != null)) {
-      throw new RuntimeException("stage is missing OffsetAttribute");
-    }
-
-    for(int iter=0;iter<2;iter++) {
-      System.out.println("TEST: iter=" + iter);
-
-      stage.reset(input);
-
-      for(int i=0;i<terms.length;i++) {
-        boolean result = stage.next();
-        String desc;
-        if (iter == 0) {
-          desc = "token " + i;
-        } else {
-          desc = "2nd pass, token " + i;
-        }
-        if (result == false) {
-          throw new RuntimeException(desc + ": expected term=" + terms[i] + " but next() returned false");
-        }
-        if (termAtt.get().equals(terms[i]) == false) {
-          throw new RuntimeException(desc + ": expected term=" + terms[i] + " but got " + termAtt.get());
-        }
-        if (fromNodes != null && arcAtt.from() != fromNodes[i]) {
-          throw new RuntimeException(desc + ": expected fromNode=" + fromNodes[i] + " but got " + arcAtt.from());
-        }
-        if (toNodes != null && arcAtt.to() != toNodes[i]) {
-          throw new RuntimeException(desc + ": expected toNode=" + toNodes[i] + " but got " + arcAtt.to());
-        }
-        if (startOffsets != null && offsetAtt.startOffset() != startOffsets[i]) {
-          throw new RuntimeException(desc + ": expected startOffset=" + startOffsets[i] + " but got " + offsetAtt.startOffset());
-        }
-        if (endOffsets != null && offsetAtt.endOffset() != endOffsets[i]) {
-          throw new RuntimeException(desc + ": expected endOffset=" + endOffsets[i] + " but got " + offsetAtt.endOffset());
-        }
-      }
-    }
   }
 }

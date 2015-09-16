@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,13 +17,7 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
-import org.apache.lucene.analysis.CharFilter;
-import org.apache.lucene.analysis.stages.attributes.Attribute;
-import org.apache.lucene.util.WeakIdentityMap;
-
 import java.io.IOException;
-import java.io.Reader;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,6 +25,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.lucene.analysis.stageattributes.Attribute;
 
 /** Represents one stage of an analysis pipeline. */
 public abstract class Stage {
@@ -47,9 +43,6 @@ public abstract class Stage {
 
   /** Which attributes we have explicitly deleted, so the following stages can't see them. */
   private final Set<Class<? extends Attribute>> deletedAtts = new HashSet<>();
-
-  /** Only set if state needs to buffer tokens. */
-  private List<Attribute> allAtts;
 
   protected Stage(Stage in) {
     this.in = in;

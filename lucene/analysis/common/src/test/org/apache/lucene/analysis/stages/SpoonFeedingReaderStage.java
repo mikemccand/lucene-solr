@@ -20,10 +20,11 @@ package org.apache.lucene.analysis.stages;
 import java.io.IOException;
 import java.util.Random;
 
-import org.apache.lucene.analysis.stages.attributes.TextAttribute;
-import org.apache.lucene.analysis.util.CharacterUtils;
-import org.apache.lucene.util.Attribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
 import org.apache.lucene.util.TestUtil;
+
+// nocommit mv to test-framework
 
 /** Just randomly chops up the incoming text chunks. */
 public class SpoonFeedingReaderStage extends Stage {

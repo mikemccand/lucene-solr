@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages.attributes;
+package org.apache.lucene.analysis.stageattributes;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,11 +17,37 @@ package org.apache.lucene.analysis.stages.attributes;
  * limitations under the License.
  */
 
-/**
- * Base interface for attributes.
- */
+// TODO: CharSequence again?
+public class TypeAttribute extends Attribute {
+  private String type;
 
-public abstract class Attribute {
-  public abstract void copyFrom(Attribute other);
-  public abstract Attribute copy();
+  public void set(String type) {
+    this.type = type;
+  }
+
+  public String get() {
+    return type;
+  }
+
+  @Override
+  public String toString() {
+    return type;
+  }
+
+  @Override
+  public void copyFrom(Attribute other) {
+    TypeAttribute t = (TypeAttribute) other;
+    set(t.type);
+  }
+
+  @Override
+  public TypeAttribute copy() {
+    TypeAttribute att = new TypeAttribute();
+    att.copyFrom(this);
+    return att;
+  }
+
+  public void clear() {
+    type = null;
+  }
 }

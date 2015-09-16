@@ -18,14 +18,12 @@ package org.apache.lucene.analysis.charfilter;
  */
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
 import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SpoonFeedingReaderStage;
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
-import org.apache.lucene.analysis.stages.attributes.TextAttribute;
 
 // nocommit extend LTC?
 public class TestMappingTextStage extends BaseTokenStreamTestCase {

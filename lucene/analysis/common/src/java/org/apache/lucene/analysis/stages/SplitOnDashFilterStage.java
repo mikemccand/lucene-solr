@@ -18,14 +18,12 @@ package org.apache.lucene.analysis.stages;
  */
 
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Arrays;
 
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.util.CharacterUtils;
-import org.apache.lucene.util.Attribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 
 /** Simple example of decompounder-as-filter, just dividing
  *  a word at its dashes and keeping the original. */

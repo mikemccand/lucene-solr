@@ -18,18 +18,14 @@ package org.apache.lucene.analysis.stages;
  */
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.Arrays;
 
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TextAttribute;
-import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
-import org.apache.lucene.analysis.util.CharacterUtils.CharacterBuffer;
-import org.apache.lucene.analysis.util.CharacterUtils;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
+import org.apache.lucene.analysis.stageattributes.TypeAttribute;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.UnicodeUtil;
 import org.apache.lucene.util.Version;
@@ -42,20 +38,11 @@ public abstract class CharTokenizerStage extends Stage {
 
   public final static String TYPE = "TOKEN";
 
-  private static final int MAX_WORD_LEN = 255;
-  private static final int IO_BUFFER_SIZE = 4096;
-
   private final TextAttribute textAttIn;
   private final OffsetAttribute offsetAtt;
   private final TermAttribute termAttIn;
   private final TermAttribute termAttOut;
   private final ArcAttribute arcAtt;
-
-  // Where we are in the current chunk we are working on:
-  private int bufferIndex;
-
-  // How many chars currently in the "chunk" we are working on:
-  private int dataLen;
 
   private int lastNode;
 
@@ -108,8 +95,6 @@ public abstract class CharTokenizerStage extends Stage {
     offset = 0;
     end = false;
     pendingToken = false;
-    dataLen = 0;
-    bufferIndex = 0;
   }
 
   private void copyPreToken() {

@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,19 +17,18 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
-import org.apache.lucene.analysis.stages.attributes.ArcAttribute;
-import org.apache.lucene.analysis.stages.attributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.TypeAttribute;
-
 import java.io.IOException;
-import java.io.Reader;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-class AssertingStage extends Stage {
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TypeAttribute;
+
+public class AssertingStage extends Stage {
   final ArcAttribute arcAtt;
   final TermAttribute termAtt;
   final TypeAttribute typeAtt;
@@ -99,7 +98,8 @@ class AssertingStage extends Stage {
         }
       }
 
-      boolean isRealToken = typeAtt.get().equals(CharTokenizerStage.TYPE);
+      // nocommit stupid hardwired string, and the string value itself is stupid:
+      boolean isRealToken = typeAtt.get().equals("TOKEN");
 
       if (isRealToken) {
         if (endOffset != startOffset + termAtt.getOrigText().length()) {

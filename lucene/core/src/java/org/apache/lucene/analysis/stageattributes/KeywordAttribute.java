@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages.attributes;
+package org.apache.lucene.analysis.stageattributes;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,7 +17,7 @@ package org.apache.lucene.analysis.stages.attributes;
  * limitations under the License.
  */
 
-import org.apache.lucene.analysis.stages.Stage;
+import org.apache.lucene.analysis.Stage;
 
 /**
  * This attribute can be used to mark a token as a keyword. Keyword aware

@@ -17,6 +17,8 @@ package org.apache.lucene.analysis.stages;
  * limitations under the License.
  */
 
+import org.apache.lucene.analysis.Stage;
+
 public class WhitespaceTokenizerStage extends CharTokenizerStage {
   public WhitespaceTokenizerStage(Stage prevStage) {
     super(prevStage);

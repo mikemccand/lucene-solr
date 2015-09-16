@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages.attributes;
+package org.apache.lucene.analysis.stageattributes;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,35 +17,22 @@ package org.apache.lucene.analysis.stages.attributes;
  * limitations under the License.
  */
 
-public class ArcAttribute extends Attribute {
-  private int from;
-  private int to;
+public class DeletedAttribute extends Attribute {
+  private boolean deleted;
   
-  public ArcAttribute() {
+  public DeletedAttribute() {
   }
 
-  public int from() {
-    return from;
+  public boolean deleted() {
+    return deleted;
   }
 
-  public int to() {
-    return to;
-  }
-
-  public void set(int from, int to) {
-    if (from < 0) {
-      throw new IllegalArgumentException("from must be >= 0; got " + from);
-    }
-    if (to < 1) {
-      throw new IllegalArgumentException("to must be > 0; got " + to);
-    }
-    this.from = from;
-    this.to = to;
+  public void set(boolean deleted) {
+    this.deleted = deleted;
   }
 
   public void clear() {
-    from = 0;
-    to = 0;
+    deleted = false;
   }
 
   @Override
@@ -54,38 +41,29 @@ public class ArcAttribute extends Attribute {
       return true;
     }
     
-    if (other instanceof ArcAttribute) {
-      ArcAttribute o = (ArcAttribute) other;
-      return o.from == from && o.to == to;
+    if (other instanceof DeletedAttribute) {
+      DeletedAttribute o = (DeletedAttribute) other;
+      return o.deleted == deleted;
     }
     
     return false;
   }
 
   @Override
-  public String toString() {
-    return from + "-" + to;
-  }
-
-  // nocommit make sure all other atts impl hashCode/equals
-
-  @Override
   public int hashCode() {
-    int code = from;
-    code = code * 31 + to;
-    return code;
+    return deleted ? 31 : 57;
   } 
 
   @Override
-  public ArcAttribute copy() {
-    ArcAttribute att = new ArcAttribute();
-    att.set(from(), to());
-    return att;
-  }
+  public void copyFrom(Attribute other) {
+    DeletedAttribute t = (DeletedAttribute) other;
+    set(t.deleted);
+  }  
 
   @Override
-  public void copyFrom(Attribute other) {
-    ArcAttribute t = (ArcAttribute) other;
-    set(t.from, t.to);
-  }  
+  public DeletedAttribute copy() {
+    DeletedAttribute att = new DeletedAttribute();
+    att.set(deleted());
+    return att;
+  }
 }

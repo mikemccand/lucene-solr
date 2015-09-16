@@ -19,8 +19,8 @@ package org.apache.lucene.analysis.en;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.stages.Stage;
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 
 /**
  * TokenFilter that removes possessives (trailing 's) from words.

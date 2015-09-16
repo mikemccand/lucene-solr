@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages.attributes;
+package org.apache.lucene.analysis.stageattributes;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -18,36 +18,43 @@ package org.apache.lucene.analysis.stages.attributes;
  */
 
 // TODO: CharSequence again?
-public class TypeAttribute extends Attribute {
-  private String type;
+public class TermAttribute extends Attribute {
+  private String origText;
+  private String term;
 
-  public void set(String type) {
-    this.type = type;
+  public void set(String origText, String term) {
+    this.origText = origText;
+    this.term = term;
   }
 
   public String get() {
-    return type;
+    return term;
+  }
+
+  public String getOrigText() {
+    return origText;
   }
 
   @Override
   public String toString() {
-    return type;
+    return term;
   }
 
   @Override
   public void copyFrom(Attribute other) {
-    TypeAttribute t = (TypeAttribute) other;
-    set(t.type);
+    TermAttribute t = (TermAttribute) other;
+    set(t.origText, t.term);
   }
 
   @Override
-  public TypeAttribute copy() {
-    TypeAttribute att = new TypeAttribute();
+  public TermAttribute copy() {
+    TermAttribute att = new TermAttribute();
     att.copyFrom(this);
     return att;
   }
 
   public void clear() {
-    type = null;
+    origText = null;
+    term = null;
   }
 }

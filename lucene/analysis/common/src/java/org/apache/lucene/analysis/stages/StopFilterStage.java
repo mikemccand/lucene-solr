@@ -19,8 +19,9 @@ package org.apache.lucene.analysis.stages;
 
 import java.io.IOException;
 
-import org.apache.lucene.analysis.stages.attributes.TermAttribute;
-import org.apache.lucene.analysis.stages.attributes.DeletedAttribute;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.util.CharArraySet;
 
 /** Marks stop words as deleted */
