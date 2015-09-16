@@ -96,4 +96,11 @@ public class TextAttribute extends Attribute {
     att.copyFrom(this);
     return att;
   }
+
+  public void clear() {
+    buffer = null;
+    length = 0;
+    origBuffer = null;
+    origLength = 0;
+  }
 }

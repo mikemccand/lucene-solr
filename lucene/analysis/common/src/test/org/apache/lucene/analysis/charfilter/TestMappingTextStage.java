@@ -21,6 +21,7 @@ import java.util.Arrays;
 
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.stages.ReaderStage;
+import org.apache.lucene.analysis.stages.SpoonFeedingReaderStage;
 import org.apache.lucene.analysis.stages.Stage;
 import org.apache.lucene.analysis.stages.attributes.TextAttribute;
 
@@ -31,8 +32,13 @@ public class TestMappingTextStage extends BaseTokenStreamTestCase {
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("aa", "x");
     NormalizeCharMap map = b.build();
-    assertMatches(new MappingTextStage(new ReaderStage(), map), "blah aa fee", "blah x fee");
-    assertMatches(new MappingTextStage(new ReaderStage(), map), "blah aa fee aa", "blah x fee x");
+
+    // 1 match:
+    assertMatches(getStage(map), "blah aa fee", "blah x fee");
+
+    // 2 matches:
+    assertMatches(getStage(map), "blah aa fee aa", "blah x fee x");
+
     // nocommit verify offsets too?
   }
 
@@ -43,18 +49,24 @@ public class TestMappingTextStage extends BaseTokenStreamTestCase {
     b.add("a", "x");
     NormalizeCharMap map = b.build();
     // nocommit:
-    assertMatches(new MappingTextStage(new ReaderStage(), map), "fooafee", "fooxfee");
+    assertMatches(getStage(map), "fooafee", "fooxfee");
     System.out.println("\nTEST: now test 2nd");
-    assertMatches(new MappingTextStage(new ReaderStage(), map), "fooabar", "fooxbxr");
+    assertMatches(getStage(map), "fooabar", "fooxbxr");
     // nocommit verify offsets too?
   }
 
+  private Stage getStage(NormalizeCharMap map) {
+    return new MappingTextStage(new SpoonFeedingReaderStage(new ReaderStage(), random()), map);
+  }
+
   private void assertMatches(Stage stage, String text, String expected) throws Exception {
+    System.out.println("\nTEST: now assertMatches on " + text);
     TextAttribute textAtt = stage.get(TextAttribute.class);
 
     // nocommit also do a partial consume
     // Do it twice to make sure reset works:
     for (int iter=0;iter<2;iter++) {
+      System.out.println("  iter=" + iter);
       StringBuilder output = new StringBuilder();
       StringBuilder origOutput = new StringBuilder();
       stage.reset(text);
