@@ -124,7 +124,7 @@ public class MappingTextStage extends Stage {
 
   private void findNextMatch() throws IOException {
     
-    // nocommit make sure fast path just sends att straight through
+    // TODO: fast path can send buffers straight through?
 
     if (bufferIn.isEmpty()) {
       if (end || in.next() == false) {
@@ -268,7 +268,7 @@ public class MappingTextStage extends Stage {
                 if (chunk != firstChunk) {
                   throw new IllegalStateException("cannot partially remap ( -> " + lastMatch + ") an already mapped text (" + chunk + ")");
                 }
-                origChars = new char[chunk.origText.length];
+                origChars = chunk.origText;
               } else {
                 // Append:
                 char[] newOrigChars = new char[origChars.length + chunk.origText.length];

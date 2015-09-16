@@ -302,8 +302,6 @@ public class TestStages extends BaseStageTestCase {
                   "foo <p> bar baz");
   }
 
-  // nocommit test "char filter" that removes characters
-
   public void testHTMLEscape1() throws Exception {
     assertMatches("foo &Eacute;mily bar baz",
                   new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
@@ -390,6 +388,33 @@ public class TestStages extends BaseStageTestCase {
     } catch (IllegalArgumentException iae) {
       // expected
     }
+  }
+
+  public void testTokenizeDoubleMap() throws Exception {
+
+    Stage stage = new ReaderStage();
+
+    // nocommit put back:
+    // stage = new SpoonFeedingReaderStage(stage, random());
+
+    // First map HTML escape code:
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("&eacute;", "\u00e9");
+    stage = new MappingTextStage(stage, b.build());
+
+    // Then strip accent:
+    b = new NormalizeCharMap.Builder();
+    b.add("\u00e9", "e");
+    stage = new MappingTextStage(stage, b.build());
+
+    // Then tokenize
+    stage = new WhitespaceTokenizerStage(stage);
+
+    assertStageContents(stage, "Andr&eacute; Saraiva",
+                        new String[] {"Andre", "Saraiva"},
+                        new String[] {"Andr&eacute;", "Saraiva"},
+                        new int[] {0, 13},
+                        new int[] {12, 20});
   }
 
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space

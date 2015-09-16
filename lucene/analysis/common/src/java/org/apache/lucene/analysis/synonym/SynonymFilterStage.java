@@ -39,10 +39,6 @@ import org.apache.lucene.util.fst.FST;
 
 // nocommit does not do keepOrig
 
-// nocommit should we ... allow recursing on ourselves?  ie
-// so sometimes an output could be parsed against an input
-// rule?
-
 /** Synonym filter, that improves on existing one: it can
  *  handle any graph input, and it can create new positions
  *  (e.g., dns -&gt; domain name service). */
