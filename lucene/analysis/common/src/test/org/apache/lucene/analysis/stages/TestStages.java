@@ -390,7 +390,7 @@ public class TestStages extends BaseStageTestCase {
     }
   }
 
-  public void testTokenizeDoubleMap() throws Exception {
+  public void testTokenizeWithDoubleMap() throws Exception {
 
     Stage stage = new ReaderStage();
 
@@ -416,6 +416,77 @@ public class TestStages extends BaseStageTestCase {
                         new int[] {0, 13},
                         new int[] {12, 20});
   }
+
+  public void testTokenizeWithPunctMapBoundary() throws Exception {
+
+    Stage stage = new ReaderStage();
+
+    // nocommit put back:
+    // stage = new SpoonFeedingReaderStage(stage, random());
+
+    // First map HTML escape code:
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("(", "");
+    b.add(")", "");
+    stage = new MappingTextStage(stage, b.build());
+
+    // Then tokenize
+    stage = new WhitespaceTokenizerStage(stage);
+
+    assertStageContents(stage, "(foo) (bar) baz",
+                        new String[] {"foo", "bar", "baz"},
+                        new String[] {"foo", "bar", "baz"},
+                        new int[] {1, 7, 12},
+                        new int[] {4, 10, 15});
+  }
+
+  // nocommit also test w/ mapping to make the -:
+  public void testTokenizeWithPunctMapInsideToken() throws Exception {
+
+    Stage stage = new ReaderStage();
+
+    // nocommit put back:
+    // stage = new SpoonFeedingReaderStage(stage, random());
+
+    // First map HTML escape code:
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("-", "");
+    stage = new MappingTextStage(stage, b.build());
+
+    // Then tokenize
+    stage = new WhitespaceTokenizerStage(stage);
+
+    assertStageContents(stage, "ice-cream",
+                        new String[] {"icecream"},
+                        new String[] {"ice-cream"},
+                        new int[] {0},
+                        new int[] {9});
+  }
+
+  public void testMappingAndDecompound() throws Exception {
+    Stage stage = new ReaderStage();
+
+    // nocommit put back:
+    // stage = new SpoonFeedingReaderStage(stage, random());
+
+    // First map HTML escape code:
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("&endash;", "-");
+    stage = new MappingTextStage(stage, b.build());
+
+    // Then tokenize
+    stage = new WhitespaceTokenizerStage(stage);
+
+    stage = new SplitOnDashFilterStage(stage);
+
+    assertStageContents(stage, "1939&endash;1945",
+                        new String[] {"1939", "1945"},
+                        new String[] {"1939", "1945"},
+                        new int[] {0, 12},
+                        new int[] {4, 16});
+  }
+
+  // nocommit test mapping ( ) to empty string and what tokenizer does with that ... i think it's buggy now
 
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space
 

@@ -124,6 +124,7 @@ public abstract class CharTokenizerStage extends Stage {
 
     int nextWrite = 0;
     int nextOrigWrite = 0;
+    int lastRealOrigWrite = 0;
     int startOffset = -1;
     int lastHighSurrogate = -1;
     int mappedPending = 0;
@@ -172,6 +173,21 @@ public abstract class CharTokenizerStage extends Stage {
           if (textLength > 0) {
             break;
           }
+
+          if (nextWrite > 0) {
+            // A mapper mapped to empty string before us, but we are already inside a token, so we include this orig
+            // text in our current token:
+            int origToCopy = textAttIn.getOrigLength();
+            assert origToCopy > 0;
+            if (nextOrigWrite + origToCopy > origBuffer.length) {
+              origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + origToCopy);
+            }
+            System.arraycopy(textAttIn.getOrigBuffer(), 0, origBuffer, nextOrigWrite, origToCopy);
+            nextOrigWrite += origToCopy;
+            System.out.println("  orig now: " + new String(origBuffer, 0, nextOrigWrite));
+          }
+
+          charStartOffset = offset;
         }
         System.out.println("  length=" + textAttIn.getLength() + " origLength=" + textAttIn.getOrigLength());
       }
@@ -209,7 +225,7 @@ public abstract class CharTokenizerStage extends Stage {
         }
       } else {
         // Keep this char
-        System.out.println("  is token");
+        System.out.println("  is token: " + (char) utf32);
         if (buffer.length == nextWrite) {
           buffer = ArrayUtil.grow(buffer, buffer.length+1);
         }
@@ -217,20 +233,28 @@ public abstract class CharTokenizerStage extends Stage {
           startOffset = charStartOffset;
         }
         buffer[nextWrite++] = utf32;
+
         int origToCopy = offset - charStartOffset;
-        System.out.println("  origToCopy=" + origToCopy + " nextOrigWrite=" + nextOrigWrite);
-        if (nextOrigWrite + origToCopy > origBuffer.length) {
-          origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + origToCopy);
+
+        if (origToCopy != 0) {
+          System.out.println("  origToCopy=" + origToCopy + " nextOrigWrite=" + nextOrigWrite);
+          if (nextOrigWrite + origToCopy > origBuffer.length) {
+            origBuffer = ArrayUtil.grow(origBuffer, nextOrigWrite + origToCopy);
+          }
+          char[] buffer;
+          if (textAttIn.getOrigBuffer() == null) {
+            buffer = textAttIn.getBuffer();
+          } else {
+            buffer = textAttIn.getOrigBuffer();
+          }
+          System.out.println("origInputNextRead=" + origInputNextRead + " nextOrigWrite=" + nextOrigWrite + " origToCopy=" + origToCopy);
+          System.arraycopy(buffer, origInputNextRead, origBuffer, nextOrigWrite, origToCopy);
+          nextOrigWrite += origToCopy;
+          origInputNextRead += origToCopy;
+          System.out.println("  orig now: " + new String(origBuffer, 0, nextOrigWrite));
         }
-        char[] buffer;
-        if (textAttIn.getOrigBuffer() == null) {
-          buffer = textAttIn.getBuffer();
-        } else {
-          buffer = textAttIn.getOrigBuffer();
-        }
-        System.arraycopy(buffer, origInputNextRead, origBuffer, nextOrigWrite, origToCopy);
-        nextOrigWrite += origToCopy;
-        origInputNextRead += origToCopy;
+
+        lastRealOrigWrite = nextOrigWrite;
       }
     }
 
@@ -249,7 +273,7 @@ public abstract class CharTokenizerStage extends Stage {
     }
 
     String term = UnicodeUtil.newString(buffer, 0, nextWrite);
-    String origTerm = new String(origBuffer, 0, nextOrigWrite);
+    String origTerm = new String(origBuffer, 0, lastRealOrigWrite);
     termAttOut.set(origTerm, term);
     assert startOffset != -1;
 

@@ -70,9 +70,9 @@ public class MappingTextStage extends Stage {
     @Override
     public String toString() {
       if (origText != null) {
-        return new String(origText) + "->" + new String(text);
+        return "'" + new String(origText) + "' -> '" + new String(text) + "'";
       } else {
-        return new String(text);
+        return "'" + new String(text) + "'";
       }
     }
   }
