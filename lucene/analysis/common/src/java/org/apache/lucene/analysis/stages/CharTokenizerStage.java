@@ -128,6 +128,9 @@ public abstract class CharTokenizerStage extends Stage {
     int startOffset = -1;
     int lastHighSurrogate = -1;
     int mappedPending = 0;
+    int[] offsetParts = null;
+    int nextOffsetPart = 0;
+    int lastPartOffset = 0;
 
     token:
     while (true) {
@@ -167,7 +170,18 @@ public abstract class CharTokenizerStage extends Stage {
             // Text was remapped before us:
             System.out.println("  text was changed: " + textAttIn.getLength() + " vs " + textAttIn.getOrigLength());
             mappedPending = textAttIn.getLength();
+
+            if (lastPartOffset < offset) {
+              int chars = offset - lastPartOffset;
+              offsetParts = appendOffsetPart(offsetParts, nextOffsetPart, chars, chars);
+              nextOffsetPart += 2;
+            }
+
             offset += textAttIn.getOrigLength();
+
+            offsetParts = appendOffsetPart(offsetParts, nextOffsetPart, textAttIn.getLength(), textAttIn.getOrigLength());
+            nextOffsetPart += 2;
+            lastPartOffset = offset;
           }
 
           if (textLength > 0) {
@@ -272,17 +286,45 @@ public abstract class CharTokenizerStage extends Stage {
       throw new IllegalArgumentException("cannot split token inside a mapping: mappedPending=" + mappedPending);
     }
 
+    if (offsetParts != null && lastPartOffset < offset) {
+      // Append last un-mapped chunk of text:
+      int chars = offset - lastPartOffset;
+      offsetParts = appendOffsetPart(offsetParts, nextOffsetPart, chars, chars);
+      nextOffsetPart += 2;
+    }
+
     String term = UnicodeUtil.newString(buffer, 0, nextWrite);
     String origTerm = new String(origBuffer, 0, lastRealOrigWrite);
     termAttOut.set(origTerm, term);
     assert startOffset != -1;
 
-    offsetAtt.set(startOffset, startOffset+origTerm.length(), null);
     System.out.println("TOKEN: " + term + " " + startOffset + "-" + (startOffset+origTerm.length()) + " orig: " + origTerm);
+    if (offsetParts != null) {
+      int i = 0;
+      while (i < offsetParts.length) {
+        System.out.println("  len=" + offsetParts[i] + " origLen=" + offsetParts[i+1]);
+        i += 2;
+      }
+    }
+    offsetAtt.set(startOffset, startOffset+origTerm.length(), offsetParts);
     int node = newNode();
     arcAtt.set(lastNode, node);
     lastNode = node;
     return true;
+  }
+
+  /** Records one text -> origText chunk mapping in the offset parts. */
+  private int[] appendOffsetPart(int[] offsetParts, int upto, int textLen, int origTextLen) {
+    if (offsetParts == null) {
+      offsetParts = new int[2];
+    } else if (upto == offsetParts.length) {
+      int[] newOffsetParts = new int[upto+2];
+      System.arraycopy(offsetParts, 0, newOffsetParts, 0, offsetParts.length);
+      offsetParts = newOffsetParts;
+    }
+    offsetParts[upto++] = textLen;
+    offsetParts[upto++] = origTextLen;
+    return offsetParts;
   }
     
   protected abstract boolean isTokenChar(int c);

@@ -101,6 +101,7 @@ public class SplitOnDashFilterStage extends Stage {
       offsetAttOut.copyFrom(offsetAttIn);
       
       parts = termAttIn.get().split("-");
+      // nocommit this is total hack ... we need to work backwards from offset att instead:
       origParts = termAttIn.getOrigText().split("-");
       System.out.println("SPLIT: parts=" + Arrays.toString(parts));
 
