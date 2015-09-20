@@ -49,8 +49,8 @@ public abstract class CharTokenizerStage extends Stage {
   private int[] buffer = new int[10];
   private char[] origBuffer = new char[10];
 
-  private int inputNextRead;
-  private int origInputNextRead;
+  private int inputBufferNextRead;
+  private int origInputBufferNextRead;
 
   // Net offset so far
   private int offset;
@@ -89,8 +89,8 @@ public abstract class CharTokenizerStage extends Stage {
   public void reset(Object item) {
     System.out.println("\nC: RESET");
     super.reset(item);
-    inputNextRead = 0;
-    origInputNextRead = 0;
+    inputBufferNextRead = 0;
+    origInputBufferNextRead = 0;
     lastNode = newNode();
     offset = 0;
     end = false;
@@ -109,6 +109,8 @@ public abstract class CharTokenizerStage extends Stage {
     System.out.println("C: send preToken " + termAttOut);
   }
 
+  // nocommit need test of invalid use where mapper produced some token chars and some non-token chars
+
   @Override
   public boolean next() throws IOException {
     System.out.println("C: next");
@@ -124,27 +126,38 @@ public abstract class CharTokenizerStage extends Stage {
 
     int nextWrite = 0;
     int nextOrigWrite = 0;
-    int lastRealOrigWrite = 0;
-    int startOffset = -1;
+    int startOffset = offset;
     int lastHighSurrogate = -1;
     int mappedPending = 0;
     int[] offsetParts = null;
-    int nextOffsetPart = 0;
-    int lastPartOffset = 0;
+    int lastPartOffset = offset;
+    int charStartOffset = -1;
+
+    // TODO: can we simplify this!
 
     token:
     while (true) {
 
-      int charStartOffset = offset;
+      charStartOffset = offset;
 
-      if (inputNextRead == textAttIn.getLength()) {
+      if (nextWrite == 0 && lastHighSurrogate == -1) {
+        startOffset = offset;
+        System.out.println("C: set token startOffset=" + startOffset);
+      }
+
+      if (inputBufferNextRead == textAttIn.getLength()) {
         System.out.println("C: fill textAttIn");
 
-        inputNextRead = 0;
-        origInputNextRead = 0;
+        inputBufferNextRead = 0;
+        origInputBufferNextRead = 0;
 
         // Because stage before us could send us TextAtt that mapped to empty string (e.g. deleted punct or something):
         while (true) {
+
+          if (nextWrite == 0 && lastHighSurrogate == -1) {
+            startOffset = offset;
+            System.out.println("C: set token startOffset=" + startOffset);
+          }
 
           if (in.next() == false) {
             end = true;
@@ -169,26 +182,30 @@ public abstract class CharTokenizerStage extends Stage {
           if (textAttIn.getOrigBuffer() != null) {
             // Text was remapped before us:
             System.out.println("  text was changed: " + textAttIn.getLength() + " vs " + textAttIn.getOrigLength());
-            mappedPending = textAttIn.getLength();
+            mappedPending = textLength;
 
             if (lastPartOffset < offset) {
               int chars = offset - lastPartOffset;
-              offsetParts = appendOffsetPart(offsetParts, nextOffsetPart, chars, chars);
-              nextOffsetPart += 2;
+              // First append un-mapped chars
+              offsetParts = appendOffsetPart(offsetParts, chars, chars);
             }
 
             offset += textAttIn.getOrigLength();
-
-            offsetParts = appendOffsetPart(offsetParts, nextOffsetPart, textAttIn.getLength(), textAttIn.getOrigLength());
-            nextOffsetPart += 2;
             lastPartOffset = offset;
+
+            if (textLength > 0 || nextWrite > 0) {
+              offsetParts = appendOffsetPart(offsetParts, textAttIn.getLength(), textAttIn.getOrigLength());
+            }
           }
 
           if (textLength > 0) {
             break;
           }
 
+          System.out.println("C: cycle empty mapped string nextWrite=" + nextWrite);
+
           if (nextWrite > 0) {
+            // nocommit this is wrong, because we could end the token on the next char?
             // A mapper mapped to empty string before us, but we are already inside a token, so we include this orig
             // text in our current token:
             int origToCopy = textAttIn.getOrigLength();
@@ -206,8 +223,9 @@ public abstract class CharTokenizerStage extends Stage {
         System.out.println("  length=" + textAttIn.getLength() + " origLength=" + textAttIn.getOrigLength());
       }
 
-      char c = textAttIn.getBuffer()[inputNextRead++];
-      if (mappedPending > 0) {
+      char c = textAttIn.getBuffer()[inputBufferNextRead++];
+      boolean wasMapped = mappedPending > 0;
+      if (wasMapped) {
         // We are still inside a mapped chunk of text:
         mappedPending--;
       } else {
@@ -216,7 +234,7 @@ public abstract class CharTokenizerStage extends Stage {
 
       int utf32;
 
-      // nocommit test surrogates:
+      // nocommit test surrogates, offsets are buggy now?:
       if (lastHighSurrogate == -1 && c >= UnicodeUtil.UNI_SUR_HIGH_START && c <= UnicodeUtil.UNI_SUR_HIGH_END) {
         // Join up surrogate pairs:
         // NOTE: we don't correct invalid unicode inputs here... should we?
@@ -230,21 +248,24 @@ public abstract class CharTokenizerStage extends Stage {
       }
 
       if (isTokenChar(utf32) == false) {
-        // Discard this char (e.g. whitespace, punct.)
+        // This is a char that separates tokens (e.g. whitespace, punct.)
         System.out.println("  is not token");
-        origInputNextRead++;
+        origInputBufferNextRead++;
         if (nextWrite > 0) {
+          if (wasMapped && offsetParts != null) {
+            offsetParts = trimOffsetParts(offsetParts);
+          }
           // We have a token!
           break;
         }
+        // In case a mapper remapped something to whitespace which we then tokenized away:
+        offsetParts = null;
+        System.out.println("C: skip offset=" + offset);
       } else {
         // Keep this char
         System.out.println("  is token: " + (char) utf32);
         if (buffer.length == nextWrite) {
           buffer = ArrayUtil.grow(buffer, buffer.length+1);
-        }
-        if (nextWrite == 0) {
-          startOffset = charStartOffset;
         }
         buffer[nextWrite++] = utf32;
 
@@ -261,14 +282,12 @@ public abstract class CharTokenizerStage extends Stage {
           } else {
             buffer = textAttIn.getOrigBuffer();
           }
-          System.out.println("origInputNextRead=" + origInputNextRead + " nextOrigWrite=" + nextOrigWrite + " origToCopy=" + origToCopy);
-          System.arraycopy(buffer, origInputNextRead, origBuffer, nextOrigWrite, origToCopy);
+          System.out.println("origInputBufferNextRead=" + origInputBufferNextRead + " nextOrigWrite=" + nextOrigWrite + " origToCopy=" + origToCopy);
+          System.arraycopy(buffer, origInputBufferNextRead, origBuffer, nextOrigWrite, origToCopy);
           nextOrigWrite += origToCopy;
-          origInputNextRead += origToCopy;
+          origInputBufferNextRead += origToCopy;
           System.out.println("  orig now: " + new String(origBuffer, 0, nextOrigWrite));
         }
-
-        lastRealOrigWrite = nextOrigWrite;
       }
     }
 
@@ -286,26 +305,44 @@ public abstract class CharTokenizerStage extends Stage {
       throw new IllegalArgumentException("cannot split token inside a mapping: mappedPending=" + mappedPending);
     }
 
-    if (offsetParts != null && lastPartOffset < offset) {
-      // Append last un-mapped chunk of text:
-      int chars = offset - lastPartOffset;
-      offsetParts = appendOffsetPart(offsetParts, nextOffsetPart, chars, chars);
-      nextOffsetPart += 2;
+    // Post-process offsetParts to strip off any 0-length mapped chars at the end:
+    if (offsetParts != null) {
+      if (lastPartOffset < charStartOffset) {
+        // Append last un-mapped chunk of text:
+        int chars = charStartOffset - lastPartOffset;
+        offsetParts = appendOffsetPart(offsetParts, chars, chars);
+      } else {
+        // Strip off any empty-string mapped tail parts:
+        int downTo = offsetParts.length;
+        while (downTo > 0) {
+          if (offsetParts[downTo-2] == 0) {
+            System.out.println("C: strip 0-length trailing offset part");
+            nextOrigWrite -= offsetParts[downTo-1];
+            downTo -= 2;
+          } else {
+            break;
+          }
+        }
+        if (downTo < offsetParts.length) {
+          if (downTo == 0 || downTo == 2) {
+            offsetParts = null;
+            System.out.println("C: offsetParts is now null");
+          } else {
+            int[] newOffsetParts = new int[downTo];
+            System.arraycopy(offsetParts, 0, newOffsetParts, 0, downTo);
+            offsetParts = newOffsetParts;
+            System.out.println("C: offsetParts is now: " + OffsetAttribute.toString(offsetParts));
+          }
+        }
+      }
     }
 
     String term = UnicodeUtil.newString(buffer, 0, nextWrite);
-    String origTerm = new String(origBuffer, 0, lastRealOrigWrite);
+    String origTerm = new String(origBuffer, 0, nextOrigWrite);
     termAttOut.set(origTerm, term);
     assert startOffset != -1;
 
-    System.out.println("TOKEN: " + term + " " + startOffset + "-" + (startOffset+origTerm.length()) + " orig: " + origTerm);
-    if (offsetParts != null) {
-      int i = 0;
-      while (i < offsetParts.length) {
-        System.out.println("  len=" + offsetParts[i] + " origLen=" + offsetParts[i+1]);
-        i += 2;
-      }
-    }
+    System.out.println("TOKEN: " + term + " " + startOffset + "-" + (startOffset+origTerm.length()) + " orig: " + origTerm + " offsetParts: " + OffsetAttribute.toString(offsetParts));
     offsetAtt.set(startOffset, startOffset+origTerm.length(), offsetParts);
     int node = newNode();
     arcAtt.set(lastNode, node);
@@ -313,11 +350,25 @@ public abstract class CharTokenizerStage extends Stage {
     return true;
   }
 
+  /** Removes last entry from offsetParts */
+  private int[] trimOffsetParts(int[] offsetParts) {
+    if (offsetParts.length == 2) {
+      return null;
+    }
+    int[] newOffsetParts = new int[offsetParts.length-2];
+    System.arraycopy(offsetParts, 0, newOffsetParts, 0, newOffsetParts.length);
+    return newOffsetParts;
+  }
+
   /** Records one text -> origText chunk mapping in the offset parts. */
-  private int[] appendOffsetPart(int[] offsetParts, int upto, int textLen, int origTextLen) {
+  private int[] appendOffsetPart(int[] offsetParts, int textLen, int origTextLen) {
+    System.out.println("C: add offset part len=" + textLen + " origLen=" + origTextLen);
+    int upto;
     if (offsetParts == null) {
       offsetParts = new int[2];
-    } else if (upto == offsetParts.length) {
+      upto = 0;
+    } else {
+      upto = offsetParts.length;
       int[] newOffsetParts = new int[upto+2];
       System.arraycopy(offsetParts, 0, newOffsetParts, 0, offsetParts.length);
       offsetParts = newOffsetParts;

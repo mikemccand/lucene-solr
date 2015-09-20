@@ -18,7 +18,9 @@ package org.apache.lucene.analysis.stages;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
@@ -40,10 +42,10 @@ public class SplitOnDashFilterStage extends Stage {
   private final OffsetAttribute offsetAttIn;
   private final OffsetAttribute offsetAttOut;
 
-  private String[] parts;
-  private String[] origParts;
   private int nextPart;
-  private int partOffset;
+
+  // If non-null this is the start/stop slices of the current term:
+  private List<Integer> parts;
 
   public SplitOnDashFilterStage(Stage in) {
     super(in);
@@ -61,12 +63,86 @@ public class SplitOnDashFilterStage extends Stage {
     parts = null;
   }
 
+  private void copyPart(int start, int end) {
+
+    int[] offsetPartsIn = offsetAttIn.parts();
+    int[] offsetPartsOut;
+    String origTerm;
+    int startOffset;
+    int endOffset;
+
+    if (offsetPartsIn == null) {
+      if (termAttIn.getOrigText() == null) {
+        // Simple case: term was not remapped
+        origTerm = termAttIn.get();
+      } else {
+        assert termAttIn.getOrigText().length() == termAttIn.get().length();
+        origTerm = termAttIn.getOrigText().substring(start, end);
+      }
+      startOffset = offsetAttIn.startOffset() + start;
+      endOffset = offsetAttIn.startOffset() + end;
+      offsetPartsOut = null;
+    } else {
+      // Make sure the start/end is "congruent" with the parts:
+      int sum = 0;
+      int sumOrig = 0;
+      int origStart = -1;
+      int origEnd = -1;
+      int i = 0;
+      int partStart = -1;
+      int partEnd = -1;
+      while (i < offsetPartsIn.length) {
+        if (sum == start) {
+          partStart = i;
+          origStart = sumOrig;
+        }
+        sum += offsetPartsIn[i];
+        sumOrig += offsetPartsIn[i+1];
+        if (sum == end) {
+          partEnd = i;
+          origEnd = sumOrig;
+        }
+        i += 2;
+      }
+
+      if (origStart == -1 || origEnd == -1) {
+        // nocommit need test exposing this:
+        throw new IllegalArgumentException("cannot slice token[" + start + ":" + end + "]: it does not match the mapped parts");
+      }
+
+      if (partEnd == partStart) {
+        // Simple case: we excised a single sub-part of the token
+        offsetPartsOut = null;
+      } else {
+        // nocommit need test covering both of these
+        offsetPartsOut = new int[partEnd - partStart + 2];
+        System.arraycopy(offsetPartsIn, partStart, offsetPartsOut, 0, partEnd - partStart + 2);
+      }
+      origTerm = termAttIn.getOrigText().substring(origStart, origEnd);
+      startOffset = origStart;
+      endOffset = origEnd;
+    }
+
+    termAttOut.set(origTerm, termAttIn.get().substring(start, end));
+    offsetAttOut.set(startOffset, endOffset, offsetPartsOut);
+  }
+
+  // nocommit test all ----
+  // nocommit test --foo
+  // nocommit test --f-oo
+  // nocommit test foo--
+  // nocommit test f-oo--
+
   @Override
   public boolean next() throws IOException {
     System.out.println("SPLIT next: parts=" + parts + " nextPart=" + nextPart);
     if (parts != null) {
+      System.out.println("  parts: " + parts + " nextPart=" + nextPart);
 
-      termAttOut.set(origParts[nextPart], parts[nextPart]);
+      // Sets offsetAttOut and termAttOut:
+      copyPart(parts.get(nextPart), parts.get(nextPart+1));
+
+      // Now set arcAttOut:
       int from;
       if (nextPart == 0) {
         from = arcAttIn.from();
@@ -75,48 +151,66 @@ public class SplitOnDashFilterStage extends Stage {
       }
       int to;
 
-      int partLength = origParts[nextPart].length();
-
-      offsetAttOut.set(offsetAttIn.startOffset() + partOffset,
-                       offsetAttIn.startOffset() + partOffset + partLength);
-
-      partOffset += partLength+1;
-
-      if (nextPart == parts.length-1) {
+      if (nextPart == parts.size()-2) {
         to = arcAttIn.to();
         parts = null;
       } else {
         to = newNode();
-        nextPart++;
       }
       arcAttOut.set(from, to);
+
+      nextPart += 2;
 
       return true;
     }
 
     if (in.next()) {
 
+      // First we send the original token:
       termAttOut.copyFrom(termAttIn);
       arcAttOut.copyFrom(arcAttIn);
       offsetAttOut.copyFrom(offsetAttIn);
-      
-      parts = termAttIn.get().split("-");
-      // nocommit this is total hack ... we need to work backwards from offset att instead:
-      origParts = termAttIn.getOrigText().split("-");
-      System.out.println("SPLIT: parts=" + Arrays.toString(parts));
 
-      // NOTE: not perfect, e.g. you could have a prior Stage that removed one dash and inserted another:
-      if (origParts.length != parts.length) {
-        throw new IllegalArgumentException("cannot split term=\"" + termAttIn.get() + "\" with origText=\"" + termAttIn.getOrigText() + "\": they have different lengths after splitting on '-'");
+      // ... but we set up parts so the following next will iterate through them:
+      int i = 0;
+      int lastStart = -1;
+      int tokenUpto = 0;
+
+      while (i < termAttIn.get().length()) {
+        char ch = termAttIn.get().charAt(i);
+        if (ch == '-') {
+          if (lastStart != -1) {
+            if (parts == null) {
+              parts = new ArrayList<>();
+            }   
+            // Inclusive:
+            parts.add(lastStart);
+            // Exclusive:
+            parts.add(i);
+            lastStart = -1;
+          }
+        } else if (lastStart == -1) {
+          lastStart = i;
+        }
+
+        i++;
       }
 
-      if (parts.length == 1) {
-        parts = null;
-      } else {
+      if (lastStart != -1 && (lastStart > 0 || parts != null)) {
+        if (parts == null) {
+          // This is for the --foo case:
+          parts = new ArrayList<>();
+        }
+        // Inclusive:
+        parts.add(lastStart);
+        // Exclusive:
+        parts.add(termAttIn.get().length());
+      }
+
+      if (parts != null) {
         nextPart = 0;
-        partOffset = 0;
       }
-
+      
       return true;
     } else {
       return false;

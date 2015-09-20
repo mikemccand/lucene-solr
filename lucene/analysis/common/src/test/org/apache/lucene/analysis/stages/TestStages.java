@@ -131,6 +131,30 @@ public class TestStages extends BaseStageTestCase {
                   "the-dog barks", "the dog barks");
   }
 
+  public void testLeadingDash1() throws Exception {
+    assertMatches("--the",
+                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                  "--the", "the");
+  }
+
+  public void testLeadingDash2() throws Exception {
+    assertMatches("--the-foo bar",
+                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                  "--the-foo bar", "the foo bar");
+  }
+
+  public void testTrailingDash1() throws Exception {
+    assertMatches("the--",
+                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                  "the--", "the");
+  }
+
+  public void testTrailingDash2() throws Exception {
+    assertMatches("the-foo-- bar",
+                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                  "the-foo-- bar", "the foo bar");
+  }
+
   // nocommit get offset corrections working again:
   /*
   public class SillyCharFilter extends CharFilter {
@@ -181,6 +205,12 @@ public class TestStages extends BaseStageTestCase {
     assertMatches("a, b c",
                   new InsertDeletedPunctuationStage(new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())), "p"),
                   "a p b c");
+  }
+
+  public void testTokenizePunctuation() throws Exception {
+    assertMatches("a, b c",
+                  new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())),
+                  "a b c");
   }
 
   public void testSynFilterAfterInsertDeletedPunctuation() throws Exception {
@@ -480,13 +510,11 @@ public class TestStages extends BaseStageTestCase {
     stage = new SplitOnDashFilterStage(stage);
 
     assertStageContents(stage, "1939&endash;1945",
-                        new String[] {"1939", "1945"},
-                        new String[] {"1939", "1945"},
-                        new int[] {0, 12},
-                        new int[] {4, 16});
+                        new String[] {"1939-1945", "1939", "1945"},
+                        new String[] {"1939&endash;1945", "1939", "1945"},
+                        new int[] {0, 0, 12},
+                        new int[] {16, 4, 16});
   }
-
-  // nocommit test mapping ( ) to empty string and what tokenizer does with that ... i think it's buggy now
 
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space
 

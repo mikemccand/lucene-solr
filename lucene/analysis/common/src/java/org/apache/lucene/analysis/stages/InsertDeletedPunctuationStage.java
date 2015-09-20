@@ -182,8 +182,8 @@ public class InsertDeletedPunctuationStage extends Stage {
     } else {
       delAttOut.set(false);
     }
-    termAttOut.set(termAttIn.get(), termAttIn.getOrigText());
-    offsetAttOut.set(offsetAttIn.startOffset(), offsetAttIn.endOffset());
-    arcAttOut.set(arcAttIn.from(), arcAttIn.to());
+    termAttOut.copyFrom(termAttIn);
+    offsetAttOut.copyFrom(offsetAttIn);
+    arcAttOut.copyFrom(arcAttIn);
   }
 }
