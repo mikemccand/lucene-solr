@@ -127,12 +127,6 @@ public class SplitOnDashFilterStage extends Stage {
     offsetAttOut.set(startOffset, endOffset, offsetPartsOut);
   }
 
-  // nocommit test all ----
-  // nocommit test --foo
-  // nocommit test --f-oo
-  // nocommit test foo--
-  // nocommit test f-oo--
-
   @Override
   public boolean next() throws IOException {
     System.out.println("SPLIT next: parts=" + parts + " nextPart=" + nextPart);

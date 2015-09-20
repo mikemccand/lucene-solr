@@ -493,6 +493,33 @@ public class TestStages extends BaseStageTestCase {
                         new int[] {9});
   }
 
+  public void testSplitDashCases() throws Exception {
+    Stage stage = new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage()));
+
+    // nocommit put back:
+    // stage = new SpoonFeedingReaderStage(stage, random());
+
+    assertMatches("--foo bar",
+                  stage,
+                  "--foo bar",
+                  "foo bar");
+    assertMatches("foo-- bar",
+                  stage,
+                  "foo-- bar",
+                  "foo bar");
+    assertMatches("--fo-o bar",
+                  stage,
+                  "--fo-o bar",
+                  "fo o bar");
+    assertMatches("fo-o-- bar",
+                  stage,
+                  "fo-o-- bar",
+                  "fo o bar");
+    assertMatches("----- bar",
+                  stage,
+                  "----- bar");
+  }
+
   public void testMappingAndDecompound() throws Exception {
     Stage stage = new ReaderStage();
 
