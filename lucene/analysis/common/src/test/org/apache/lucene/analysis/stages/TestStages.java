@@ -526,7 +526,7 @@ public class TestStages extends BaseStageTestCase {
     // nocommit put back:
     // stage = new SpoonFeedingReaderStage(stage, random());
 
-    // First map HTML escape code:
+    // First map dash:
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("&endash;", "-");
     stage = new MappingTextStage(stage, b.build());

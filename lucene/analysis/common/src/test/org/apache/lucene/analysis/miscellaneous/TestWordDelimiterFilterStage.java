@@ -21,8 +21,11 @@ import java.io.IOException;
 import java.util.*;
 
 import org.apache.lucene.analysis.*;
+import org.apache.lucene.analysis.charfilter.MappingTextStage;
+import org.apache.lucene.analysis.charfilter.NormalizeCharMap;
 import org.apache.lucene.analysis.core.KeywordTokenizer;
 import org.apache.lucene.analysis.core.StopFilter;
+import org.apache.lucene.analysis.stages.HTMLTextStage;
 import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -50,5 +53,25 @@ public class TestWordDelimiterFilterStage extends BaseStageTestCase {
                   "foo-bar",
                   "foobar",
                   "foo bar");
+
+    assertMatches("1945-2007",
+                  new WordDelimiterFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), DEFAULT_WORD_DELIM_TABLE, flags, null),
+                  "1945-2007",
+                  "19452007",
+                  "1945 2007");
+  }
+
+  public void testWithMapping() throws IOException {
+    int flags = GENERATE_WORD_PARTS | GENERATE_NUMBER_PARTS | CATENATE_ALL | SPLIT_ON_CASE_CHANGE | SPLIT_ON_NUMERICS | STEM_ENGLISH_POSSESSIVE;
+
+    // First map dash:
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("&endash;", "-");
+
+    assertMatches("1945&endash;2007",
+                  new WordDelimiterFilterStage(new WhitespaceTokenizerStage(new MappingTextStage(new ReaderStage(), b.build())), DEFAULT_WORD_DELIM_TABLE, flags, null),
+                  "1945-2007",
+                  "19452007",
+                  "1945 2007");
   }
 }
