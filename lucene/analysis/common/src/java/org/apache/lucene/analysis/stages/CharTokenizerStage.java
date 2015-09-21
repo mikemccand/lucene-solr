@@ -36,8 +36,6 @@ import org.apache.lucene.util.Version;
  *  delimiter characters as specified by a subclass overriding {@link #isTokenChar}. */
 public abstract class CharTokenizerStage extends Stage {
 
-  public final static String TYPE = "TOKEN";
-
   private final TextAttribute textAttIn;
   private final OffsetAttribute offsetAtt;
   private final TermAttribute termAttIn;
@@ -81,7 +79,7 @@ public abstract class CharTokenizerStage extends Stage {
     }
     if (in.getIfExists(TypeAttribute.class) == null) {
       TypeAttribute typeAtt = create(TypeAttribute.class);
-      typeAtt.set(TYPE);
+      typeAtt.set(TypeAttribute.TOKEN);
     }
   }
 

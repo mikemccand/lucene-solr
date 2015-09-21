@@ -27,6 +27,7 @@ import org.apache.lucene.analysis.stageattributes.ArcAttribute;
 import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
 import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TypeAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.util.CharArraySet;
 
@@ -167,6 +168,8 @@ public final class WordDelimiterFilterStage extends Stage {
   private final ArcAttribute arcAttOut = create(ArcAttribute.class);
   private final DeletedAttribute delAttIn = in.get(DeletedAttribute.class);
   private final DeletedAttribute delAttOut = create(DeletedAttribute.class);
+  private final TypeAttribute typeAttIn = in.get(TypeAttribute.class);
+  private final TypeAttribute typeAttOut = create(TypeAttribute.class);
 
   // used for iterating word delimiter breaks
   private final WordDelimiterIterator iterator;
@@ -211,6 +214,7 @@ public final class WordDelimiterFilterStage extends Stage {
 
   static class WordPart {
     final String term;
+    final String origText;
     final int startOffset;
     final int endOffset;
     final int wordType;
@@ -220,12 +224,13 @@ public final class WordDelimiterFilterStage extends Stage {
     // True when this is an original word part (not a concatenation):
     boolean isOrigPart;
 
-    public WordPart(String term, int startOffset, int endOffset, int wordType) {
-      this(term, startOffset, endOffset, wordType, -1, -1, true);
+    public WordPart(String term, String origText, int startOffset, int endOffset, int wordType) {
+      this(term, origText, startOffset, endOffset, wordType, -1, -1, true);
     }
 
-    public WordPart(String term, int startOffset, int endOffset, int wordType, int fromNode, int toNode, boolean isOrigPart) {
+    public WordPart(String term, String origText, int startOffset, int endOffset, int wordType, int fromNode, int toNode, boolean isOrigPart) {
       this.term = term;
+      this.origText = origText;
       this.startOffset = startOffset;
       this.endOffset = endOffset;
       this.wordType = wordType;
@@ -241,9 +246,10 @@ public final class WordDelimiterFilterStage extends Stage {
     WordPart wordPartOut = wordParts.pollFirst();
     if (wordPartOut != null) {
       // We still have word parts buffered from last token:
-      termAttOut.set(wordPartOut.term, wordPartOut.term);
+      termAttOut.set(wordPartOut.origText, wordPartOut.term);
       arcAttOut.set(wordPartOut.fromNode, wordPartOut.toNode);
       offsetAttOut.set(wordPartOut.startOffset, wordPartOut.endOffset, null);
+      typeAttOut.set(TypeAttribute.GENERATED);
       delAttOut.set(false);
       return true;
     }
@@ -262,6 +268,7 @@ public final class WordDelimiterFilterStage extends Stage {
     arcAttOut.copyFrom(arcAttIn);
     offsetAttOut.copyFrom(offsetAttIn);
     delAttOut.copyFrom(delAttIn);
+    typeAttOut.copyFrom(typeAttIn);
 
     // Protected word?
     if (protWords != null && protWords.contains(termBuffer, 0, termBuffer.length)) {
@@ -287,7 +294,10 @@ public final class WordDelimiterFilterStage extends Stage {
 
     // First pass: iterate and save word parts:
     do {
-      wordParts.add(new WordPart(new String(termBuffer, iterator.current, iterator.end), iterator.current, iterator.end, iterator.type()));
+      System.out.println("ITER: " + iterator.current + "-" + iterator.end + " vs termBuffer=" + term);
+      wordParts.add(new WordPart(new String(termBuffer, iterator.current, iterator.end-iterator.current),
+                                 new String(termBuffer, iterator.current, iterator.end-iterator.current),
+                                 iterator.current, iterator.end, iterator.type()));
     } while (iterator.next() != WordDelimiterIterator.DONE);
 
     int lastNode = arcAttIn.from();
@@ -324,6 +334,7 @@ public final class WordDelimiterFilterStage extends Stage {
             lastConcatTerm = concat.toString();
             wordParts.add(concatStartIndex+1,
                           new WordPart(lastConcatTerm,
+                                       term.substring(startWordPart.startOffset, lastWordPart.endOffset-startWordPart.startOffset),
                                        startWordPart.startOffset, lastWordPart.endOffset,
                                        concatType,
                                        startWordPart.fromNode, lastWordPart.toNode,
@@ -341,7 +352,7 @@ public final class WordDelimiterFilterStage extends Stage {
 
         concat.append(wordPart.term);
       }
-
+      
       if (has(CATENATE_ALL)) {
         concatAll.append(wordPart.term);
       }
@@ -357,6 +368,7 @@ public final class WordDelimiterFilterStage extends Stage {
         lastConcatTerm = concat.toString();
         wordParts.add(concatStartIndex+1,
                       new WordPart(lastConcatTerm,
+                                   term.substring(startWordPart.startOffset, lastWordPart.endOffset-startWordPart.startOffset),
                                    startWordPart.startOffset, lastWordPart.endOffset,
                                    concatType,
                                    startWordPart.fromNode, lastWordPart.toNode,
@@ -371,6 +383,7 @@ public final class WordDelimiterFilterStage extends Stage {
     if (concatAll.length() < term.length() && (lastConcatTerm == null || lastConcatTerm.length() < concatAll.length())) {
       wordParts.add(1,
                     new WordPart(concatAll.toString(),
+                                 termAttIn.getOrigText(),
                                  offsetAttIn.startOffset(), offsetAttIn.endOffset(),
                                  0,
                                  arcAttIn.from(), arcAttIn.to(),

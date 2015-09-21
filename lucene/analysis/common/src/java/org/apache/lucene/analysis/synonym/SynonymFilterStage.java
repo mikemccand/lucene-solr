@@ -45,8 +45,6 @@ import org.apache.lucene.util.fst.FST;
 
 public class SynonymFilterStage extends Stage {
 
-  public static final String TYPE = "SYNONYM";
-
   // We change the term:
   private final TermAttribute termAttIn;
   private final TermAttribute termAttOut;
@@ -372,7 +370,7 @@ public class SynonymFilterStage extends Stage {
         // nocommit what origText?  we could "glom" origText from the inputs..
         pendingOutputs.pollFirst();
         termAttOut.set("", token.text);
-        typeAttOut.set(TYPE);
+        typeAttOut.set(TypeAttribute.GENERATED);
         offsetAttOut.set(token.startOffset, token.endOffset);
         arcAttOut.set(token.fromNode, token.toNode);
         System.out.println("  ret: buffered output term=" + termAttOut);
