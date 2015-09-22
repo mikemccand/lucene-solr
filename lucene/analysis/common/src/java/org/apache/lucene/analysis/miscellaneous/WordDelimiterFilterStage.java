@@ -214,9 +214,10 @@ public final class WordDelimiterFilterStage extends Stage {
 
   static class WordPart {
     final String term;
-    final String origText;
-    final int startOffset;
-    final int endOffset;
+    // Which character in the incoming term this slice begins on:
+    final int termStart;
+    // Which character in the incoming term this slice ends on:
+    final int termEnd;
     final int wordType;
     int fromNode;
     int toNode;
@@ -224,19 +225,97 @@ public final class WordDelimiterFilterStage extends Stage {
     // True when this is an original word part (not a concatenation):
     boolean isOrigPart;
 
-    public WordPart(String term, String origText, int startOffset, int endOffset, int wordType) {
-      this(term, origText, startOffset, endOffset, wordType, -1, -1, true);
+    public WordPart(String term, int termState, int termEnd, int wordType) {
+      this(term, termState, termEnd, wordType, -1, -1, true);
     }
 
-    public WordPart(String term, String origText, int startOffset, int endOffset, int wordType, int fromNode, int toNode, boolean isOrigPart) {
+    public WordPart(String term, int termStart, int termEnd, int wordType, int fromNode, int toNode, boolean isOrigPart) {
       this.term = term;
-      this.origText = origText;
-      this.startOffset = startOffset;
-      this.endOffset = endOffset;
+      this.termStart = termStart;
+      this.termEnd = termEnd;
       this.wordType = wordType;
       this.fromNode = fromNode;
       this.toNode = toNode;
       this.isOrigPart = isOrigPart;
+    }
+  }
+
+  // nocommit move to helper method on Stage?  WDF, others, need this
+  // nocommit is this too simple?  it doesn't allow us to split apart an unmapped chunk?
+  private void copyPart(WordPart wordPart) {
+    int start = wordPart.termStart;
+    int end = wordPart.termEnd;
+
+    int[] offsetPartsIn = offsetAttIn.parts();
+    int[] offsetPartsOut;
+    String origTerm;
+    int startOffset;
+    int endOffset;
+
+    System.out.println("W: copyPart term=" + wordPart.term + " start=" + start + " end=" + end + " parts=" + OffsetAttribute.toString(offsetPartsIn));
+
+    if (offsetPartsIn == null) {
+      if (termAttIn.getOrigText() == null) {
+        // Simple case: term was not remapped
+        origTerm = termAttIn.get();
+      } else {
+        if (termAttIn.getOrigText().length() != termAttIn.get().length()) {
+          throw new IllegalArgumentException("cannot slice: token was mapped but has no offset parts");
+        }
+        origTerm = termAttIn.getOrigText().substring(start, end);
+      }
+      startOffset = offsetAttIn.startOffset() + start;
+      endOffset = offsetAttIn.startOffset() + end;
+      offsetPartsOut = null;
+    } else {
+      // Make sure the start/end is "congruent" with the parts:
+      int sum = 0;
+      int sumOrig = 0;
+      int origStart = -1;
+      int origEnd = -1;
+      int i = 0;
+      int partStart = -1;
+      int partEnd = -1;
+      while (i < offsetPartsIn.length) {
+        if (sum == start) {
+          partStart = i;
+          origStart = sumOrig;
+        }
+        sum += offsetPartsIn[i];
+        sumOrig += offsetPartsIn[i+1];
+        if (sum == end) {
+          partEnd = i;
+          origEnd = sumOrig;
+        }
+        i += 2;
+      }
+
+      if (origStart == -1 || origEnd == -1) {
+        // nocommit need test exposing this:
+        throw new IllegalArgumentException("cannot slice token[" + start + ":" + end + "]: it does not match the mapped parts");
+      }
+
+      if (partEnd == partStart) {
+        // Simple case: we excised a single sub-part of the token
+        offsetPartsOut = null;
+      } else {
+        // nocommit need test covering both of these
+        offsetPartsOut = new int[partEnd - partStart + 2];
+        System.arraycopy(offsetPartsIn, partStart, offsetPartsOut, 0, partEnd - partStart + 2);
+      }
+      origTerm = termAttIn.getOrigText().substring(origStart, origEnd);
+      startOffset = origStart;
+      endOffset = origEnd;
+    }
+
+    // nocommit pass null origTerm if it was just a slice of orig?
+    termAttOut.set(origTerm, wordPart.term);
+    if (wordPart.isOrigPart == false) {
+      typeAttOut.set(TypeAttribute.GENERATED);
+      offsetAttOut.set(startOffset, endOffset, null);
+    } else {
+      typeAttOut.set(TypeAttribute.TOKEN);
+      offsetAttOut.set(startOffset, endOffset, offsetPartsOut);
     }
   }
 
@@ -246,10 +325,9 @@ public final class WordDelimiterFilterStage extends Stage {
     WordPart wordPartOut = wordParts.pollFirst();
     if (wordPartOut != null) {
       // We still have word parts buffered from last token:
-      termAttOut.set(wordPartOut.origText, wordPartOut.term);
       arcAttOut.set(wordPartOut.fromNode, wordPartOut.toNode);
-      offsetAttOut.set(wordPartOut.startOffset, wordPartOut.endOffset, null);
-      typeAttOut.set(TypeAttribute.GENERATED);
+      copyPart(wordPartOut);
+      //offsetAttOut.set(wordPartOut.startOffset, wordPartOut.endOffset, null);
       delAttOut.set(false);
       return true;
     }
@@ -261,6 +339,7 @@ public final class WordDelimiterFilterStage extends Stage {
 
     String term = termAttIn.get();
     char[] termBuffer = term.toCharArray();
+    System.out.println("W: term=" + term);
 
     // nocommit copy any other atts too?
 
@@ -296,7 +375,6 @@ public final class WordDelimiterFilterStage extends Stage {
     do {
       System.out.println("ITER: " + iterator.current + "-" + iterator.end + " vs termBuffer=" + term);
       wordParts.add(new WordPart(new String(termBuffer, iterator.current, iterator.end-iterator.current),
-                                 new String(termBuffer, iterator.current, iterator.end-iterator.current),
                                  iterator.current, iterator.end, iterator.type()));
     } while (iterator.next() != WordDelimiterIterator.DONE);
 
@@ -334,8 +412,7 @@ public final class WordDelimiterFilterStage extends Stage {
             lastConcatTerm = concat.toString();
             wordParts.add(concatStartIndex+1,
                           new WordPart(lastConcatTerm,
-                                       term.substring(startWordPart.startOffset, lastWordPart.endOffset-startWordPart.startOffset),
-                                       startWordPart.startOffset, lastWordPart.endOffset,
+                                       startWordPart.termStart, lastWordPart.termEnd,
                                        concatType,
                                        startWordPart.fromNode, lastWordPart.toNode,
                                        false));
@@ -368,8 +445,7 @@ public final class WordDelimiterFilterStage extends Stage {
         lastConcatTerm = concat.toString();
         wordParts.add(concatStartIndex+1,
                       new WordPart(lastConcatTerm,
-                                   term.substring(startWordPart.startOffset, lastWordPart.endOffset-startWordPart.startOffset),
-                                   startWordPart.startOffset, lastWordPart.endOffset,
+                                   startWordPart.termStart, lastWordPart.termEnd,
                                    concatType,
                                    startWordPart.fromNode, lastWordPart.toNode,
                                    false));
@@ -383,8 +459,7 @@ public final class WordDelimiterFilterStage extends Stage {
     if (concatAll.length() < term.length() && (lastConcatTerm == null || lastConcatTerm.length() < concatAll.length())) {
       wordParts.add(1,
                     new WordPart(concatAll.toString(),
-                                 termAttIn.getOrigText(),
-                                 offsetAttIn.startOffset(), offsetAttIn.endOffset(),
+                                 0, term.length(),
                                  0,
                                  arcAttIn.from(), arcAttIn.to(),
                                  false));

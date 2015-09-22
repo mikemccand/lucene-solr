@@ -63,6 +63,8 @@ public class SplitOnDashFilterStage extends Stage {
     parts = null;
   }
 
+  // nocommit move to helper method on Stage?  WDF, others, need this
+  // nocommit is this too simple?  it doesn't allow us to split apart an unmapped chunk?
   private void copyPart(int start, int end) {
 
     int[] offsetPartsIn = offsetAttIn.parts();
@@ -76,7 +78,9 @@ public class SplitOnDashFilterStage extends Stage {
         // Simple case: term was not remapped
         origTerm = termAttIn.get();
       } else {
-        assert termAttIn.getOrigText().length() == termAttIn.get().length();
+        if (termAttIn.getOrigText().length() != termAttIn.get().length()) {
+          throw new IllegalArgumentException("cannot slice: token was mapped but has no offset parts");
+        }
         origTerm = termAttIn.getOrigText().substring(start, end);
       }
       startOffset = offsetAttIn.startOffset() + start;

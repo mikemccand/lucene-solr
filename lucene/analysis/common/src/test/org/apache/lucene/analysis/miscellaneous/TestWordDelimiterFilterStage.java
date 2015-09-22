@@ -64,10 +64,11 @@ public class TestWordDelimiterFilterStage extends BaseStageTestCase {
   public void testWithMapping() throws IOException {
     int flags = GENERATE_WORD_PARTS | GENERATE_NUMBER_PARTS | CATENATE_ALL | SPLIT_ON_CASE_CHANGE | SPLIT_ON_NUMERICS | STEM_ENGLISH_POSSESSIVE;
 
-    // First map dash:
+    // First re-map dash:
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("&endash;", "-");
 
+    // Then WDF to split:
     assertMatches("1945&endash;2007",
                   new WordDelimiterFilterStage(new WhitespaceTokenizerStage(new MappingTextStage(new ReaderStage(), b.build())), DEFAULT_WORD_DELIM_TABLE, flags, null),
                   "1945-2007",
