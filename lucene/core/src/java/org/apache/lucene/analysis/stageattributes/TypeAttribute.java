@@ -19,6 +19,11 @@ package org.apache.lucene.analysis.stageattributes;
 
 // TODO: CharSequence again?
 public class TypeAttribute extends Attribute {
+
+  public static final String TOKEN = "TOKEN";
+
+  public static final String GENERATED = "GENERATED";
+
   private String type;
 
   public void set(String type) {

@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis;
 
 /*
 * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -103,7 +103,6 @@ public class AutomatonStage extends Stage {
   public boolean next() throws IOException {
     if (in.next()) {
       String term = termAtt.get();
-      System.out.println("GOT: " + term + " arc=" + arcAtt);
       if (term.length() == 0) {
         throw new IllegalStateException("cannot handle empty-string term");
       }

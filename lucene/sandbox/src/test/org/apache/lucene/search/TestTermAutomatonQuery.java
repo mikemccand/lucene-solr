@@ -28,6 +28,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CannedStage;
 import org.apache.lucene.analysis.CannedTokenStream;
 import org.apache.lucene.analysis.MockTokenFilter;
 import org.apache.lucene.analysis.MockTokenizer;
@@ -413,7 +414,45 @@ public class TestTermAutomatonQuery extends LuceneTestCase {
       });
 
     TermAutomatonQuery q = new TokenStreamToTermAutomatonQuery().toQuery("field", ts);
-    // System.out.println("DOT: " + q.toDot());
+    System.out.println("DOT: " + q.toDot());
+    assertEquals(3, s.search(q, 1).totalHits);
+
+    w.close();
+    r.close();
+    dir.close();
+  }
+
+  public void testAnyFromStage() throws Exception {
+    Directory dir = newDirectory();
+    RandomIndexWriter w = new RandomIndexWriter(random(), dir);
+    Document doc = new Document();
+    doc.add(newTextField("field", "here comes the sun", Field.Store.NO));
+    w.addDocument(doc);
+
+    doc = new Document();
+    doc.add(newTextField("field", "here comes the moon", Field.Store.NO));
+    w.addDocument(doc);
+
+    doc = new Document();
+    doc.add(newTextField("field", "here comes sun", Field.Store.NO));
+    w.addDocument(doc);
+
+    // Should not match:
+    doc = new Document();
+    doc.add(newTextField("field", "here comes the other sun", Field.Store.NO));
+    w.addDocument(doc);
+
+    IndexReader r = w.getReader();
+    IndexSearcher s = newSearcher(r);
+
+    ToTermAutomatonQueryStage stage = new ToTermAutomatonQueryStage(new CannedStage(), "field");
+    stage.reset(new Object[] {new String[] {"comes", "comes", "*", "sun", "moon"},
+                              null,
+                              new int[] {0, 0, 1, 2, 2},
+                              new int[] {1, 2, 2, 3, 3}});
+    while (stage.next());
+    TermAutomatonQuery q = stage.getQuery();
+    //System.out.println("DOT: " + q.toDot());
     assertEquals(3, s.search(q, 1).totalHits);
 
     w.close();

@@ -65,9 +65,14 @@ public class AssertingStage extends Stage {
     tokenCount = 0;
   }
 
+  private void fail(String why) {
+    throw new IllegalStateException("token " + tokenCount + " term=" + termAtt + ": " + why);
+  }
+
   @Override
   public boolean next() throws IOException {
     if (in.next()) {
+      System.out.println("GOT: " + termAtt.get() + (termAtt.getOrigText() != null ? ("/" + termAtt.getOrigText()) : "") + " arc=" + arcAtt);
       int from = arcAtt.from();
       int to = arcAtt.to();
 
@@ -78,12 +83,37 @@ public class AssertingStage extends Stage {
 
       // Detect an illegally deleted token (filters should instead set the DeletedAttribute):
       if (nodeToEndOffset.containsKey(from) == false) {
-        throw new IllegalStateException("token " + tokenCount + ": from node=" + from + " was never seen as a to node");
+        fail("from node=" + from + " was never seen as a to node");
       }
 
       // Detect if we are trying to go back and add a token to an already frozen node:
       if (frozenNodes.contains(from)) {
-        throw new IllegalStateException("token " + tokenCount + ": node=" + from + " is frozen, but current token (" + termAtt + ") uses it as from node");
+        fail("node=" + from + " is frozen, but current token (" + termAtt + ") uses it as from node");
+      }
+
+      int[] parts = offsetAtt.parts();
+      if (parts != null) {
+        int len = 0;
+        int origLen = 0;
+        if ((parts.length & 1) != 0) {
+          fail("offset parts.length is not even (got: " + parts.length + ")");
+        }
+        for(int i=0;i<parts.length;i+=2) {
+          len += parts[i];
+          origLen += parts[i+1];
+        }
+
+        if (len != termAtt.get().length()) {
+          fail("offset parts length sums to " + len + " but term length=" + termAtt.get().length());
+        }
+
+        if (termAtt.getOrigText() == null) {
+          fail("offset parts is non-null but orig text is null");
+        }
+
+        if (origLen != termAtt.getOrigText().length()) {
+          fail("offset parts orig length sums to " + origLen + " but origText length=" + termAtt.getOrigText().length());
+        }
       }
 
       int startOffset = offsetAtt.startOffset();
@@ -91,26 +121,23 @@ public class AssertingStage extends Stage {
 
       if (itemString != null) {
         if (startOffset >= itemString.length()) {
-          throw new IllegalStateException("token " + tokenCount + ": startOffset=" + startOffset + " is beyond end of input string length=" + itemString.length());
+          fail("startOffset=" + startOffset + " is beyond end of input string length=" + itemString.length());
         }
         if (endOffset > itemString.length()) {
-          throw new IllegalStateException("token " + tokenCount + ": endOffset=" + endOffset + " is beyond end of input string length=" + itemString.length());
+          fail("endOffset=" + endOffset + " is beyond end of input string length=" + itemString.length());
         }
       }
 
-      // nocommit stupid hardwired string, and the string value itself is stupid:
-      boolean isRealToken = typeAtt.get().equals("TOKEN");
+      // boolean isRealToken = typeAtt.get().equals(TypeAttribute.TOKEN);
 
-      if (isRealToken) {
-        if (endOffset != startOffset + termAtt.getOrigText().length()) {
-          throw new IllegalStateException("token " + tokenCount + ": startOffset=" + startOffset + " origText=" + termAtt.getOrigText() + " but endOffset=" + endOffset);
-        }
+      if (endOffset != startOffset + termAtt.getOrigText().length()) {
+        fail("origText=" + termAtt.getOrigText() + " length disagrees with offsets: startOffset=" + startOffset + " endOffset=" + endOffset);
+      }
 
-        if (itemString != null) {
-          String slice = itemString.substring(startOffset, endOffset);
-          if (slice.equals(termAtt.getOrigText()) == false) {
-            throw new IllegalStateException("token " + tokenCount + ": origText=" + termAtt.getOrigText() + " but inputString[" + startOffset + ":" + endOffset + "] is " + slice);
-          }
+      if (itemString != null) {
+        String slice = itemString.substring(startOffset, endOffset);
+        if (slice.equals(termAtt.getOrigText()) == false) {
+          fail("origText=" + termAtt.getOrigText() + " disagrees with the input: inputString[" + startOffset + ":" + endOffset + "] is " + slice);
         }
       }
 
@@ -119,7 +146,7 @@ public class AssertingStage extends Stage {
       if (oldStartOffset == null) {
         nodeToStartOffset.put(from, oldStartOffset);
       } else if (oldStartOffset.intValue() != startOffset) {
-        throw new IllegalStateException("token " + tokenCount + ": node=" + from + " had previous startOffset=" + oldStartOffset + " but now has startOffset=" + startOffset);
+        fail("node=" + from + " had previous startOffset=" + oldStartOffset + " but now has startOffset=" + startOffset);
       }
 
       // Detect if endOffset changed for the to node:
@@ -128,7 +155,7 @@ public class AssertingStage extends Stage {
       if (oldEndOffset == null) {
         nodeToEndOffset.put(to, oldEndOffset);
       } else if (oldEndOffset.intValue() != endOffset) {
-        throw new IllegalStateException("token " + tokenCount + ": node=" + to + " had previous endOffset=" + oldEndOffset + " but now has endOffset=" + endOffset);
+        fail("node=" + to + " had previous endOffset=" + oldEndOffset + " but now has endOffset=" + endOffset);
       }
 
       tokenCount++;

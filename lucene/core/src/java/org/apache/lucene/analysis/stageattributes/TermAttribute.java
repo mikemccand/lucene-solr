@@ -23,6 +23,10 @@ public class TermAttribute extends Attribute {
   private String term;
 
   public void set(String origText, String term) {
+    // nocommit enable this:
+    if (false && origText != null && origText.equals(term)) {
+      throw new IllegalArgumentException("origText is the same as term");
+    }
     this.origText = origText;
     this.term = term;
   }

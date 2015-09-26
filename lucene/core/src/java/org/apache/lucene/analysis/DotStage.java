@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis;
 
 /*
 * Licensed to the Apache Software Foundation (ASF) under one or more

@@ -18,11 +18,20 @@ package org.apache.lucene.analysis;
  */
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
 import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.util.BytesRefBuilder;
+import org.apache.lucene.util.IntsRef;
 import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.util.automaton.Automaton;
+import org.apache.lucene.util.automaton.AutomatonTestUtil;
+import org.apache.lucene.util.automaton.MinimizationOperations;
+import org.apache.lucene.util.automaton.Operations;
+import org.apache.lucene.util.fst.Util;
 
 public abstract class BaseStageTestCase extends LuceneTestCase {
   // some helpers to test Stages
@@ -135,6 +144,75 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
           throw new RuntimeException(desc + ": expected endOffset=" + endOffsets[i] + " but got " + offsetAtt.endOffset());
         }
       }
+    }
+  }
+
+  /** Like assertAnalyzesTo, but handles a graph: verifies
+   *  the automaton == the union of the expectedStrings. */
+  protected void assertMatches(String desc, Automaton a, String... paths) {
+    List<Automaton> subs = new ArrayList<Automaton>();
+    for(String path : paths) {
+      String[] tokens = path.split(" ");
+      Automaton sub = new Automaton();
+      subs.add(sub);
+      int lastState = 0;
+      sub.createState();
+      for(int i=0;i<tokens.length;i++) {
+        String token = tokens[i];
+        for(int j=0;j<token.length();j++) {
+          int state = sub.createState();
+          sub.addTransition(lastState, state, token.charAt(j));
+          lastState = state;
+        }
+        if (i < tokens.length-1) {
+          int state = sub.createState();  
+          sub.addTransition(lastState, state, AutomatonStage.POS_SEP);
+          lastState = state;
+        }
+      }
+      sub.setAccept(lastState, true);
+    }
+
+    Automaton expected = Operations.determinize(Operations.union(subs), Integer.MAX_VALUE);
+    Automaton da = Operations.determinize(a, Integer.MAX_VALUE);
+    if (!Operations.sameLanguage(expected, da)) {
+      //System.out.println("expected:\n" + Automaton.minimize(expected).toDot());
+      System.out.println("expected:\n" + expected.toDot());
+      System.out.println("actual:\n" + MinimizationOperations.minimize(da, Integer.MAX_VALUE).toDot());
+      System.out.println("actual strings:");
+      for (IntsRef s : AutomatonTestUtil.getFiniteStringsRecursive(a, -1)) {
+        for(int i=0;i<s.length;i++) {
+          if (s.ints[i] == AutomatonStage.POS_SEP) {
+            s.ints[i] = ' ';
+          }
+        }
+        BytesRefBuilder bytes = new BytesRefBuilder();
+        Util.toBytesRef(s, bytes);
+        System.out.println("  " + bytes.get().utf8ToString());
+      }
+      throw new AssertionError(desc + ": languages differ");
+    }
+  }
+
+  /** Runs the text through the analyzer and verifies the
+   *  resulting automaton == union of the expectedStrings. */
+  protected void assertMatches(Object item, Stage end, String... expectedStrings) throws IOException {
+    AutomatonStage a = new AutomatonStage(new AssertingStage(end));
+    DotStage toDot = new DotStage(a);
+    //TermAttribute termAtt = toDot.get(TermAttribute.class);
+    //ArcAttribute arcAtt = toDot.get(ArcAttribute.class);
+    for(int i=0;i<2;i++) {
+      if (i == 1) {
+        System.out.println("\nTEST: now reset and tokenize again");
+      }
+      toDot.reset(item);
+      while (toDot.next()) {
+        //System.out.println("token=" + termAtt + " from=" + arcAtt.from() + " to=" + arcAtt.to());
+      }
+      if (i == 0) {
+        System.out.println("DOT:\n" + toDot.getDotFile());
+      }
+      assertMatches(i == 0 ? "first pass" : "second pass (after reset)", a.getAutomaton(), expectedStrings);
     }
   }
 }

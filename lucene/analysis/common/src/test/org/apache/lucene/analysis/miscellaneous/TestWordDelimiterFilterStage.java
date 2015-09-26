@@ -75,4 +75,19 @@ public class TestWordDelimiterFilterStage extends BaseStageTestCase {
                   "19452007",
                   "1945 2007");
   }
+
+  public void testEnglishPosessive() throws IOException {
+    int flags = GENERATE_WORD_PARTS | GENERATE_NUMBER_PARTS | CATENATE_ALL | SPLIT_ON_CASE_CHANGE | SPLIT_ON_NUMERICS | STEM_ENGLISH_POSSESSIVE;
+    assertMatches("ra's",
+                  new WordDelimiterFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), DEFAULT_WORD_DELIM_TABLE, flags, null),
+                  "ra's",
+                  "ra");
+
+    flags = GENERATE_WORD_PARTS | GENERATE_NUMBER_PARTS | CATENATE_ALL | SPLIT_ON_CASE_CHANGE | SPLIT_ON_NUMERICS;
+    assertMatches("ra's",
+                  new WordDelimiterFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), DEFAULT_WORD_DELIM_TABLE, flags, null),
+                  "ras",
+                  "ra's",
+                  "ra s");
+  }
 }
