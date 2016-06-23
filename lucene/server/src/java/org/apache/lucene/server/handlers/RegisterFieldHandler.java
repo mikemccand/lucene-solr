@@ -399,7 +399,7 @@ public class RegisterFieldHandler extends Handler {
       values = null;
     }
 
-    return new FieldDef(name, null, "virtual", null, null, null, true, null, null, null, false, null, values);
+    return new FieldDef(name, null, "virtual", null, null, null, true, false, null, null, null, false, null, values);
   }
 
   private FieldDef parseOneFieldType(Request r, IndexState state, Map<String,FieldDef> pendingFieldDefs, String name, JSONObject o) throws IOException {
@@ -503,9 +503,15 @@ public class RegisterFieldHandler extends Handler {
       }
     }
 
+    boolean usePoints = false;
+
     if (f.hasParam("search")) {
       if (f.getBoolean("search")) {
-        ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        if (type.equals("int") || type.equals("long") || type.equals("float") || type.equals("double")) {
+          usePoints = true;
+        } else {
+          ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        }
       } else {
         ft.setIndexOptions(IndexOptions.NONE);
       }
@@ -565,20 +571,10 @@ public class RegisterFieldHandler extends Handler {
       ft.setOmitNorms(true);
       ft.setTokenized(false);
       ft.setIndexOptions(IndexOptions.DOCS);
-    } else if (ft.indexOptions() != IndexOptions.NONE) {
-      // nocommit switch to points
-      ft.setNumericPrecisionStep(f.getInt("numericPrecisionStep"));
-      if (type.equals("float")) {
-        ft.setNumericType(LegacyNumericType.FLOAT);
-      } else if (type.equals("double")) {
-        ft.setNumericType(LegacyNumericType.DOUBLE);
-      } else if (type.equals("long")) {
-        ft.setNumericType(LegacyNumericType.LONG);
-      } else {
-        assert type.equals("int"): "type=" + type;
-        ft.setNumericType(LegacyNumericType.INT);
-      }
     }
+
+    // nocommit open up binary points too
+    // nocommit open up multi-dimensional points
 
     String pf = f.getString("postingsFormat");
     if (PostingsFormat.forName(pf) == null) {
@@ -689,13 +685,13 @@ public class RegisterFieldHandler extends Handler {
       if (!type.equals("long") && !type.equals("int") && !type.equals("float") && !type.equals("double")) {
         f.fail("facet", "numericRange facets only applies to numeric types");
       }
-      if (ft.indexOptions() == IndexOptions.NONE) {
+      if (ft.indexOptions() == IndexOptions.NONE && usePoints == false) {
         f.fail("search", "facet=numericRange fields must have search=true");
       }
       // We index the field as NumericField, for drill-down, and store doc values, for dynamic facet counting
       ft.setDocValuesType(DocValuesType.NUMERIC);
     } else if (facet.equals("no")) {
-      if (ft.indexOptions() == IndexOptions.NONE && ft.stored() == false && ft.docValuesType() == DocValuesType.NONE) {
+      if (ft.indexOptions() == IndexOptions.NONE && ft.stored() == false && ft.docValuesType() == DocValuesType.NONE && usePoints == false) {
         f.fail("field does nothing: it's neither searched, stored, sorted, grouped, highlighted nor faceted");
       }
     }
@@ -715,7 +711,7 @@ public class RegisterFieldHandler extends Handler {
 
     // nocommit facetsConfig.setRequireDimCount
 
-    return new FieldDef(name, ft, type, facet, pf, dvf, multiValued, sim, indexAnalyzer, searchAnalyzer, highlighted, liveValuesIDField, null);
+    return new FieldDef(name, ft, type, facet, pf, dvf, multiValued, usePoints, sim, indexAnalyzer, searchAnalyzer, highlighted, liveValuesIDField, null);
   }
 
   /** Messy: we need this for indexed-but-not-tokenized

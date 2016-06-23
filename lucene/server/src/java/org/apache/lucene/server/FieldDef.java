@@ -71,9 +71,12 @@ public class FieldDef {
   /** Only set for a virtual field (expression). */
   public final ValueSource valueSource;
 
+  /** True if this field is indexed as a dimensional point */
+  public final boolean usePoints;
+
   /** Sole constructor. */
   public FieldDef(String name, FieldType fieldType, String valueType, String faceted,
-                  String postingsFormat, String docValuesFormat, boolean multiValued,
+                  String postingsFormat, String docValuesFormat, boolean multiValued, boolean usePoints,
                   Similarity sim, Analyzer indexAnalyzer, Analyzer searchAnalyzer, boolean highlighted, String liveValuesIDField,
                   ValueSource valueSource) {
     this.name = name;
@@ -86,6 +89,7 @@ public class FieldDef {
     this.postingsFormat = postingsFormat;
     this.docValuesFormat = docValuesFormat;
     this.multiValued = multiValued;
+    this.usePoints = usePoints;
     this.sim = sim;
     this.indexAnalyzer = indexAnalyzer;
     this.searchAnalyzer = searchAnalyzer;

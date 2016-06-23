@@ -194,25 +194,17 @@ public class TestSearch extends ServerBaseTestCase {
       refresh();
 
       // Include both min & max:
-      assertEquals(3, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, min: 5, max: 17, minInclusive: true, maxInclusive: true}}"),
+      assertEquals(3, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, min: 5, max: 17}}"),
                              "totalHits"));
 
       // Leave min out:
-      assertEquals(3, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, max: 17, maxInclusive: true}}"),
-                             "totalHits"));
-
-      // Leave min out, don't include max:
-      assertEquals(2, getInt(send("search",
-                                  "{query: {class: NumericRangeQuery, field: nf, max: 17, maxInclusive: false}}"),
+      assertEquals(3, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, max: 17}}"),
                              "totalHits"));
 
       // Leave max out:
-      assertEquals(3, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, min: 5, minInclusive: true}}"),
+      assertEquals(3, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, min: 5}}"),
                              "totalHits"));
 
-      // Leave max out, don't include min:
-      assertEquals(2, getInt(send("search", "{query: {class: NumericRangeQuery, field: nf, min: 5, minInclusive: false}}"),
-                             "totalHits"));
       send("stopIndex");
       send("deleteIndex");
     }

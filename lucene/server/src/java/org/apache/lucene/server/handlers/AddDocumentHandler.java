@@ -27,9 +27,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
+import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatDocValuesField;
+import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
@@ -97,6 +101,7 @@ public class AddDocumentHandler extends Handler {
     
     if (fd.fieldType.stored() || fd.fieldType.indexOptions() != IndexOptions.NONE || fd.fieldType.docValuesType() != null) {
       if (fd.valueType.equals("text") || fd.valueType.equals("atom")) {
+        // nocommit why...?
         //if (!(o instanceof String)) {
         //fail(fd.name, "expected String value but got " + o);
         //}
@@ -170,10 +175,8 @@ public class AddDocumentHandler extends Handler {
       }
     } else if (fd.fieldType.docValuesType() == DocValuesType.NUMERIC) {
       if (fd.valueType.equals("float")) {
-        //doc.add(new NumericDocValuesField(fd.name, Float.floatToRawIntBits(((Number) o).floatValue())));
         doc.add(new FloatDocValuesField(fd.name, ((Number) o).floatValue()));
       } else if (fd.valueType.equals("double")) {
-        //doc.add(new NumericDocValuesField(fd.name, Double.doubleToRawLongBits(((Number) o).doubleValue())));
         doc.add(new DoubleDocValuesField(fd.name, ((Number) o).doubleValue()));
       } else if (fd.valueType.equals("int")) {
         doc.add(new NumericDocValuesField(fd.name, ((Number) o).intValue()));
@@ -185,6 +188,21 @@ public class AddDocumentHandler extends Handler {
       }
     }
 
+    // maybe add separate points field:
+    if (fd.usePoints) {
+      if (fd.valueType.equals("int")) {
+        doc.add(new IntPoint(fd.name, ((Number) o).intValue()));
+      } else if (fd.valueType.equals("long")) {
+        doc.add(new LongPoint(fd.name, ((Number) o).longValue()));
+      } else if (fd.valueType.equals("float")) {
+        doc.add(new FloatPoint(fd.name, ((Number) o).floatValue()));
+      } else if (fd.valueType.equals("double")) {
+        doc.add(new DoublePoint(fd.name, ((Number) o).doubleValue()));
+      } else {
+        throw new AssertionError();
+      }
+    }
+      
     if (fd.fieldType.stored() || fd.fieldType.indexOptions() != IndexOptions.NONE) {
       // We use fieldTypeNoDV because we separately added
       // (above) the doc values field:

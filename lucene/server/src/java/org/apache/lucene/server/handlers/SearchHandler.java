@@ -34,7 +34,11 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FieldType.LegacyNumericType;
+import org.apache.lucene.document.FloatPoint;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.expressions.Bindings;
 import org.apache.lucene.expressions.Expression;
 import org.apache.lucene.expressions.js.JavascriptCompiler;
@@ -202,11 +206,9 @@ public class SearchHandler extends Handler {
                                                                                                         new Param("position", "Which position this term should appear at", new IntType())),
                                                                                          new ListType(new StringType())))),
                                                        new Param("slop", "The number of other words permitted between words in the phrase.  If this is 0 (the default) then the phrase must be an exact match.", new IntType(), 0)),
-                                         new PolyEntry("NumericRangeQuery", "",
+                                         new PolyEntry("NumericRangeQuery", "Matches documents with a numeric field in the specified range",
                                                        new Param("min", "Minimum value", new AnyType()),
-                                                       new Param("minInclusive", "True if minimum value is included", new BooleanType()),
-                                                       new Param("max", "Maximum value", new AnyType()),
-                                                       new Param("maxInclusive", "True if maximum value is included", new BooleanType())),
+                                                       new Param("max", "Maximum value", new AnyType())),
                                          new PolyEntry("PhraseQuery", "A Query that matches documents containing a particular sequence of terms (see @lucene:core:org.apache.lucene.search.PhraseQuery)",
                                                        new Param("terms", "List of terms in the phrase", new ListType(new StringType())),
                                                        new Param("slop", "The number of other words permitted between words in the phrase.  If this is 0 (the default) then the phrase must be an exact match.", new IntType(), 0)),
@@ -896,7 +898,7 @@ public class SearchHandler extends Handler {
     if (r.hasParam("field")) {
       FieldDef fd = state.getField(r, "field");
       field = fd.name;
-      if (fd.fieldType.indexOptions() == IndexOptions.NONE) {
+      if (fd.fieldType.indexOptions() == IndexOptions.NONE && fd.usePoints == false) {
         r.fail("field", "field \"" + field + "\" was not registered with index=true; cannot search");
       }
     }
@@ -1019,8 +1021,7 @@ public class SearchHandler extends Handler {
         r.fail("no field specified");
       }
       FieldDef fd = state.getField(field);
-      LegacyNumericType nt = fd.fieldType.numericType();
-      if (nt == null) {
+      if (fd.usePoints == false) {
         pr.r.fail("field \"" + field + "\" was not registered with numeric type; cannot run NumericRangeQuery");
       }
       Number min;
@@ -1045,37 +1046,22 @@ public class SearchHandler extends Handler {
         max = null;
       }
 
-      boolean maxInclusive = true;
-      boolean minInclusive = true;
-      if (min == null && max == null) {
-        pr.r.fail("min", "at least one of min or max is required");
-      } else if (min == null) {
-        maxInclusive = pr.r.getBoolean("maxInclusive");
-      } else if (max == null) {
-        minInclusive = pr.r.getBoolean("minInclusive");
-      } else {
-        maxInclusive = pr.r.getBoolean("maxInclusive");
-        minInclusive = pr.r.getBoolean("minInclusive");
-      }
+      // nocommit also set queries
       
-      if (nt == LegacyNumericType.INT) {
-        q = LegacyNumericRangeQuery.newIntRange(field, toInt(min), toInt(max),
-                                                minInclusive, maxInclusive);
-      } else if (nt == LegacyNumericType.LONG) {
-        q = LegacyNumericRangeQuery.newLongRange(field, toLong(min), toLong(max),
-                                                 minInclusive, maxInclusive);
-      } else if (nt == LegacyNumericType.FLOAT) {
-        q = LegacyNumericRangeQuery.newFloatRange(field, toFloat(min), toFloat(max),
-                                                  minInclusive, maxInclusive);
-      } else if (nt == LegacyNumericType.DOUBLE) {
-        q = LegacyNumericRangeQuery.newDoubleRange(field, toDouble(min), toDouble(max),
-                                                   minInclusive, maxInclusive);
+      if (fd.valueType.equals("int")) {
+        System.out.println("field=" + field);
+        q = IntPoint.newRangeQuery(field, toMinInt(min), toMaxInt(max));
+      } else if (fd.valueType.equals("long")) {
+        q = LongPoint.newRangeQuery(field, toMinLong(min), toMaxLong(max));
+      } else if (fd.valueType.equals("float")) {
+        q = FloatPoint.newRangeQuery(field, toMinFloat(min), toMaxFloat(max));
+      } else if (fd.valueType.equals("double")) {
+        q = DoublePoint.newRangeQuery(field, toMinDouble(min), toMaxDouble(max));
       } else {
         // BUG
         assert false;
         q = null;
       }
-      System.out.println("run q=" + q);
     } else if (pr.name.equals("TermQuery")) {
       if (field == null) {
         r.fail("no field specified");
@@ -1163,33 +1149,65 @@ public class SearchHandler extends Handler {
     }
   }
 
-  private static Integer toInt(Number x) {
+  private static Integer toMinInt(Number x) {
     if (x == null) {
-      return null;
+      return Integer.MIN_VALUE;
     } else {
       return x.intValue();
     }
   }
 
-  private static Long toLong(Number x) {
+  private static Integer toMaxInt(Number x) {
     if (x == null) {
-      return null;
+      return Integer.MAX_VALUE;
+    } else {
+      return x.intValue();
+    }
+  }
+
+  private static Long toMinLong(Number x) {
+    if (x == null) {
+      return Long.MIN_VALUE;
     } else {
       return x.longValue();
     }
   }
 
-  private static Float toFloat(Number x) {
+  private static Long toMaxLong(Number x) {
     if (x == null) {
-      return null;
+      return Long.MAX_VALUE;
+    } else {
+      return x.longValue();
+    }
+  }
+
+  private static Float toMinFloat(Number x) {
+    if (x == null) {
+      return Float.NEGATIVE_INFINITY;
     } else {
       return x.floatValue();
     }
   }
 
-  private static Double toDouble(Number x) {
+  private static Float toMaxFloat(Number x) {
     if (x == null) {
-      return null;
+      return Float.POSITIVE_INFINITY;
+    } else {
+      return x.floatValue();
+    }
+  }
+
+  private static Double toMinDouble(Number x) {
+    if (x == null) {
+      return Double.NEGATIVE_INFINITY;
+    } else {
+      return x.doubleValue();
+    }
+  }
+
+  private static Double toMaxDouble(Number x) {
+    if (x == null) {
+      return Double.POSITIVE_INFINITY;
     } else {
       return x.doubleValue();
     }
@@ -1885,7 +1903,7 @@ public class SearchHandler extends Handler {
           values = null;
         }
 
-        FieldDef fd = new FieldDef(name, null, "virtual", null, null, null, true, null, null, null, false, null, values);
+        FieldDef fd = new FieldDef(name, null, "virtual", null, null, null, true, false, null, null, null, false, null, values);
 
         if (dynamicFields.put(name, fd) != null) {
           oneField.fail("name", "registered field or dynamic field \"" + name + "\" already exists");
