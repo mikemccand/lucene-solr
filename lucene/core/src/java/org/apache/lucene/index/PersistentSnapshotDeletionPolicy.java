@@ -110,9 +110,11 @@ public class PersistentSnapshotDeletionPolicy extends SnapshotDeletionPolicy {
 
     loadPriorSnapshots();
 
-    if (mode == OpenMode.APPEND && nextWriteGen == 0) {
-      throw new IllegalStateException("no snapshots stored in this directory");
-    }
+    // nocommit why?
+    
+    //if (mode == OpenMode.APPEND && nextWriteGen == 0) {
+    //throw new IllegalStateException("no snapshots stored in this directory");
+    //}
   }
 
   /**

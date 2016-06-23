@@ -187,6 +187,7 @@ public final class LegacyNumericRangeQuery<T extends Number> extends MultiTermQu
     this.max = max;
     this.minInclusive = minInclusive;
     this.maxInclusive = maxInclusive;
+    System.out.println("CREATE: min=" + min + " max=" + max + " minInclusive=" + minInclusive + " maxInclusive=" + maxInclusive);
   }
   
   /**
