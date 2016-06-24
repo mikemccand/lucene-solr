@@ -28,9 +28,8 @@ public class TestHighlight extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     registerFields();
     commit();
   }

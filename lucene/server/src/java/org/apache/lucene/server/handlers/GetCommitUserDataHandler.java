@@ -73,7 +73,7 @@ public class GetCommitUserDataHandler extends Handler {
             IndexCommit commit = dr.getIndexCommit();
             userData = commit.getUserData();
           } finally {
-            state.manager.release(s);
+            state.release(s);
           }
 
         } else {

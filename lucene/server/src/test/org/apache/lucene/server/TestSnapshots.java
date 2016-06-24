@@ -35,9 +35,8 @@ public class TestSnapshots extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     registerFields();
     commit();
   }
@@ -83,7 +82,7 @@ public class TestSnapshots extends ServerBaseTestCase {
         if (ent.getKey().equals("id")) {
           continue;
         }
-        Path dirPath = curIndexPath.resolve(ent.getKey());
+        Path dirPath = server.curIndexPath.resolve(ent.getKey());
         Path destDir = backupDir.resolve(ent.getKey());
         Files.createDirectories(destDir);
         for (Object sub : ((JSONArray) ent.getValue())) {
@@ -106,8 +105,7 @@ public class TestSnapshots extends ServerBaseTestCase {
       assertEquals(2, getInt("totalHits"));
 
       // Bounce the server:
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
 
       // Make sure we can search the snapshot and still only get 1 hit:
@@ -125,7 +123,7 @@ public class TestSnapshots extends ServerBaseTestCase {
         if (ent.getKey().equals("id")) {
           continue;
         }
-        Path dirPath = curIndexPath.resolve(ent.getKey());
+        Path dirPath = server.curIndexPath.resolve(ent.getKey());
         for (Object sub : ((JSONArray) ent.getValue())) {
           String fileName = (String) sub;
           Path sourceFile = dirPath.resolve(fileName);
@@ -158,8 +156,7 @@ public class TestSnapshots extends ServerBaseTestCase {
       assertTrue(someGone);
 
       // Restart server against the backup image:
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
 
       // Make sure search is working, and both docs are visible:

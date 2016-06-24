@@ -79,10 +79,7 @@ public class TestPlugins extends ServerBaseTestCase {
     // nocommit need a "list plugins" API: verify foobar is there
     // nocommit send addDocument & verify change "took"
 
-    Path path = createTempDir("index");
-    rmDir(path);
-    send("createIndex", "{rootDir: " + path + "}");
-    send("startIndex");
+    createAndStartIndex("index");
     send("registerFields", "{fields: {id: {type: int, store: true, postingsFormat: Memory}, intfield: {type: int, store: true}}}");
     long gen = getLong(send("addDocument", "{fields: {id: 0, mockFoobar: 7}}"), "indexGen");
 

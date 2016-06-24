@@ -77,7 +77,6 @@ import org.apache.lucene.analysis.util.TokenizerFactory;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
 import org.apache.lucene.collation.CollationKeyAnalyzer;
-import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.expressions.Expression;
 import org.apache.lucene.expressions.js.JavascriptCompiler;
@@ -688,7 +687,7 @@ public class RegisterFieldHandler extends Handler {
       if (ft.indexOptions() == IndexOptions.NONE && usePoints == false) {
         f.fail("search", "facet=numericRange fields must have search=true");
       }
-      // We index the field as NumericField, for drill-down, and store doc values, for dynamic facet counting
+      // We index the field as points, for drill-down, and store doc values, for dynamic facet counting
       ft.setDocValuesType(DocValuesType.NUMERIC);
     } else if (facet.equals("no")) {
       if (ft.indexOptions() == IndexOptions.NONE && ft.stored() == false && ft.docValuesType() == DocValuesType.NONE && usePoints == false) {

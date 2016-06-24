@@ -32,9 +32,8 @@ public class TestSimpleSpatial extends ServerBaseTestCase {
   @BeforeClass
   public static void init() throws Exception {
     useDefaultIndex = false;
-    curIndexName = "spatial";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("spatial");
   }
 
   @AfterClass

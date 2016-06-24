@@ -35,7 +35,6 @@ import java.util.TreeMap;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.DoublePoint;
-import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
@@ -1373,7 +1372,7 @@ public class SearchHandler extends Handler {
     // snaphots share older segments that the latest reader
     // does not share ... Lucene needs a reader pool
     // somehow:
-    SearcherAndTaxonomy s = state.manager.acquire();
+    SearcherAndTaxonomy s = state.acquire();
     try {
       // This returns a new reference to us, which
       // is decRef'd in the finally clause after
@@ -1395,7 +1394,7 @@ public class SearchHandler extends Handler {
       }
       return result;
     } finally {
-      state.manager.release(s);
+      state.release(s);
     }
   }
 
@@ -1424,7 +1423,7 @@ public class SearchHandler extends Handler {
         if (diagnostics != null) {
           diagnostics.put("nrtWaitMS", (System.nanoTime() - t0)/1000000);
         }
-        s = state.manager.acquire();
+        s = state.acquire();
         state.slm.record(s.searcher);
       } else {
 
@@ -1480,7 +1479,7 @@ public class SearchHandler extends Handler {
           // nocommit messy ... we pull an old searcher
           // but the latest taxoReader ... necessary
           // because SLM can't take taxo reader yet:
-          SearcherAndTaxonomy s2 = state.manager.acquire();
+          SearcherAndTaxonomy s2 = state.acquire();
           s = new SearcherAndTaxonomy(priorSearcher, s2.taxonomyReader);
           s2.searcher.getIndexReader().decRef();
         }
@@ -1488,7 +1487,7 @@ public class SearchHandler extends Handler {
     } else {
       // Request didn't specify any specific searcher;
       // just use the current (latest) searcher:
-      s = state.manager.acquire();
+      s = state.acquire();
       state.slm.record(s.searcher);
     }
 
@@ -2606,7 +2605,7 @@ public class SearchHandler extends Handler {
       // but under-the-hood all these methods just call
       // s.getIndexReader().decRef(), which is what release
       // does:
-      state.manager.release(s);
+      state.release(s);
     }
 
     return new FinishRequest() {

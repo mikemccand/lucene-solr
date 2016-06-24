@@ -40,9 +40,8 @@ public class TestSuggest extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     commit();
     Path tempDir = createTempDir("TestSuggest");
     Files.createDirectories(tempDir);
@@ -96,8 +95,7 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals(0, get(result, "results.length"));
 
       // Make sure suggest survives server restart:
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }
@@ -124,8 +122,7 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals("foobar", getString("results[0].payload"));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }
@@ -151,8 +148,7 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals("foobar", getString("results[0].payload"));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
 
@@ -183,8 +179,7 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals("foobaz", getString("results[1].payload"));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }
@@ -222,20 +217,14 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals("foobar", get(result, "results[0].payload"));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }
 
   /** Build a suggest, pulling suggestions/weights/payloads from stored fields. */
   public void testFromStoredFields() throws Exception {
-    curIndexName = "storedSuggest";
-    Path path = createTempDir("storedsuggest");
-    rmDir(path);
-    send("createIndex", "{rootDir: " + path.toAbsolutePath() + "}");
-    send("settings", "{directory: FSDirectory}");
-    send("startIndex");
+    createAndStartIndex("storedsuggest");
     send("registerFields",
          "{fields: {text: {type: text, store: true, search: false}," + 
                   "weight: {type: float, store: true, search: false}," +
@@ -257,8 +246,7 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals("payload1", get(result, "results[1].payload"));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }
@@ -266,12 +254,7 @@ public class TestSuggest extends ServerBaseTestCase {
   /** Build a suggest, pulling suggestions/payloads from
    *  stored fields, and weight from an expression */
   public void testFromStoredFieldsWithWeightExpression() throws Exception {
-    curIndexName = "storedsuggestexpr";
-    Path path = createTempDir(curIndexName);
-    rmDir(path);
-    send("createIndex", "{rootDir: " + path.toAbsolutePath() + "}");
-    send("settings", "{directory: FSDirectory}");
-    send("startIndex");
+    createAndStartIndex("storedsuggestexpr");
     send("registerFields",
          "{" +
          "fields: {text: {type: text, store: true, search: false}," + 
@@ -294,8 +277,7 @@ public class TestSuggest extends ServerBaseTestCase {
       assertEquals("payload1", get(result, "results[1].payload"));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }

@@ -19,26 +19,26 @@ package org.apache.lucene.server;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
 
-import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.TestUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 
-public class TestCustomDirectory extends ServerBaseTestCase {
+public class TestReplication extends ServerBaseTestCase {
 
   @BeforeClass
   public static void initClass() throws Exception {
-    useDefaultIndex = false;
+    useDefaultIndex = true;
     startServer();
+    createAndStartIndex("index");
+    registerFields();
+    commit();
   }
 
   @AfterClass
@@ -46,27 +46,17 @@ public class TestCustomDirectory extends ServerBaseTestCase {
     shutdownServer();
   }
 
-  private static boolean iWasUsed;
-
-  public static class MyDirectory extends MMapDirectory {
-    public MyDirectory(Path path) throws IOException {
-      super(path);
-      iWasUsed = true;
-    }
-  }
-
-  public void testCustomDirectory() throws Exception {
-    createIndex("index");
-    send("settings", "{directory: org.apache.lucene.server.TestCustomDirectory$MyDirectory}");
-    send("startIndex");
-    send("stopIndex");
-    send("deleteIndex");
-    assertTrue(iWasUsed);
-  }
-
-  public void testInvalidDirectory() throws Exception {
-    createIndex("index");
-    assertFailsWith("settings", "{directory: bad}", "could not locate Directory sub-class \"bad\"; verify CLASSPATH");
-    send("deleteIndex");
+  private static void registerFields() throws Exception {
+    JSONObject o = new JSONObject();
+    put(o, "body", "{type: text, highlight: true, store: true, analyzer: {class: StandardAnalyzer}, similarity: {class: BM25Similarity, b: 0.15}}");
+    put(o, "id", "{type: atom, store: true, postingsFormat: Memory}");
+    put(o, "price", "{type: float, sort: true, search: true, store: true}");
+    put(o, "date", "{type: atom, search: false, store: true}");
+    put(o, "dateFacet", "{type: atom, search: false, store: false, facet: hierarchy}");
+    put(o, "author", "{type: text, search: false, facet: flat, store: true, group: true}");
+    put(o, "charCount", "{type: int, store: true}");
+    JSONObject o2 = new JSONObject();
+    o2.put("fields", o);
+    send("registerFields", o2);
   }
 }

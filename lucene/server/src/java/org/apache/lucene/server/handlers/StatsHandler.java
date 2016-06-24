@@ -87,12 +87,12 @@ public class StatsHandler extends Handler {
         JSONObject taxo = new JSONObject();
         result.put("taxonomy", taxo);
         
-        SearcherAndTaxonomy s = state.manager.acquire();
+        SearcherAndTaxonomy s = state.acquire();
         try {
           taxo.put("segments", s.taxonomyReader.toString());
           taxo.put("numOrds", s.taxonomyReader.getSize());
         } finally {
-          state.manager.release(s);
+          state.release(s);
         }
 
         // nocommit cached filters from index searchers?

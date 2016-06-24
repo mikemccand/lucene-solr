@@ -33,9 +33,8 @@ public class TestAnalysis extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
   }
 
   @AfterClass
@@ -123,10 +122,7 @@ public class TestAnalysis extends ServerBaseTestCase {
   }
 
   public void testPositionIncrementGap() throws Exception {
-    curIndexName = "posinc";
-    curIndexPath = createTempDir(curIndexName);
-    rmDir(curIndexPath);
-    send("createIndex", "{rootDir: " + curIndexPath.toAbsolutePath() + "}");
+    createIndex("posinc");
     send("settings", "{directory: RAMDirectory}");
     send("registerFields", "{fields: {author1: {type: text, analyzer: {tokenizer: Whitespace}, multiValued: true}, author2: {type: text, analyzer: {tokenizer: Whitespace, positionIncrementGap: 1}, multiValued: true}}}");
     send("startIndex");
@@ -188,7 +184,7 @@ public class TestAnalysis extends ServerBaseTestCase {
 
   private String justTokens() {
     StringBuilder sb = new StringBuilder();
-    for(Object _o : (JSONArray) lastResult.get("tokens")) {
+    for(Object _o : (JSONArray) server.lastResult.get("tokens")) {
       JSONObject token = (JSONObject) _o;
       if (sb.length() > 0) {
         sb.append(' ');
@@ -200,7 +196,7 @@ public class TestAnalysis extends ServerBaseTestCase {
 
   private String tokensAndPositions() {
     StringBuilder sb = new StringBuilder();
-    for(Object _o : (JSONArray) lastResult.get("tokens")) {
+    for(Object _o : (JSONArray) server.lastResult.get("tokens")) {
       JSONObject token = (JSONObject) _o;
       if (sb.length() > 0) {
         sb.append(' ');

@@ -37,9 +37,8 @@ public class TestSearch extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     registerFields();
     commit();
   }
@@ -180,13 +179,8 @@ public class TestSearch extends ServerBaseTestCase {
 
   // nocommit switch to points, add half float coverage
   public void testNumericRangeQuery() throws Exception {
-    curIndexName = "nrq";
-    Path path = createTempDir("nrq");
-    rmDir(path);
     for(String type : new String[] {"int", "long", "float", "double"}) {
-      System.out.println("TEST: type=" + type);
-      send("createIndex", "{rootDir: " + path + "}");
-      send("startIndex");
+      createAndStartIndex("nrq");
       send("registerFields", String.format(Locale.ROOT, "{fields: {nf: {type: %s, search: true}}}", type));
       send("addDocument", "{fields: {nf: 5}}");
       send("addDocument", "{fields: {nf: 10}}");
@@ -314,7 +308,7 @@ public class TestSearch extends ServerBaseTestCase {
   }
 
   public void testRecencyBlendedSort() throws Exception {
-    curIndexName = "recency";
+    server.curIndexName = "recency";
     Path dir = createTempDir("recency").resolve("root");
     send("createIndex", "{rootDir: " + dir.toAbsolutePath() + "}");
     send("startIndex");

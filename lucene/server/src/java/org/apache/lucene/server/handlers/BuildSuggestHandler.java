@@ -431,7 +431,7 @@ public class BuildSuggestHandler extends Handler {
         searcher = SearchHandler.getSearcherAndTaxonomy(source, state, null);
       } else {
         // Just use current searcher version:
-        searcher = state.manager.acquire();
+        searcher = state.acquire();
       }
       String suggestField = source.getString("suggestField");
 
@@ -490,7 +490,7 @@ public class BuildSuggestHandler extends Handler {
             ((Closeable) iterator0).close();
           }
           if (searcher != null) {
-            state.manager.release(searcher);
+            state.release(searcher);
           }
         }
 

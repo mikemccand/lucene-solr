@@ -17,33 +17,25 @@ package org.apache.lucene.server;
  * limitations under the License.
  */
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Map;
 
-public class TestCommitUserData extends ServerBaseTestCase {
-  @BeforeClass
-  public static void initClass() throws Exception {
-    useDefaultIndex = true;
-    startServer();
-    createAndStartIndex("index");
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.SegmentCommitInfo;
+import org.apache.lucene.replicator.nrt.FileMetaData;
+import org.apache.lucene.replicator.nrt.PrimaryNode;
+import org.apache.lucene.search.SearcherFactory;
+
+class NRTPrimaryNode extends PrimaryNode {
+
+  public NRTPrimaryNode(IndexWriter writer, int id, long primaryGen, long forcePrimaryVersion,
+                        SearcherFactory searcherFactory, PrintStream printStream) throws IOException {
+    super(writer, id, primaryGen, forcePrimaryVersion, searcherFactory, printStream);
   }
 
-  @AfterClass
-  public static void fini() throws Exception {
-    shutdownServer();
-  }
-
-  /** Make sure we can set commit data even when there are
-   *  not docs */
-  public void testEmpty() throws Exception {
-    send("setCommitUserData", "{userData: {a: c, b: d}}");
-    send("getCommitUserData");
-    assertEquals("c", getString("a"));
-    assertEquals("d", getString("b"));
-    bounceServer();
-    send("startIndex");
-    send("getCommitUserData");
-    assertEquals("c", getString("a"));
-    assertEquals("d", getString("b"));
+  @Override
+  protected void preCopyMergedSegmentFiles(SegmentCommitInfo info, Map<String,FileMetaData> files) throws IOException {
+    
   }
 }

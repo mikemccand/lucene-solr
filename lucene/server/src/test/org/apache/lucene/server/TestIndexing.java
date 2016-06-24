@@ -35,9 +35,8 @@ public class TestIndexing extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     registerFields();
     commit();
   }
@@ -233,9 +232,7 @@ public class TestIndexing extends ServerBaseTestCase {
   }
 
   public void testBoost() throws Exception {
-    rmDir(Paths.get("boost"));
-    curIndexName = "boost";
-    send("createIndex");
+    createIndex("boost");
     send("settings", "{directory: RAMDirectory}");
     // Just to test merge rate limiting:
     send("settings", "{mergeMaxMBPerSec: 10.0}");
@@ -274,11 +271,10 @@ public class TestIndexing extends ServerBaseTestCase {
   }
 
   public void testNormsFormat() throws Exception {
-    curIndexName = "normsFormat";
     if (VERBOSE) {
       System.out.println("\nTEST: createIndex");
     }
-    send("createIndex");
+    createIndex("normsFormat");
     send("settings", "{directory: RAMDirectory, normsFormat: Lucene53}");
     send("registerFields",
          "{fields: {id: {type: atom, store: true}, body: {type: text, analyzer: StandardAnalyzer}}}");
@@ -301,7 +297,7 @@ public class TestIndexing extends ServerBaseTestCase {
 
   public void testOnlySettings() throws Exception {
     for(int i=0;i<2;i++) {
-      curIndexName = "settings";
+      server.curIndexName = "settings";
       if (VERBOSE) {
         System.out.println("\nTEST: create");
       }
@@ -332,8 +328,7 @@ public class TestIndexing extends ServerBaseTestCase {
           System.out.println("\nTEST: bounce");
         }
 
-        shutdownServer();
-        startServer();
+        bounceServer();
 
         if (VERBOSE) {
           System.out.println("\nTEST: settings3");

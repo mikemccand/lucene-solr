@@ -35,9 +35,8 @@ public class TestFacets extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     registerFields();
     commit();
   }
@@ -283,12 +282,7 @@ public class TestFacets extends ServerBaseTestCase {
   */
 
   public void testSortedSetDocValuesFacets() throws Exception {
-    curIndexName = "ssdvFacets";
-    Path path = createTempDir(curIndexName);
-    rmDir(path);
-    send("createIndex", "{rootDir: " + path.toAbsolutePath() + "}");
-    send("settings", "{directory: FSDirectory}");
-    send("startIndex");
+    createAndStartIndex("ssdvFacets");
 
     if (indexFacetField != null && random().nextBoolean()) {
       // Send SSDV facets to same field as the taxo facets:
@@ -330,8 +324,7 @@ public class TestFacets extends ServerBaseTestCase {
       assertEquals("top: 6, one: 3, two: 2, three: 1", formatFacetCounts(getObject("facets[0]")));
 
       // Make sure suggest survives server restart:    
-      shutdownServer();
-      startServer();
+      bounceServer();
       send("startIndex");
     }
   }

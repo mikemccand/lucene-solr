@@ -160,6 +160,12 @@ public class IndexState implements Closeable {
 
   public IndexWriter writer;
 
+  /** Only non-null if we are primary NRT replication index */
+  private NRTPrimaryNode nrtPrimaryNode;
+  
+  /** Only non-null if we are replica NRT replication index */
+  private NRTPrimaryNode nrtReplicaNode;
+
   /** Taxonomy writer */
   DirectoryTaxonomyWriter taxoWriter;
 
@@ -301,10 +307,13 @@ public class IndexState implements Closeable {
 
   /** Indexes changes, and provides the live searcher,
    *  possibly searching a specific generation. */
-  public SearcherTaxonomyManager manager;
+  private SearcherTaxonomyManager manager;
 
   /** Thread to periodically reopen the index. */
   public ControlledRealTimeReopenThread<SearcherAndTaxonomy> reopenThread;
+
+  /** Used with NRT replication */
+  public ControlledRealTimeReopenThread<IndexSearcher> reopenThreadNoTaxonomy;
 
   /** Periodically wakes up and prunes old searchers from
    *  slm. */
@@ -424,6 +433,10 @@ public class IndexState implements Closeable {
     if (doCreate == false) {
       initSaveLoadState();
     }
+  }
+
+  public boolean isStarted() {
+    return writer != null || nrtReplicaNode != null;
   }
 
   /** Context to hold state for a single indexing request. */
@@ -733,15 +746,24 @@ public class IndexState implements Closeable {
    *  settings have changed). */
   public void restartReopenThread() {
     // nocommit sync
-    if (manager == null) {
-      return;
+    if (nrtPrimaryNode != null) {
+      assert manager == null;
+      if (reopenThread != null) {
+        reopenThread.close();
+      }
+      // nocommit how to get taxonomy back?
+      reopenThreadNoTaxonomy = new ControlledRealTimeReopenThread<IndexSearcher>(writer, nrtPrimaryNode.mgr, maxRefreshSec, minRefreshSec);
+      reopenThreadNoTaxonomy.setName("LuceneNRTReopen-" + name);
+      reopenThreadNoTaxonomy.start();
+    } else if (manager != null) {
+      assert nrtPrimaryNode == null;
+      if (reopenThread != null) {
+        reopenThread.close();
+      }
+      reopenThread = new ControlledRealTimeReopenThread<SearcherAndTaxonomy>(writer, manager, maxRefreshSec, minRefreshSec);
+      reopenThread.setName("LuceneNRTReopen-" + name);
+      reopenThread.start();
     }
-    if (reopenThread != null) {
-      reopenThread.close();
-    }
-    reopenThread = new ControlledRealTimeReopenThread<SearcherAndTaxonomy>(writer, manager, maxRefreshSec, minRefreshSec);
-    reopenThread.setName("LuceneNRTReopen-" + name);
-    reopenThread.start();
   }
 
   /** Fold in new non-live settings from the incoming request into
@@ -1073,14 +1095,139 @@ public class IndexState implements Closeable {
     }
   }
 
-  /** Start this index. */
-  public synchronized void start() throws Exception {
-    if (writer != null) {
-      // throw new IllegalStateException("index \"" + name + "\" was already started");
-      return;
+  /** Start this index as primary, to NRT-replicate to replicas.  primaryGen should be incremented each time a new primary is promoted for
+   *  a given index. */
+  public synchronized void startPrimary(long primaryGen) throws Exception {
+    if (isStarted()) {
+      throw new IllegalStateException("index \"" + name + "\" was already started");
     }
 
-    //System.out.println("IndexState.start name=" + name);
+    // nocommit share code better w/ start and startReplica!
+    
+    boolean success = false;
+
+    try {
+
+      if (saveLoadState == null) {
+        initSaveLoadState();
+      }
+
+      Path indexDirFile;
+      if (rootDir == null) {
+        indexDirFile = null;
+      } else {
+        indexDirFile = rootDir.resolve("index");
+      }
+      origIndexDir = df.open(indexDirFile);
+
+      if (!(origIndexDir instanceof RAMDirectory)) {
+        double maxMergeSizeMB = getDoubleSetting("nrtCachingDirectory.maxMergeSizeMB");
+        double maxSizeMB = getDoubleSetting("nrtCachingDirectory.maxSizeMB");
+        if (maxMergeSizeMB > 0 && maxSizeMB > 0) {
+          indexDir = new NRTCachingDirectory(origIndexDir, maxMergeSizeMB, maxSizeMB);
+        } else {
+          indexDir = origIndexDir;
+        }
+      } else {
+        indexDir = origIndexDir;
+      }
+
+      if (suggesterSettings != null) {
+        // load suggesters:
+        ((BuildSuggestHandler) globalState.getHandler("buildSuggest")).load(this, suggesterSettings);
+        suggesterSettings = null;
+      }
+    
+      // Rather than rely on IndexWriter/TaxonomyWriter to
+      // figure out if an index is new or not by passing
+      // CREATE_OR_APPEND (which can be dangerous), we
+      // already know the intention from the app (whether
+      // it called createIndex vs openIndex), so we make it
+      // explicit here:
+      IndexWriterConfig.OpenMode openMode;
+      if (doCreate) {
+        openMode = IndexWriterConfig.OpenMode.CREATE;
+      } else {
+        openMode = IndexWriterConfig.OpenMode.APPEND;
+      }
+
+      // TODO: get facets working!
+
+      IndexWriterConfig iwc = new IndexWriterConfig(indexAnalyzer);
+      boolean verbose = getBooleanSetting("index.verbose");
+      if (verbose) {
+        iwc.setInfoStream(new PrintStreamInfoStream(System.out));
+      }
+
+      iwc.setSimilarity(sim);
+      iwc.setOpenMode(openMode);
+      iwc.setRAMBufferSizeMB(indexRAMBufferSizeMB);
+
+      ConcurrentMergeScheduler cms = (ConcurrentMergeScheduler) iwc.getMergeScheduler();
+      cms.setMaxMergesAndThreads(getIntSetting("concurrentMergeScheduler.maxMergeCount"),
+                                 getIntSetting("concurrentMergeScheduler.maxThreadCount"));
+
+      snapshots = new PersistentSnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy(),
+                                                       origIndexDir,
+                                                       IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+
+      iwc.setIndexDeletionPolicy(snapshots);
+
+      iwc.setCodec(new ServerCodec(this));
+
+      writer = new IndexWriter(indexDir, iwc);
+
+      // NOTE: must do this after writer, because SDP only
+      // loads its commits after writer calls .onInit:
+      for(IndexCommit c : snapshots.getSnapshots()) {
+        long gen = c.getGeneration();
+        SegmentInfos sis = SegmentInfos.readCommit(origIndexDir, IndexFileNames.fileNameFromGeneration(IndexFileNames.SEGMENTS, "", gen));
+        snapshotGenToVersion.put(c.getGeneration(), sis.getVersion());
+      }
+
+      manager = null;
+
+      nrtPrimaryNode = new NRTPrimaryNode(writer, 0, primaryGen, -1,
+                                          new SearcherFactory() {
+                                            @Override
+                                            public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
+                                              IndexSearcher searcher = new MyIndexSearcher(r, IndexState.this);
+                                              searcher.setSimilarity(sim);
+                                              return searcher;
+                                            }
+                                          },
+                                          verbose ? System.out : null);
+      restartReopenThread();
+
+      startSearcherPruningThread(globalState.shutdownNow);
+      success = true;
+    } finally {
+      if (!success) {
+        IOUtils.closeWhileHandlingException(reopenThread,
+                                            nrtPrimaryNode,
+                                            writer,
+                                            taxoWriter,
+                                            slm,
+                                            indexDir,
+                                            taxoDir);
+        writer = null;
+      }
+    }
+  }
+
+  /** Start this index as replica, pulling NRT changes from a remote primary */
+  public synchronized void startReplica() throws Exception {
+    if (isStarted()) {
+      throw new IllegalStateException("index \"" + name + "\" was already started");
+    }
+  }
+    
+  /** Start this index as standalone */
+  public synchronized void start() throws Exception {
+    
+    if (isStarted()) {
+      throw new IllegalStateException("index \"" + name + "\" was already started");
+    }
 
     boolean success = false;
 
@@ -1098,12 +1245,6 @@ public class IndexState implements Closeable {
       }
       origIndexDir = df.open(indexDirFile);
 
-      if (suggesterSettings != null) {
-        // load suggesters:
-        ((BuildSuggestHandler) globalState.getHandler("buildSuggest")).load(this, suggesterSettings);
-        suggesterSettings = null;
-      }
-    
       if (!(origIndexDir instanceof RAMDirectory)) {
         double maxMergeSizeMB = getDoubleSetting("nrtCachingDirectory.maxMergeSizeMB");
         double maxSizeMB = getDoubleSetting("nrtCachingDirectory.maxSizeMB");
@@ -1116,10 +1257,16 @@ public class IndexState implements Closeable {
         indexDir = origIndexDir;
       }
 
+      if (suggesterSettings != null) {
+        // load suggesters:
+        ((BuildSuggestHandler) globalState.getHandler("buildSuggest")).load(this, suggesterSettings);
+        suggesterSettings = null;
+      }
+    
       // Rather than rely on IndexWriter/TaxonomyWriter to
       // figure out if an index is new or not by passing
       // CREATE_OR_APPEND (which can be dangerous), we
-      // alyready know the intention from the app (whether
+      // already know the intention from the app (whether
       // it called createIndex vs openIndex), so we make it
       // explicit here:
       IndexWriterConfig.OpenMode openMode;
@@ -1157,9 +1304,6 @@ public class IndexState implements Closeable {
           }
         };
 
-      // Must re-pull from IW because IW clones the IDP on init:
-      taxoSnapshots = (PersistentSnapshotDeletionPolicy) taxoInternalWriter.getConfig().getIndexDeletionPolicy();
-
       IndexWriterConfig iwc = new IndexWriterConfig(indexAnalyzer);
       if (getBooleanSetting("index.verbose")) {
         iwc.setInfoStream(new PrintStreamInfoStream(System.out));
@@ -1183,9 +1327,6 @@ public class IndexState implements Closeable {
       iwc.setCodec(new ServerCodec(this));
 
       writer = new IndexWriter(indexDir, iwc);
-
-      // Must re-pull from IW because IW clones the IDP on init:
-      snapshots = (PersistentSnapshotDeletionPolicy) writer.getConfig().getIndexDeletionPolicy();
 
       // NOTE: must do this after writer, because SDP only
       // loads its commits after writer calls .onInit:
@@ -1370,6 +1511,26 @@ public class IndexState implements Closeable {
       taxoGen = taxoGen1;
       stateGen = stateGen1;
     }
+  }
+
+  public SearcherAndTaxonomy acquire() throws IOException {
+    if (nrtPrimaryNode != null) {
+      return new SearcherAndTaxonomy(nrtPrimaryNode.mgr.acquire(), null);
+    } else {
+      return manager.acquire();
+    }
+  }
+
+  public void release(SearcherAndTaxonomy s) throws IOException {
+    if (nrtPrimaryNode != null) {
+      nrtPrimaryNode.mgr.release(s.searcher);
+    } else {
+      manager.release(s);
+    }
+  }
+
+  public void maybeRefreshBlocking() throws IOException {
+    manager.maybeRefreshBlocking();
   }
 
   public void verifyStarted(Request r) {

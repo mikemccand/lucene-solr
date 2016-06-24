@@ -26,17 +26,18 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.server.FinishRequest;
 import org.apache.lucene.server.GlobalState;
 import org.apache.lucene.server.IndexState;
+import org.apache.lucene.server.params.EnumType;
 import org.apache.lucene.server.params.Param;
 import org.apache.lucene.server.params.Request;
 import org.apache.lucene.server.params.StringType;
 import org.apache.lucene.server.params.StructType;
+
 import net.minidev.json.JSONObject;
 
-/** Handles {@code refresh}. */
-public class RefreshHandler extends Handler {
+/** Handles {@code indexStatus}. */
+public class IndexStatusHandler extends Handler {
   private static StructType TYPE = new StructType(
                                        new Param("indexName", "Index name", new StringType()));
-
   @Override
   public StructType getType() {
     return TYPE;
@@ -44,24 +45,22 @@ public class RefreshHandler extends Handler {
 
   @Override
   public String getTopDoc() {
-    return "Refresh the latest searcher for an index";
+    return "Returns index status (started or stopped)";
   }
 
   /** Sole constructor. */
-  public RefreshHandler(GlobalState state) {
+  public IndexStatusHandler(GlobalState state) {
     super(state);
   }
 
   @Override
   public FinishRequest handle(final IndexState state, final Request r, Map<String,List<String>> params) throws Exception {
+
     return new FinishRequest() {
       @Override
       public String finish() throws Exception {
-        long t0 = System.nanoTime();
         JSONObject result = new JSONObject();
-        state.maybeRefreshBlocking();
-        long t1 = System.nanoTime();
-        result.put("refreshTimeMS", ((t1-t0)/1000000.0));
+        result.put("status", state.isStarted() ? "started" : "stopped");
         return result.toString();
       }
     };

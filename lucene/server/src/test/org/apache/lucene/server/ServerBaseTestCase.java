@@ -50,29 +50,22 @@ import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONStyle;
 import net.minidev.json.JSONStyleIdent;
-import net.minidev.json.JSONStyleIdent;
 import net.minidev.json.JSONValue;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 
 public abstract class ServerBaseTestCase extends LuceneTestCase {
 
-  private static Thread serverThread;
-  static int port;
+  /** The one currently running server */
+  protected static RunServer server;
 
   /** Current index name; we auto-insert this to outgoing
    *  commands that need it. */
 
-  protected static String curIndexName = "index";
-  protected static Path curIndexPath;
   protected static boolean useDefaultIndex = true;
   
   protected static Path STATE_DIR;
 
-  /** Last result from the server; tests can access this to
-   *  check results. */
-  protected static JSONObject lastResult;
-  
   /** We record the last indexGen we saw return from the
    *  server, and then insert that for search command if no
    *  searcher is already specified.  This avoids a common
@@ -92,20 +85,21 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
     // who sets this? netty? what a piece of crap
     //System.clearProperty("sun.nio.ch.bugLevel");
     STATE_DIR = null;
-    lastResult = null;
   }
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    lastIndexGen = -1;
+    server.lastIndexGen = -1;
     if (useDefaultIndex) {
-      curIndexName = "index";
+      server.curIndexName = "index";
 
       // Some tests bounce the server, so we need to restart
       // the default "index" index for those tests that expect
-      // it to be running:
-      send("startIndex");
+      // it to be running, if it isn't already:
+      if (getString(send("indexStatus"), "status").equals("stopped")) {
+        send("startIndex");
+      }
     }
   }
 
@@ -156,187 +150,78 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
     
   protected static void startServer() throws Exception {
-    final CountDownLatch ready = new CountDownLatch(1);
-    final Exception[] exc = new Exception[1];
-    final AtomicReference<Server> theServer = new AtomicReference<Server>();
-    serverThread = new Thread() {
-        @Override
-        public void run() {
-          try {
-            Server s = new Server(STATE_DIR);
-            theServer.set(s);
-            s.run(0, 1, ready);
-          } catch (Exception e) {
-            exc[0] = e;
-            ready.countDown();
-          }
-        }
-      };
-    serverThread.start();
-    if (!ready.await(2, TimeUnit.SECONDS)) {
-      throw new IllegalStateException("server took more than 2 seconds to start");
-    }
-    if (exc[0] != null) {
-      throw exc[0];
-    }
-    ServerBaseTestCase.port = theServer.get().actualPort;
+    server = new RunServer(STATE_DIR);
   }
 
-  protected static void createAndStartIndex() throws Exception {
-    curIndexPath = createTempDir(curIndexName);
-    rmDir(curIndexPath);
-    send("createIndex", "{indexName: " + curIndexName + ", rootDir: " + curIndexPath.toAbsolutePath() + "}");
+  protected static void createAndStartIndex(String indexName) throws Exception {
+    createIndex(indexName);
+    send("startIndex", "{indexName: " + indexName + "}");
+  }
+
+  protected static void createIndex(String indexName) throws Exception {
+    server.curIndexPath = createTempDir(indexName);
+    rmDir(server.curIndexPath);
+    send("createIndex", "{indexName: " + indexName + ", rootDir: " + server.curIndexPath.toAbsolutePath() + "}");
     // Wait at most 1 msec for a searcher to reopen; this
     // value is too low for a production site but for
     // testing we want to minimize sleep time:
-    send("liveSettings", "{indexName: " + curIndexName + ", minRefreshSec: 0.001}");
-    send("startIndex", "{indexName: " + curIndexName + "}");
+    send("liveSettings", "{indexName: " + indexName + ", minRefreshSec: 0.001}");
+    server.curIndexName = indexName;
   }
 
   protected static void shutdownServer() throws Exception {
-    if (port == 0) {
+    if (server == null) {
       throw new IllegalStateException("server was not started");
     }
-    send("shutdown");
-    if (serverThread != null) {
-      serverThread.join();
-      serverThread = null;
-    }
-    lastIndexGen = -1;
+    server.shutdown();
+    server = null;
+  }
+
+  protected static void bounceServer() throws Exception {
+    String curIndexName = server.curIndexName;
+    Path curIndexPath = server.curIndexPath;
+    shutdownServer();
+    startServer();
+    server.curIndexPath = curIndexPath;
+    server.curIndexName = curIndexName;
   }
 
   protected static void deleteAllDocs() throws Exception {
     if (VERBOSE) {
       System.out.println("TEST: deleteAllDocs");
     }
-    send("deleteAllDocuments", "{indexName: " + curIndexName + "}");
+    send("deleteAllDocuments", "{indexName: " + server.curIndexName + "}");
   }
 
   protected static void commit() throws Exception {
-    send("commit", "{indexName: " + curIndexName + "}");
+    send("commit", "{indexName: " + server.curIndexName + "}");
   }
 
   protected static void refresh() throws Exception {
-    send("refresh", "{indexName: " + curIndexName + "}");
+    send("refresh", "{indexName: " + server.curIndexName + "}");
   }
 
   /** Send a no-args command, or a command taking just
    *  indexName which is automatically added (e.g., commit,
    *  closeIndex, startIndex). */
   protected static JSONObject send(String command) throws Exception {
-    if (command.equals("startIndex")) {
-      // We do this so tests that index a doc and then need
-      // to search it, don't wait very long for the new
-      // searcher:
-      send("liveSettings", "{minRefreshSec: 0.001}");
-    }
-    return _send(command, "{}");
+    return server.send(command);
   }
 
   protected static JSONObject send(String command, String args) throws Exception {
-    if (args.equals("{}")) {
-      throw new IllegalArgumentException("don't pass empty args");
-    }
-    JSONObject o;
-    try {
-      o = (JSONObject) new JSONParser(JSONParser.MODE_PERMISSIVE & ~(JSONParser.ACCEPT_TAILLING_DATA)).parse(args);
-    } catch (ParseException pe) {
-      // NOTE: don't send pe as the cause; it adds lots of
-      // unhelpful noise because the message usually states
-      // what's wrong very well:
-      throw new IllegalArgumentException("test bug: failed to parse json args \"" + args + "\": " + pe.getMessage());
-    }
-    return send(command, o);
+    return server.send(command, args);
   }
-
+  
   private static JSONObject _send(String command, String args) throws Exception {
-    JSONObject o;
-    try {
-      o = (JSONObject) new JSONParser(JSONParser.MODE_PERMISSIVE & ~(JSONParser.ACCEPT_TAILLING_DATA)).parse(args);
-    } catch (ParseException pe) {
-      // NOTE: don't send pe as the cause; it adds lots of
-      // unhelpful noise because the message usually states
-      // what's wrong very well:
-      throw new IllegalArgumentException("test bug: failed to parse json args \"" + args + "\": " + pe.getMessage());
-    }
-    return send(command, o);
-  }
-
-  private static boolean requiresIndexName(String command) {
-    if (command.equals("shutdown")) {
-      return false;
-    }
-    return true;
+    return server._send(command, args);
   }
 
   protected static JSONObject send(String command, JSONObject args) throws Exception {
-    // Auto-insert indexName:
-    if (curIndexName != null && requiresIndexName(command) && args.get("indexName") == null) {
-      if (VERBOSE) {
-        System.out.println("NOTE: ServerBaseTestCase: now add current indexName: " + curIndexName);
-      }
-      args.put("indexName", curIndexName);
-    }
-
-    if (command.equals("search") && args.containsKey("searcher") == false && lastIndexGen != -1) {
-      if (VERBOSE) {
-        System.out.println("\nNOTE: ServerBaseTestCase: inserting 'searcher: {indexGen: " + lastIndexGen + "}' into search request");
-      }
-      JSONObject o = new JSONObject();
-      o.put("indexGen", lastIndexGen);
-      args.put("searcher", o);
-    }
-
-    if (VERBOSE) {
-      System.out.println("\nNOTE: ServerBaseTestCase: sendRaw command=" + command + " args:\n" + args.toJSONString(new JSONStyleIdent()));
-    }
-
-    lastResult = sendRaw(command, args.toJSONString(JSONStyle.NO_COMPRESS));
-
-    if (VERBOSE) {
-      System.out.println("NOTE: ServerBaseTestCase: server response:\n" + lastResult.toJSONString(new JSONStyleIdent()));
-    }
-
-    if (lastResult.containsKey("indexGen")) {
-      lastIndexGen = getLong(lastResult, "indexGen");
-      if (VERBOSE) {
-        System.out.println("NOTE: ServerBaseTestCase: record lastIndexGen=" + lastIndexGen);
-      }
-    }
-
-    return lastResult;
+    return server.send(command, args);
   }
 
   protected static JSONObject sendRaw(String command, String body) throws Exception {
-    byte[] bytes = body.getBytes("UTF-8");
-    HttpURLConnection c = (HttpURLConnection) new URL("http://localhost:" + port + "/" + command).openConnection();
-    c.setUseCaches(false);
-    c.setDoOutput(true);
-    c.setRequestMethod("POST");
-    c.setRequestProperty("Content-Length", ""+bytes.length);
-    c.setRequestProperty("Charset", "UTF-8");
-    try {
-      c.getOutputStream().write(bytes);
-    } catch (ConnectException ce) {
-      System.out.println("FAILED port=" + port + ":");
-      ce.printStackTrace(System.out);
-      throw ce;
-    }
-    // c.connect()
-    int code = c.getResponseCode();
-    int size = c.getContentLength();
-    bytes = new byte[size];
-    if (code == 200) {
-      InputStream is = c.getInputStream();
-      is.read(bytes);
-      c.disconnect();
-      return (JSONObject) JSONValue.parseStrict(new String(bytes, "UTF-8"));
-    } else {
-      InputStream is = c.getErrorStream();
-      is.read(bytes);
-      c.disconnect();
-      throw new IOException("Server error:\n" + new String(bytes, "UTF-8"));
-    }
+    return server.sendRaw(command, body);
   }
 
   protected static void copyFile(Path source, Path dest) throws IOException {
@@ -361,53 +246,13 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static String httpLoad(String path) throws Exception {
-    HttpURLConnection c = (HttpURLConnection) new URL("http://localhost:" + port + "/" + path).openConnection();
-    c.setUseCaches(false);
-    c.setDoOutput(true);
-    c.setRequestMethod("GET");
-    // c.connect()
-    int code = c.getResponseCode();
-    int size = c.getContentLength();
-    byte[] bytes = new byte[size];
-    if (code == 200) {
-      InputStream is = c.getInputStream();
-      is.read(bytes);
-      c.disconnect();
-      return new String(bytes, "UTF-8");
-    } else {
-      InputStream is = c.getErrorStream();
-      is.read(bytes);
-      c.disconnect();
-      throw new IOException("Server error:\n" + new String(bytes, "UTF-8"));
-    }
+    return server.httpLoad(path);
   }
 
   protected static JSONObject sendChunked(String body, String request) throws Exception {
-    HttpURLConnection c = (HttpURLConnection) new URL("http://localhost:" + port + "/" + request).openConnection();
-    c.setUseCaches(false);
-    c.setDoOutput(true);
-    c.setChunkedStreamingMode(256);
-    c.setRequestMethod("POST");
-    c.setRequestProperty("Charset", "UTF-8");
-    byte[] bytes = body.getBytes("UTF-8");
-    c.getOutputStream().write(bytes);
-    // c.connect()
-    int code = c.getResponseCode();
-    int size = c.getContentLength();
-    if (code == 200) {
-      InputStream is = c.getInputStream();
-      bytes = new byte[size];
-      is.read(bytes);
-      c.disconnect();
-      return (JSONObject) JSONValue.parseStrict(new String(bytes, "UTF-8"));
-    } else {
-      InputStream is = c.getErrorStream();
-      is.read(bytes);
-      c.disconnect();
-      throw new IOException("Server error:\n" + new String(bytes, "UTF-8"));
-    }
+    return server.sendChunked(body, request);
   }
-
+  
   /** Simple xpath-like utility method to jump down and grab
    *  something out of the JSON response. */
   protected static Object get(Object o, String path) {
@@ -464,7 +309,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected boolean hasParam(String path) {
-    return hasParam(lastResult, path);
+    return hasParam(server.lastResult, path);
   }
 
   protected static String getString(Object o, String path) {
@@ -472,7 +317,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static String getString(String path) {
-    return getString(lastResult, path);
+    return getString(server.lastResult, path);
   }
 
   protected static int getInt(Object o, String path) {
@@ -480,7 +325,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static int getInt(String path) {
-    return getInt(lastResult, path);
+    return getInt(server.lastResult, path);
   }
 
   protected static boolean getBoolean(Object o, String path) {
@@ -488,7 +333,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static boolean getBoolean(String path) {
-    return getBoolean(lastResult, path);
+    return getBoolean(server.lastResult, path);
   }
 
   protected static long getLong(Object o, String path) {
@@ -496,7 +341,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static long getLong(String path) {
-    return getLong(lastResult, path);
+    return getLong(server.lastResult, path);
   }
 
   protected static float getFloat(Object o, String path) {
@@ -504,7 +349,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static float getFloat(String path) {
-    return getFloat(lastResult, path);
+    return getFloat(server.lastResult, path);
   }
 
   protected static JSONObject getObject(Object o, String path) {
@@ -512,7 +357,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static JSONObject getObject(String path) {
-    return getObject(lastResult, path);
+    return getObject(server.lastResult, path);
   }
 
   protected static JSONArray getArray(Object o, String path) {
@@ -520,7 +365,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
 
   protected static JSONArray getArray(String path) {
-    return getArray(lastResult, path);
+    return getArray(server.lastResult, path);
   }
 
   protected static JSONArray getArray(JSONArray o, int index) {

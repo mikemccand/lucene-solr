@@ -96,7 +96,7 @@ public class CreateSnapshotHandler extends Handler {
           // nocommit share w/ SearchHandler's method:
           // TODO: this "reverse-NRT" is silly ... we need a reader
           // pool somehow:
-          SearcherAndTaxonomy s2 = state.manager.acquire();
+          SearcherAndTaxonomy s2 = state.acquire();
           try {
             // This returns a new reference to us, which
             // is decRef'd in the finally clause after
@@ -112,7 +112,7 @@ public class CreateSnapshotHandler extends Handler {
             long t1 = System.nanoTime();
             result.put("newSnapshotSearcherOpenMS", ((t1-t0)/1000000.0));
           } finally {
-            state.manager.release(s2);
+            state.release(s2);
           }
         }
 

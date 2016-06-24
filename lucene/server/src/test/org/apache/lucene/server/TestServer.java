@@ -30,10 +30,8 @@ public class TestServer extends ServerBaseTestCase {
   @BeforeClass
   public static void initClass() throws Exception {
     useDefaultIndex = true;
-    curIndexName = "index";
-    curIndexName = "index";
     startServer();
-    createAndStartIndex();
+    createAndStartIndex("index");
     registerFields();
     commit();
   }
@@ -348,8 +346,7 @@ public class TestServer extends ServerBaseTestCase {
     deleteAllDocs();
     addDocument(0, "Bob", "this is a test", 10f, "2012/10/17");
     send("commit");
-    shutdownServer();
-    startServer();
+    bounceServer();
     send("startIndex");
     JSONObject o = search("test", 0, null, false, true, null, null);
     assertEquals(1, ((Number) o.get("totalHits")).intValue());

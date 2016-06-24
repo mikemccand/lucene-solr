@@ -94,6 +94,8 @@ import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 // nocommit move under http
 
+// nocommit don't use netty anymore
+
 /** Main entry point for the HTTP server. */
 public class Server {
 
@@ -688,6 +690,7 @@ public class Server {
       globalState.addHandler("deleteIndex", new DeleteIndexHandler(globalState));
       globalState.addHandler("deleteDocuments", new DeleteDocumentsHandler(globalState));
       globalState.addHandler("help", new HelpHandler(globalState));
+      globalState.addHandler("indexStatus", new IndexStatusHandler(globalState));
       globalState.addHandler("liveSettings", new LiveSettingsHandler(globalState));
       globalState.addHandler("liveValues", new LiveValuesHandler(globalState));
       globalState.addHandler("registerFields", new RegisterFieldHandler(globalState));
