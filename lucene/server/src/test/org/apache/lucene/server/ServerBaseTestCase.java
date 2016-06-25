@@ -90,15 +90,17 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    server.lastIndexGen = -1;
-    if (useDefaultIndex) {
-      server.curIndexName = "index";
+    if (server != null) {
+      server.lastIndexGen = -1;
+      if (useDefaultIndex) {
+        server.curIndexName = "index";
 
-      // Some tests bounce the server, so we need to restart
-      // the default "index" index for those tests that expect
-      // it to be running, if it isn't already:
-      if (getString(send("indexStatus"), "status").equals("stopped")) {
-        send("startIndex");
+        // Some tests bounce the server, so we need to restart
+        // the default "index" index for those tests that expect
+        // it to be running, if it isn't already:
+        if (getString(send("indexStatus"), "status").equals("stopped")) {
+          send("startIndex");
+        }
       }
     }
   }

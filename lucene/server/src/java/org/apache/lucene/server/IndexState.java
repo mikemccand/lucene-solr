@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -79,6 +80,7 @@ import org.apache.lucene.index.SimpleMergedSegmentWarmer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ControlledRealTimeReopenThread;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherLifetimeManager;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
@@ -164,7 +166,11 @@ public class IndexState implements Closeable {
   private NRTPrimaryNode nrtPrimaryNode;
   
   /** Only non-null if we are replica NRT replication index */
-  private NRTPrimaryNode nrtReplicaNode;
+  // nocommit make private again, add methods to do stuff to it:
+  public NRTReplicaNode nrtReplicaNode;
+
+  private InetAddress primaryAddress;
+  private int primaryPort;
 
   /** Taxonomy writer */
   DirectoryTaxonomyWriter taxoWriter;
@@ -309,11 +315,13 @@ public class IndexState implements Closeable {
    *  possibly searching a specific generation. */
   private SearcherTaxonomyManager manager;
 
+  private ReferenceManager<IndexSearcher> searcherManager;
+
   /** Thread to periodically reopen the index. */
   public ControlledRealTimeReopenThread<SearcherAndTaxonomy> reopenThread;
 
   /** Used with NRT replication */
-  public ControlledRealTimeReopenThread<IndexSearcher> reopenThreadNoTaxonomy;
+  public ControlledRealTimeReopenThread<IndexSearcher> reopenThreadPrimary;
 
   /** Periodically wakes up and prunes old searchers from
    *  slm. */
@@ -437,6 +445,10 @@ public class IndexState implements Closeable {
 
   public boolean isStarted() {
     return writer != null || nrtReplicaNode != null;
+  }
+
+  public boolean isReplica() {
+    return nrtReplicaNode != null;
   }
 
   /** Context to hold state for a single indexing request. */
@@ -745,24 +757,66 @@ public class IndexState implements Closeable {
   /** Restarts the reopen thread (called when the live
    *  settings have changed). */
   public void restartReopenThread() {
+    if (reopenThread != null) {
+      reopenThread.close();
+    }
+    if (reopenThreadPrimary != null) {
+      reopenThreadPrimary.close();
+    }
     // nocommit sync
     if (nrtPrimaryNode != null) {
       assert manager == null;
-      if (reopenThread != null) {
-        reopenThread.close();
-      }
+      assert searcherManager != null;
+      assert nrtReplicaNode == null;
       // nocommit how to get taxonomy back?
-      reopenThreadNoTaxonomy = new ControlledRealTimeReopenThread<IndexSearcher>(writer, nrtPrimaryNode.mgr, maxRefreshSec, minRefreshSec);
-      reopenThreadNoTaxonomy.setName("LuceneNRTReopen-" + name);
-      reopenThreadNoTaxonomy.start();
+      reopenThreadPrimary = new ControlledRealTimeReopenThread<IndexSearcher>(writer, searcherManager, maxRefreshSec, minRefreshSec);
+      reopenThreadPrimary.setName("LuceneNRTPrimaryReopen-" + name);
+      reopenThreadPrimary.start();
     } else if (manager != null) {
-      assert nrtPrimaryNode == null;
       if (reopenThread != null) {
         reopenThread.close();
       }
       reopenThread = new ControlledRealTimeReopenThread<SearcherAndTaxonomy>(writer, manager, maxRefreshSec, minRefreshSec);
       reopenThread.setName("LuceneNRTReopen-" + name);
       reopenThread.start();
+    }
+  }
+
+  public static class HostAndPort {
+    public final InetAddress host;
+    public final int port;
+
+    public HostAndPort(InetAddress host, int port) {
+      this.host = host;
+      this.port = port;
+    }
+  }
+
+  private final List<HostAndPort> replicas = new ArrayList<>();
+
+  public void addReplica(InetAddress host, int port) {
+    if (nrtPrimaryNode == null) {
+      throw new IllegalStateException("can only add a replica to an index that's started as primary");
+    }
+    synchronized(replicas) {
+      replicas.add(new HostAndPort(host, port));
+    }
+  }
+
+  public void removeReplica(InetAddress host, int port) {
+    if (nrtPrimaryNode == null) {
+      throw new IllegalStateException("can only remove a replica to an index that's started as primary");
+    }
+    synchronized(replicas) {
+      for(int i=0;i<replicas.size();i++) {
+        HostAndPort other = replicas.get(i);
+        if (other.host.equals(host) && other.port == port) {
+          replicas.remove(i);
+          return;
+        }
+      }
+
+      throw new IllegalStateException("replica host=" + host + " port=" + port + " is not linked");
     }
   }
 
@@ -813,10 +867,21 @@ public class IndexState implements Closeable {
   @Override
   public synchronized void close() throws IOException {
     //System.out.println("IndexState.close name=" + name);
+    System.out.println("INDEX STATE close");
     commit();
+
     List<Closeable> closeables = new ArrayList<Closeable>();
     // nocommit catch exc & rollback:
-    if (writer != null) {
+    if (nrtPrimaryNode != null) {
+      closeables.add(reopenThreadPrimary);
+      closeables.add(searcherManager);
+      // this closes writer:
+      closeables.add(nrtPrimaryNode);
+      closeables.add(slm);
+      closeables.add(indexDir);
+      closeables.add(taxoDir);
+      nrtPrimaryNode = null;
+    } else if (writer != null) {
       closeables.add(reopenThread);
       closeables.add(manager);
       closeables.add(writer);
@@ -919,7 +984,9 @@ public class IndexState implements Closeable {
   public synchronized void commit() throws IOException {
     if (writer != null) {
       // nocommit: two phase commit?
-      taxoWriter.commit();
+      if (taxoWriter != null) {
+        taxoWriter.commit();
+}
       writer.commit();
     }
 
@@ -990,6 +1057,9 @@ public class IndexState implements Closeable {
       throw new IOException(e);
     }
   }
+
+
+  // nocommit do this once globally, not per index:
 
   /** Prunes stale searchers. */
   private class SearcherPruningThread extends Thread {
@@ -1185,8 +1255,6 @@ public class IndexState implements Closeable {
         snapshotGenToVersion.put(c.getGeneration(), sis.getVersion());
       }
 
-      manager = null;
-
       nrtPrimaryNode = new NRTPrimaryNode(writer, 0, primaryGen, -1,
                                           new SearcherFactory() {
                                             @Override
@@ -1197,6 +1265,16 @@ public class IndexState implements Closeable {
                                             }
                                           },
                                           verbose ? System.out : null);
+
+      searcherManager = new NRTPrimaryNode.PrimaryNodeReferenceManager(nrtPrimaryNode,
+                                                                       new SearcherFactory() {
+                                                                         @Override
+                                                                         public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
+                                                                           IndexSearcher searcher = new MyIndexSearcher(r, IndexState.this);
+                                                                           searcher.setSimilarity(sim);
+                                                                           return searcher;
+                                                                         }
+                                                                       });
       restartReopenThread();
 
       startSearcherPruningThread(globalState.shutdownNow);
@@ -1215,11 +1293,82 @@ public class IndexState implements Closeable {
     }
   }
 
-  /** Start this index as replica, pulling NRT changes from a remote primary */
-  public synchronized void startReplica() throws Exception {
+  /** Start this index as replica, pulling NRT changes from the specified primary */
+  public synchronized void startReplica(InetAddress primaryAddress, int primaryPort) throws Exception {
     if (isStarted()) {
       throw new IllegalStateException("index \"" + name + "\" was already started");
     }
+
+    this.primaryAddress = primaryAddress;
+    this.primaryPort = primaryPort;
+
+    // nocommit share code better w/ start and startPrimary!
+    
+    boolean success = false;
+
+    try {
+
+      if (saveLoadState == null) {
+        initSaveLoadState();
+      }
+
+      Path indexDirFile;
+      if (rootDir == null) {
+        indexDirFile = null;
+      } else {
+        indexDirFile = rootDir.resolve("index");
+      }
+      origIndexDir = df.open(indexDirFile);
+
+      if (!(origIndexDir instanceof RAMDirectory)) {
+        double maxMergeSizeMB = getDoubleSetting("nrtCachingDirectory.maxMergeSizeMB");
+        double maxSizeMB = getDoubleSetting("nrtCachingDirectory.maxSizeMB");
+        if (maxMergeSizeMB > 0 && maxSizeMB > 0) {
+          indexDir = new NRTCachingDirectory(origIndexDir, maxMergeSizeMB, maxSizeMB);
+        } else {
+          indexDir = origIndexDir;
+        }
+      } else {
+        indexDir = origIndexDir;
+      }
+
+      if (suggesterSettings != null) {
+        // load suggesters:
+        ((BuildSuggestHandler) globalState.getHandler("buildSuggest")).load(this, suggesterSettings);
+        suggesterSettings = null;
+      }
+    
+      manager = null;
+      nrtPrimaryNode = null;
+
+      boolean verbose = getBooleanSetting("index.verbose");
+
+      nrtReplicaNode = new NRTReplicaNode(0, indexDir,
+                                          new SearcherFactory() {
+                                            @Override
+                                            public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
+                                              IndexSearcher searcher = new MyIndexSearcher(r, IndexState.this);
+                                              searcher.setSimilarity(sim);
+                                              return searcher;
+                                            }
+                                          },
+                                          verbose ? System.out : null);
+
+      startSearcherPruningThread(globalState.shutdownNow);
+      success = true;
+    } finally {
+      if (!success) {
+        IOUtils.closeWhileHandlingException(reopenThread,
+                                            nrtPrimaryNode,
+                                            writer,
+                                            taxoWriter,
+                                            slm,
+                                            indexDir,
+                                            taxoDir);
+        writer = null;
+      }
+    }
+
   }
     
   /** Start this index as standalone */
@@ -1368,9 +1517,11 @@ public class IndexState implements Closeable {
 
   /** Start the searcher pruning thread. */
   public void startSearcherPruningThread(CountDownLatch shutdownNow) {
-    searcherPruningThread = new SearcherPruningThread(shutdownNow);
-    searcherPruningThread.setName("LuceneSearcherPruning-" + name);
-    searcherPruningThread.start();
+    if (searcherPruningThread == null) {
+      searcherPruningThread = new SearcherPruningThread(shutdownNow);
+      searcherPruningThread.setName("LuceneSearcherPruning-" + name);
+      searcherPruningThread.start();
+    }
   }
 
   /** String -&gt; UTF8 byte[]. */
@@ -1530,7 +1681,19 @@ public class IndexState implements Closeable {
   }
 
   public void maybeRefreshBlocking() throws IOException {
-    manager.maybeRefreshBlocking();
+    if (nrtPrimaryNode != null) {
+      nrtPrimaryNode.mgr.maybeRefreshBlocking();
+    } else {
+      manager.maybeRefreshBlocking();
+    }
+  }
+
+  public void waitForGeneration(long gen) throws InterruptedException, IOException {
+    if (nrtPrimaryNode != null) {
+      reopenThreadPrimary.waitForGeneration(gen);
+    } else {
+      reopenThread.waitForGeneration(gen);
+    }
   }
 
   public void verifyStarted(Request r) {

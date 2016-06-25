@@ -280,7 +280,7 @@ public class GlobalState implements Closeable {
 
   @Override
   public void close() throws IOException {
-    //System.out.println("GlobalState.close");
+    System.out.println("GlobalState.close: indices=" + indices);
     IOUtils.close(indices.values());
     indexService.shutdown();
     TimeLimitingCollector.getGlobalTimerThread().stopTimer();

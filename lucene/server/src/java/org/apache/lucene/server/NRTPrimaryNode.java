@@ -25,7 +25,10 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.replicator.nrt.FileMetaData;
 import org.apache.lucene.replicator.nrt.PrimaryNode;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.SearcherFactory;
+import org.apache.lucene.search.SearcherManager;
 
 class NRTPrimaryNode extends PrimaryNode {
 
@@ -37,5 +40,42 @@ class NRTPrimaryNode extends PrimaryNode {
   @Override
   protected void preCopyMergedSegmentFiles(SegmentCommitInfo info, Map<String,FileMetaData> files) throws IOException {
     
+  }
+
+  // TODO: awkward we are forced to do this here ... this should really live in replicator code, e.g. PrimaryNode.mgr should be this:
+  static class PrimaryNodeReferenceManager extends ReferenceManager<IndexSearcher> {
+    final NRTPrimaryNode primary;
+    final SearcherFactory searcherFactory;
+    
+    public PrimaryNodeReferenceManager(NRTPrimaryNode primary, SearcherFactory searcherFactory) throws IOException g{
+      this.primary = primary;
+      this.searcherFactory = searcherFactory;
+      current = SearcherManager.getSearcher(searcherFactory, primary.mgr.acquire().getIndexReader(), null);
+    }
+    
+    @Override
+    protected void decRef(IndexSearcher reference) throws IOException {
+      reference.getIndexReader().decRef();
+    }
+  
+    @Override
+    protected IndexSearcher refreshIfNeeded(IndexSearcher referenceToRefresh) throws IOException {
+      if (primary.flushAndRefresh()) {
+        // NOTE: steals a ref from one ReferenceManager to another!
+        return SearcherManager.getSearcher(searcherFactory, primary.mgr.acquire().getIndexReader(), referenceToRefresh.getIndexReader());
+      } else {
+        return null;
+      }
+    }
+  
+    @Override
+    protected boolean tryIncRef(IndexSearcher reference) {
+      return reference.getIndexReader().tryIncRef();
+    }
+
+    @Override
+    protected int getRefCount(IndexSearcher reference) {
+      return reference.getIndexReader().getRefCount();
+    }
   }
 }

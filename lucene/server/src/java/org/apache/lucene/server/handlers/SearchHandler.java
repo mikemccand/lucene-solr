@@ -1419,7 +1419,7 @@ public class SearchHandler extends Handler {
         // e.g. addDocument.  Apps use this then they want
         // to ensure a specific indexing change is visible:
         long t0 = System.nanoTime();
-        state.reopenThread.waitForGeneration(searcher.getLong("indexGen"));
+        state.waitForGeneration(searcher.getLong("indexGen"));
         if (diagnostics != null) {
           diagnostics.put("nrtWaitMS", (System.nanoTime() - t0)/1000000);
         }

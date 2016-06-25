@@ -61,7 +61,7 @@ abstract class Node implements Closeable {
   protected final SearcherFactory searcherFactory;
   
   // Tracks NRT readers, opened from IW (primary) or opened from replicated SegmentInfos pulled across the wire (replica):
-  protected ReferenceManager<IndexSearcher> mgr;
+  public ReferenceManager<IndexSearcher> mgr;
 
   /** Startup time of original test, carefully propogated to all nodes to produce consistent "seconds since start time" in messages */
   public static long globalStartNS;

@@ -93,7 +93,7 @@ public class ControlledRealTimeReopenThread<T> extends Thread implements Closeab
 
   @Override
   public synchronized void close() {
-    //System.out.println("NRT: set finish");
+    System.out.println("NRT: set finish");
 
     finish = true;
 
@@ -114,6 +114,7 @@ public class ControlledRealTimeReopenThread<T> extends Thread implements Closeab
     // Max it out so any waiting search threads will return:
     searchingGen = Long.MAX_VALUE;
     notifyAll();
+    System.out.println("NRT: done close");
   }
 
   /**

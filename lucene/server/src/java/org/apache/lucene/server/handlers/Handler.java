@@ -27,6 +27,8 @@ import org.apache.lucene.server.GlobalState;
 import org.apache.lucene.server.IndexState;
 import org.apache.lucene.server.PreHandle;
 import org.apache.lucene.server.params.*;
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
 
 // nocommit needs ChannelHandlerContext too?
 
@@ -72,8 +74,18 @@ public abstract class Handler {
     return false;
   }
 
+  /** True if this handler should be given a {@link DataInput} to read. */
+  public boolean binaryRequest() {
+    return false;
+  }
+
   /** Invoked for handlers that use streaming. */
   public String handleStreamed(Reader reader, Map<String,List<String>> params) throws Exception {
+    throw new UnsupportedOperationException();
+  }
+
+  /** Invoked for handlers that use binary communication. */
+  public void handleBinary(DataInput in, DataOutput out) throws Exception {
     throw new UnsupportedOperationException();
   }
 

@@ -46,6 +46,7 @@ import org.apache.lucene.server.handlers.*;
 import org.apache.lucene.server.http.HttpStaticFileServerHandler;
 import org.apache.lucene.server.params.*;
 import org.apache.lucene.server.params.PolyType.PolyEntry;
+import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.util.NamedThreadFactory;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -315,9 +316,22 @@ public class Server {
           handler = globalState.getHandler("help");
         }
 
-        if (handler.doStream()) {
+        if (handler.binaryRequest()) {
+          if (request.isChunked()) {
+            throw new RuntimeException("cannot handle chunked request for command=" + command);
+          }
+
+          // nocommit can we do this w/o copying...
+          ChannelBuffer cb = request.getContent();
+          byte[] copy = new byte[cb.readableBytes()];
+          cb.readBytes(copy);
+
+          // nocommit DataOutput too
+          handler.handleBinary(new ByteArrayDataInput(copy), null);
+          
+        } else if (handler.doStream()) {
           //System.out.println("DO STREAM");
-          if (!request.isChunked()) {
+          if (request.isChunked() == false) {
             //System.out.println("  not chunked");
             // nocommit must get encoding, not assume UTF-8:
 
@@ -367,9 +381,9 @@ public class Server {
             //System.out.println("cp cap: " + cb.capacity() + " readable=" + cb.readableBytes() + " chunked=" + request.isChunked());
             // nocommit must get encoding, not assume UTF-8:
             data = request.getContent().toString(CharsetUtil.UTF_8);
-          } else if(request.getMethod() == HttpMethod.GET){
+          } else if(request.getMethod() == HttpMethod.GET) {
             List<String> json = params.remove("json");
-            if(json==null || json.isEmpty()) {
+            if (json==null || json.isEmpty()) {
               data = convertGetParametersToJson(params);
               params.clear();
             } else {
@@ -707,6 +721,7 @@ public class Server {
       globalState.addHandler("updateDocument", new UpdateDocumentHandler(globalState));
       globalState.addHandler("setCommitUserData", new SetCommitUserDataHandler(globalState));
       globalState.addHandler("getCommitUserData", new GetCommitUserDataHandler(globalState));
+      globalState.addHandler("linkReplica", new LinkReplicaHandler(globalState));
 
       globalState.loadPlugins();
 
