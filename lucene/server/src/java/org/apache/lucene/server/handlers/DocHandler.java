@@ -109,7 +109,7 @@ public class DocHandler {
     sb.append("<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">");
     sb.append("</head>");
     sb.append("<body>");
-    if (params.size() == 0) {
+    if (params == null || params.size() == 0) {
       sb.append("<h1>Lucene Server</h1>");
       sb.append("Available methods:\n");
       sb.append("<dd>");

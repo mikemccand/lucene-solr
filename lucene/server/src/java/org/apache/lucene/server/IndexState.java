@@ -867,7 +867,7 @@ public class IndexState implements Closeable {
   @Override
   public synchronized void close() throws IOException {
     //System.out.println("IndexState.close name=" + name);
-    System.out.println("INDEX STATE close");
+    //System.out.println("INDEX STATE close");
     commit();
 
     List<Closeable> closeables = new ArrayList<Closeable>();

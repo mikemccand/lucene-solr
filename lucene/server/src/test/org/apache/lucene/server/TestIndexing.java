@@ -262,6 +262,7 @@ public class TestIndexing extends ServerBaseTestCase {
   }
 
   public void testInvalidNormsFormat() throws Exception {
+    System.out.println("\nTEST: now start");
     try {
       send("settings", "{normsFormat: NoSuchNormsFormat}");
       fail("did not hit exception");

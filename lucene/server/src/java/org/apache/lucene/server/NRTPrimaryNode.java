@@ -47,7 +47,7 @@ class NRTPrimaryNode extends PrimaryNode {
     final NRTPrimaryNode primary;
     final SearcherFactory searcherFactory;
     
-    public PrimaryNodeReferenceManager(NRTPrimaryNode primary, SearcherFactory searcherFactory) throws IOException g{
+    public PrimaryNodeReferenceManager(NRTPrimaryNode primary, SearcherFactory searcherFactory) throws IOException {
       this.primary = primary;
       this.searcherFactory = searcherFactory;
       current = SearcherManager.getSearcher(searcherFactory, primary.mgr.acquire().getIndexReader(), null);

@@ -392,6 +392,7 @@ public class RegisterFieldHandler extends Handler {
     } catch (RuntimeException re) {
       // Dynamic error (e.g. referred to a field that
       // doesn't exist):
+      System.out.println("NOW FAIL");
       r.fail("expression", "could not evaluate expression: " + re, re);
 
       // Dead code but compiler disagrees:

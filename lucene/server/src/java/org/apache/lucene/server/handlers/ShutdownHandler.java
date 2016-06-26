@@ -52,7 +52,8 @@ public class ShutdownHandler extends Handler {
     return new FinishRequest() {
       @Override
       public String finish() throws IOException {
-        globalState.shutdownNow.countDown();
+        // SimpleServer now does this because we get a chicken/egg situation otherwise!
+        //globalState.shutdownNow.countDown();
         return "{}";
       }
     };
