@@ -78,7 +78,7 @@ public class StartIndexHandler extends Handler {
         if (mode.equals("primary")) {
           state.startPrimary(primaryGen);
         } else if (mode.equals("replica")) {
-          state.startReplica();
+          //state.startReplica();
         } else {
           state.start();
         }

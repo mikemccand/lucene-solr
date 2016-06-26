@@ -59,12 +59,12 @@ public class RunServer {
   public RunServer(final Path globalStateDir) throws Exception {
     final CountDownLatch ready = new CountDownLatch(1);
     final Exception[] exc = new Exception[1];
-    final AtomicReference<SimpleServer> theServer = new AtomicReference<>();
+    final AtomicReference<Server> theServer = new AtomicReference<>();
     serverThread = new Thread() {
         @Override
         public void run() {
           try {
-            SimpleServer s = new SimpleServer(globalStateDir, 0, 10);
+            Server s = new Server(globalStateDir, 0, 10);
             theServer.set(s);
             s.run(ready);
           } catch (Exception e) {

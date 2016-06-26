@@ -17,68 +17,44 @@ package org.apache.lucene.server;
  * limitations under the License.
  */
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.net.FileNameMap;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.server.handlers.*;
-import org.apache.lucene.server.http.HttpStaticFileServerHandler;
-import org.apache.lucene.server.params.*;
+import org.apache.lucene.server.params.Param;
 import org.apache.lucene.server.params.PolyType.PolyEntry;
-import org.apache.lucene.store.ByteArrayDataInput;
-import org.apache.lucene.util.NamedThreadFactory;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
-import org.jboss.netty.channel.UpstreamMessageEvent;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.codec.http.DefaultHttpRequest;
-import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
-import org.jboss.netty.handler.codec.http.HttpChunk;
-//import org.jboss.netty.handler.codec.http.HttpChunkAggregator;
-import org.jboss.netty.handler.codec.http.HttpContentCompressor;
-import org.jboss.netty.handler.codec.http.HttpHeaders;
-import org.jboss.netty.handler.codec.http.HttpMethod;
-import org.jboss.netty.handler.codec.http.HttpRequest;
-import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
-import org.jboss.netty.handler.codec.http.HttpResponse;
-import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
-import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-import org.jboss.netty.handler.codec.http.HttpVersion;
-import org.jboss.netty.handler.codec.http.QueryStringDecoder;
-import org.jboss.netty.util.CharsetUtil;
+import org.apache.lucene.server.params.PolyType;
+import org.apache.lucene.server.params.Request;
+import org.apache.lucene.server.params.RequestFailedException;
+import org.apache.lucene.server.params.StructType;
+
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
 
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONStyleIdent;
@@ -86,172 +62,95 @@ import net.minidev.json.parser.ContainerFactory;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 
-import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
-
-//import static org.jboss.netty.handler.codec.http.HttpHeaders.*;
-//import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.*;
-//import static org.jboss.netty.handler.codec.http.HttpMethod.*;
-
-
-// nocommit move under http
-
-// nocommit don't use netty anymore
-
-/** Main entry point for the HTTP server. */
 public class Server {
 
+  private static final boolean VERBOSE = false;
+
   final GlobalState globalState;
+  final HttpServer httpServer;
 
-  final SimpleChannelUpstreamHandler staticFileHandler;
+  public final int actualPort;
 
-  /** The actual port server bound to (only interesting if
-   *  you passed port=0 to let the OS assign one). */
-  public int actualPort;
-
-  /** Handles the incoming request. */
-  private class Dispatcher extends SimpleChannelUpstreamHandler {
-
-    private Writer pipedWriter;
-    private Throwable[] pipedExc;
-    private Thread pipeThread;
-    private boolean firstMessage = true;
-    private final String[] pipedResult = new String[1];
-    private ByteArrayOutputStream chunkedRequestBytes;
-    private String command;
-    private Handler handler;
-    private boolean doKeepAlive = true;
-    private Map<String,List<String>> params;
-
-    private byte[] processRequest(String request) throws Exception {
-      //System.out.println("request: " + request + " this=" + this);
-      JSONObject requestData;
-      if (request != null) {
-        Object o = null;
-        try {
-          //System.out.println("request " + request);
-          o = new JSONParser(JSONParser.MODE_STRICTEST).parse(request, ContainerFactory.FACTORY_SIMPLE);
-        } catch (ParseException pe) {
-          IllegalArgumentException iae = new IllegalArgumentException("could not parse HTTP request data as JSON");
-          iae.initCause(pe);
-          throw iae;
+  private static Map<String, List<String>> splitQuery(URI uri) throws UnsupportedEncodingException {
+    final Map<String, List<String>> params = new LinkedHashMap<String, List<String>>();
+    String query = uri.getQuery();
+    if (query != null) {
+      final String[] pairs = query.split("&");
+      for (String pair : pairs) {
+        final int idx = pair.indexOf("=");
+        final String key = idx > 0 ? URLDecoder.decode(pair.substring(0, idx), "UTF-8") : pair;
+        if (params.containsKey(key) == false) {
+          params.put(key, new LinkedList<String>());
         }
-        if (!(o instanceof JSONObject)) {
-          throw new IllegalArgumentException("HTTP request data must be a JSON struct { .. }");
-        }
-        requestData = (JSONObject) o;
-      } else {
-        requestData = new JSONObject();
+        final String value = idx > 0 && pair.length() > idx + 1 ? URLDecoder.decode(pair.substring(idx + 1), "UTF-8") : null;
+        params.get(key).add(value);
       }
+    }
 
-      Request r = new Request(null, command, requestData, handler.getType());
-      IndexState state;
-      if (handler.requiresIndexName) {
-        String indexName = r.getString("indexName");
-        state = globalState.get(indexName);
-      } else {
-        state = null;
-      }
+    return params;
+  }  
 
-      FinishRequest finish;
+  class DocHandler implements HttpHandler {
+    public void handle(HttpExchange x) throws IOException {
       try {
-        for(PreHandle h : handler.preHandlers) {
-          h.invoke(r);
+        _handle(x);
+      } catch (Exception e) {
+        if (VERBOSE) {
+          System.out.println("\nSERVER: handle for " + x.getRequestURI() + " hit exception:");
+          e.printStackTrace(System.out);
         }
-        // TODO: for "compute intensive" (eg search)
-        // handlers, we should use a separate executor?  And
-        // we should more gracefully handle the "Too Busy"
-        // case by accepting the connection, seeing backlog
-        // is too much, and sending HTTP 500 back
-        finish = handler.handle(state, r, params);
-      } catch (RequestFailedException rfe) {
-        String details = null;
-        if (rfe.param != null) {
-
-          // nocommit this seems to not help, ie if a
-          // handler threw an exception on a specific
-          // parameter, it means something went wrong w/
-          // that param, and it's not (rarely?) helpful to
-          // then list all the other valid params?
-
-          /*
-          if (rfe.request.getType() != null) {
-            Param p = rfe.request.getType().params.get(rfe.param);
-            if (p != null) {
-              if (p.type instanceof StructType) {
-                List<String> validParams = new ArrayList<String>(((StructType) p.type).params.keySet());
-                Collections.sort(validParams);
-                details = "valid params are: " + validParams.toString();
-              } else if (p.type instanceof ListType && (((ListType) p.type).subType instanceof StructType)) {
-                List<String> validParams = new ArrayList<String>(((StructType) ((ListType) p.type).subType).params.keySet());
-                Collections.sort(validParams);
-                details = "each element in the array may have these params: " + validParams.toString();
-              }
-            }
-          }
-          */
-        } else {
-          List<String> validParams = new ArrayList<String>(rfe.request.getType().params.keySet());
-          Collections.sort(validParams);
-          details = "valid params are: " + validParams.toString();
-        }
-
-        if (details != null) {
-          rfe = new RequestFailedException(rfe, details);
-        }
-
-        throw rfe;
-      }
-
-      // We remove params as they are accessed, so if
-      // anything is left it means it wasn't used:
-      if (Request.anythingLeft(requestData)) {
-        assert request != null;
-        JSONObject fullRequest;
-        try {
-          fullRequest = (JSONObject) new JSONParser(JSONParser.MODE_STRICTEST).parse(request, ContainerFactory.FACTORY_SIMPLE);          
-        } catch (ParseException pe) {
-          // The request parsed originally...:
-          assert false;
-
-          // Dead code but compiler disagrees:
-          fullRequest = null;
-        }
-
-        // Pretty print the leftover (unhandled) params:
-        String pretty = requestData.toJSONString(new JSONStyleIdent());
-        String s = "unrecognized parameters:\n" + pretty;
-        String details = findFirstWrongParam(handler.getType(), fullRequest, requestData, new ArrayList<String>());
-        if (details != null) {
-          s += "\n\n" + details;
-        }
-        throw new IllegalArgumentException(s);
-      }
-
-      String response = finish.finish();
-      //System.out.println("  response: " + response);
-
-      return response.getBytes("UTF-8");
-    }
-
-    private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status, String details) {
-      HttpResponse response = new DefaultHttpResponse(HTTP_1_1, status);
-      response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
-      response.setContent(ChannelBuffers.copiedBuffer(
-                                                      "Failure: " + status.toString() + "\r\nDetails: " + details,
-                                                      CharsetUtil.UTF_8));
-      ChannelFuture later = ctx.getChannel().write(response);
-      if (!doKeepAlive) {
-        // Close the connection as soon as the error message is sent.
-        later.addListener(ChannelFutureListener.CLOSE);
+        throw new RuntimeException(e);
       }
     }
 
-    /** Serves a static file from a plugin */
-    private void handlePlugin(ChannelHandlerContext ctx, HttpRequest request) throws Exception {
-      String uri = request.getUri();
+    private void _handle(HttpExchange x) throws Exception {
+      Map<String,List<String>> params = splitQuery(x.getRequestURI());
+      String html = globalState.docHandler.handle(params, globalState.getHandlers());
+      byte[] responseBytes = html.getBytes("UTF-8");
+
+      Headers headers = x.getResponseHeaders();
+      headers.set("Content-Type", "text-html;charset=utf-8");
+      x.sendResponseHeaders(200, responseBytes.length);
+      x.getResponseBody().write(responseBytes, 0, responseBytes.length);
+      x.getRequestBody().close();
+      x.getResponseBody().close();
+    }
+  }
+
+  static void sendError(HttpExchange x, int httpCode, String httpMessage) throws IOException {
+    byte[] bytes;
+    try {
+      bytes = httpMessage.getBytes("UTF-8");
+    } catch (UnsupportedEncodingException uoe) {
+      // should not happen!
+      throw new RuntimeException(uoe);
+    }
+    x.sendResponseHeaders(httpCode, bytes.length);
+    x.getResponseBody().write(bytes);
+    x.getRequestBody().close();
+    x.getResponseBody().close();
+  }
+
+  class PluginsStaticFileHandler implements HttpHandler {
+    private final FileNameMap fileNameMap = URLConnection.getFileNameMap();
+      
+    public void handle(HttpExchange x) throws IOException {
+      try {
+        _handle(x);
+      } catch (Exception e) {
+        if (VERBOSE) {
+          System.out.println("\nSERVER: handle for " + x.getRequestURI() + " hit exception:");
+          e.printStackTrace(System.out);
+        }
+        throw new RuntimeException(e);
+      }
+    }
+
+    private void _handle(HttpExchange x) throws Exception {
+      String uri = x.getRequestURI().toString();
       int idx = uri.indexOf('/', 9);
       if (idx == -1) {
-        sendError(ctx, HttpResponseStatus.BAD_REQUEST, "URL should be /plugin/name/...");
+        sendError(x, 400, "URL should be /plugin/name/...");
         return;
       }
           
@@ -259,234 +158,52 @@ public class Server {
       Path pluginsDir = globalState.stateDir.resolve("plugins");
       Path pluginDir = pluginsDir.resolve(pluginName);
       if (Files.exists(pluginDir) == false) {
-        sendError(ctx, HttpResponseStatus.BAD_REQUEST, "plugin \"" + pluginName + "\" does not exist");
+        sendError(x, 400, "plugin \"" + pluginName + "\" does not exist");
       }
 
-      staticFileHandler.messageReceived(ctx, new UpstreamMessageEvent(ctx.getChannel(),
-                                                                      new DefaultHttpRequest(HttpVersion.HTTP_1_1,
-                                                                                             HttpMethod.GET,
-                                                                                             pluginName + "/site/" + uri.substring(idx+1)),
-                                                                      null));
+      Path localFile = pluginsDir.resolve(pluginName).resolve("site").resolve(uri.substring(idx+1));
+      if (Files.exists(localFile) == false) {
+        sendError(x, 400, "file " + uri + " does not exist");
+      }
+
+      String mimeType = fileNameMap.getContentTypeFor(uri);
+      
+      Headers headers = x.getResponseHeaders();
+      headers.set("Content-Type", mimeType);
+      
+      // nocommit don't do this:
+      byte[] bytes = Files.readAllBytes(localFile);
+      
+      x.sendResponseHeaders(200, bytes.length);
+      x.getResponseBody().write(bytes, 0, bytes.length);
+      x.getRequestBody().close();
+      x.getResponseBody().close();
     }
-
-    @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-
-      byte[] responseBytes = null;
-
-      if (firstMessage) {
-        firstMessage = false;
-        HttpRequest request = (HttpRequest) e.getMessage();
-
-        // nocommit do we need to check this per-chunk?
-        String s = request.getHeader("Connection");
-        if (s != null && s.toLowerCase(Locale.ROOT).equals(HttpHeaders.Values.CLOSE)) {
-          doKeepAlive = false;
-        }
-
-        String uri = request.getUri();
-        if (uri.startsWith("/plugin")) {
-          handlePlugin(ctx, request);
-          return;
-        }
-
-        QueryStringDecoder decoder = new QueryStringDecoder(uri);
-        command = decoder.getPath().substring(1);
-
-        params = decoder.getParameters();
-
-        if (command.equals("doc")) {
-          String html = globalState.docHandler.handle(params, globalState.getHandlers());
-          responseBytes = html.getBytes("UTF-8");
-          Channel ch = e.getChannel();
-          HttpResponse r = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-          r.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text-html;charset=utf-8");
-          r.setHeader(HttpHeaders.Names.CONTENT_LENGTH, ""+responseBytes.length);
-          r.setContent(ChannelBuffers.copiedBuffer(responseBytes));
-          ch.write(r);
-          return;
-        }
-
-        // Dispatch by command:
-        try {
-          handler = globalState.getHandler(command);
-        } catch (IllegalArgumentException iae) {
-          params = new HashMap<String, List<String>>(params);
-          params.put("message", Arrays.asList(new String[] { iae.getMessage() }));
-          handler = globalState.getHandler("help");
-        }
-
-        if (handler.binaryRequest()) {
-          if (request.isChunked()) {
-            throw new RuntimeException("cannot handle chunked request for command=" + command);
-          }
-
-          // nocommit can we do this w/o copying...
-          ChannelBuffer cb = request.getContent();
-          byte[] copy = new byte[cb.readableBytes()];
-          cb.readBytes(copy);
-
-          // nocommit DataOutput too
-          handler.handleBinary(new ByteArrayDataInput(copy), null);
-          
-        } else if (handler.doStream()) {
-          //System.out.println("DO STREAM");
-          if (request.isChunked() == false) {
-            //System.out.println("  not chunked");
-            // nocommit must get encoding, not assume UTF-8:
-
-            // Streaming handler but request wasn't chunked;
-            // just read all bytes into StringReader:
-            String result = handler.handleStreamed(new StringReader(request.getContent().toString(CharsetUtil.UTF_8)), params);
-            responseBytes = result.getBytes("UTF-8");
-          } else {
-            //System.out.println("  is chunked");
-            final Pipe p = new Pipe(1.0f);
-            pipedWriter = p.getWriter();
-            final Reader pipedReader = p.getReader();
-            pipedExc = new Throwable[1];
-            pipeThread = new Thread() {
-                @Override
-                public void run() {
-                  try {
-                    pipedResult[0] = handler.handleStreamed(pipedReader, params);
-                  } catch (Throwable t) {
-                    // nocommit use Future/call so exc is forwarded
-                    pipedExc[0] = t;
-                    p.close();
-                    //throw new RuntimeException(t);
-                  }
-                }
-              };
-            pipeThread.setName("Chunked HTTP");
-            pipeThread.start();
-          }
-        } else if (request.isChunked()) {
-          chunkedRequestBytes = new ByteArrayOutputStream();
-        } else {
-
-          String data;
-          if (request.getMethod() == HttpMethod.POST) {
-            /*
-              System.out.println("BUFFER: " + request.getContent());
-              if (command.equals("addDocument")) {
-              byte[] buffer = new byte[10];
-              while(true) {
-              request.getContent().readBytes(buffer);
-              System.out.println("here: " + buffer);
-              }
-              }
-            */
-            //ChannelBuffer cb = request.getContent();
-            //System.out.println("cp cap: " + cb.capacity() + " readable=" + cb.readableBytes() + " chunked=" + request.isChunked());
-            // nocommit must get encoding, not assume UTF-8:
-            data = request.getContent().toString(CharsetUtil.UTF_8);
-          } else if(request.getMethod() == HttpMethod.GET) {
-            List<String> json = params.remove("json");
-            if (json==null || json.isEmpty()) {
-              data = convertGetParametersToJson(params);
-              params.clear();
-            } else {
-              data = json.iterator().next();
-            }
-          } else {
-            data = null;
-          }
-
-          responseBytes = processRequest(data);
-        }
-      } else if (chunkedRequestBytes != null) {
-        if (pipedExc != null) {
-          maybeThrowPipeExc();
-        }
-        HttpChunk chunk = (HttpChunk) e.getMessage();
-        if (chunk.isLast()) {
-          // nocommit must verify encoding is UTF-8:
-          responseBytes = processRequest(chunkedRequestBytes.toString("UTF-8"));
-        } else {
-          // nocommit can we do single copy?
-          ChannelBuffer cb = chunk.getContent();
-          byte[] copy = new byte[cb.readableBytes()];
-          cb.readBytes(copy);
-          chunkedRequestBytes.write(copy);
-        }
-      } else {
-        try {
-          HttpChunk chunk = (HttpChunk) e.getMessage();
-          if (chunk.isLast()) {
-            pipedWriter.close();
-            pipedWriter = null;
-            pipeThread.join();
-            pipeThread = null;
-            responseBytes = pipedResult[0].getBytes("UTF-8");
-            firstMessage = true;
-          } else {
-            // nocommit must get encoding, not assume UTF-8:
-            ChannelBuffer cb = chunk.getContent();
-            byte[] copy = new byte[cb.readableBytes()];
-            cb.readBytes(copy);
-            char[] arr = IndexState.utf8ToCharArray(copy, 0, copy.length);
-            pipedWriter.write(arr, 0, arr.length);
-            //System.out.println("write another " + arr.length);
-          }
-        } catch (Throwable t) {
-          maybeThrowPipeExc();
-          throw new RuntimeException(t);
-        }
-      }
-
-      // sendError(ctx, METHOD_NOT_ALLOWED);
-      // sendError(ctx, FORBIDDEN);
-      // sendError(ctx, NOT_FOUND);
-      if (responseBytes != null) {
-        Channel ch = e.getChannel();
-        if (ch.isConnected()) {
-          HttpResponse r = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-          r.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text-plain; charset=utf-8");
-          r.setHeader(HttpHeaders.Names.CONTENT_LENGTH, ""+responseBytes.length);
-          if (doKeepAlive) {
-            r.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-          }
-          r.setContent(ChannelBuffers.copiedBuffer(responseBytes));
-          ChannelFuture f = ch.write(r);
-          if (!doKeepAlive) {
-            f.addListener(ChannelFutureListener.CLOSE);
-          } else {
-            firstMessage = true;
-          }
-        }
-      }
-
-      super.messageReceived(ctx, e);
-    }
+  }
+  
+  class ServerHandler implements HttpHandler {
+    private final Handler handler;
     
-    private String convertGetParametersToJson(Map<String, List<String>> params) {
-      JSONObject json = new JSONObject();
-      for(Map.Entry<String,List<String>> entry : params.entrySet()) {
-        List<String> values = entry.getValue();
-        if(values.size()==1) {
-          json.put(entry.getKey(), values.iterator().next());
-        } else {
-          json.put(entry.getKey(), values);
-        }
-      }
-      return json.toString();
+    public ServerHandler(Handler handler) {
+      this.handler = handler;
     }
-    
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-      //System.out.println("SVR.exceptionCaught: " + e);
-      //e.getCause().printStackTrace(System.out);
 
-      Channel ch = e.getChannel();
-      if (!ch.isConnected()) {
-        return;
-      }
+    private void sendException(HttpExchange x, Throwable e) throws IOException {
+      x.getRequestBody().close();
       // Just send full stack trace back to client:
       Writer sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
-      if (e.getCause() instanceof RequestFailedException) {
-        RequestFailedException rfe = (RequestFailedException) e.getCause();
+
+      RequestFailedException rfe;
+      if (e instanceof RequestFailedException) {
+        rfe = (RequestFailedException) e;
+      } else if (e.getCause() != null && e.getCause() instanceof RequestFailedException) {
+        rfe = (RequestFailedException) e.getCause();
+      } else {
+        rfe = null;
+      }
+
+      if (rfe != null) {
         pw.println(rfe.path + ": " + rfe.reason);
         if (rfe.getCause() != null) {
           pw.println();
@@ -499,23 +216,23 @@ public class Server {
         //pw.write("\n\nCaused by:\n\n" + cause);
         //}
       } else {
-        e.getCause().printStackTrace(pw);
+        e.printStackTrace(pw);
       }
 
       String message = sw.toString();
       String[] lines = message.split("\n");
       StringBuilder b = new StringBuilder();
-      boolean inNetty = false;
+      boolean inHttp = false;
       for(String line : lines) {
-        if (line.startsWith("\tat org.jboss.netty") || line.startsWith("\tat java.util.concurrent.ThreadPoolExecutor") || line.startsWith("\tat java.lang.Thread.run")) {
-          if (inNetty == false) {
-            inNetty = true;
-            line = "\tat <netty>";
+        if (line.startsWith("\tat com.sun.net.httpserver") || line.startsWith("\tat sun.net.httpserver") || line.startsWith("\tat java.lang.Thread.run")) {
+          if (inHttp == false) {
+            inHttp = true;
+            line = "\tat <httpserver>";
           } else {
             continue;
           }
         } else {
-          inNetty = false;
+          inHttp = false;
         }
         if (b.length() > 0) {
           b.append('\n');
@@ -524,33 +241,207 @@ public class Server {
       }
       message = b.toString();
 
-      HttpResponse r = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
-      //HttpResponse r = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-      r.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text-plain; charset=utf-8");
+      Headers headers = x.getResponseHeaders();
+      headers.set("Content-Type", "text-plain; charset=utf-8");
       byte[] bytes = message.getBytes("UTF-8");
-      r.setHeader(HttpHeaders.Names.CONTENT_LENGTH, "" + bytes.length);
-      r.setContent(ChannelBuffers.copiedBuffer(bytes));
+      headers.set("Content-Length", "" + bytes.length);
+      x.sendResponseHeaders(500, bytes.length);
+      x.getResponseBody().write(bytes, 0, bytes.length);
+      x.getResponseBody().close();
+    }
+
+    public void handle(HttpExchange x) throws IOException {
       try {
-        ch.write(r).addListener(ChannelFutureListener.CLOSE);
-      } catch (Throwable t) {
+        _handle(x);
+      } catch (Exception e) {
+        if (VERBOSE) {
+          System.out.println("\nSERVER: handle for " + x.getRequestURI() + " hit exception:");
+          e.printStackTrace(System.out);
+        }
+        throw new RuntimeException(e);
       }
     }
 
-    private void maybeThrowPipeExc() throws Exception {
-      Throwable t = pipedExc[0];
-      if (t != null) {
-        if (pipedWriter != null) {
-          pipedWriter.close();
-        }
-        if (t instanceof Exception) {
-          throw (Exception) t;
-        } else if (t instanceof RuntimeException) {
-          throw (RuntimeException) t;
-        } else if (t instanceof Error) {
-          throw (Error) t;
+    private void _handle(HttpExchange x) throws Exception {
+      String method = x.getRequestMethod();
+      if (method.equals("POST") == false) {
+        // TODO: am I supposed to set HTTP error code instead!?
+        // nocommit make sure we test this
+        System.out.println("  FAIL");
+        throw new IllegalArgumentException("use HTTP POST, not " + method);
+      }
+
+      String command = x.getRequestURI().getPath().substring(1);
+
+      Map<String,List<String>> params = splitQuery(x.getRequestURI());
+
+      Headers headers = x.getRequestHeaders();
+      //System.out.println("HEADERS: " + headers.entrySet());
+
+      List<String> header = headers.get("Charset");
+      String charset;
+      if (header != null) {
+        charset = header.get(0);
+      } else {
+        charset = "UTF-8";
+      }
+      InputStream in = x.getRequestBody();
+
+      //System.out.println("in=" + in);
+      List<String> v = headers.get("Transfer-Encoding");
+
+      String responseString;
+      
+      if (v != null && v.get(0).equalsIgnoreCase("chunked")) {
+        // length not known in advance
+        if (handler.doStream()) {
+          // nocommit catch exceptions and make them presentable!
+          try {
+            responseString = handler.handleStreamed(new InputStreamReader(in), params);
+          } catch (Throwable t) {
+            sendException(x, t);
+            return;
+          }
         } else {
-          throw new RuntimeException(t);
+          throw new IllegalArgumentException("command " + command + " does not support chunked transfer");
         }
+      } else {
+        int length = Integer.parseInt(headers.get("Content-Length").get(0));
+        byte[] bytes = new byte[length];
+        int upto = 0;
+        while (upto < length) {
+          int count = in.read(bytes, upto, length-upto);
+          if (count == -1) {
+            break;
+          } else {
+            upto += count;
+          }
+        }
+
+        if (upto != length) {
+          throw new IllegalArgumentException("did not read enough bytes: expected " + length + " but got " + upto);
+        }
+      
+        String requestString = new String(bytes, charset);
+        //System.out.println("REQ: " + requestString);
+
+        Object o = null;
+        try {
+          o = new JSONParser(JSONParser.MODE_STRICTEST).parse(requestString, ContainerFactory.FACTORY_SIMPLE);
+        } catch (ParseException pe) {
+          IllegalArgumentException iae = new IllegalArgumentException("could not parse HTTP request data as JSON");
+          iae.initCause(pe);
+          sendException(x, iae);
+          return;
+        }
+        if (!(o instanceof JSONObject)) {
+          throw new IllegalArgumentException("HTTP request data must be a JSON struct { .. }");
+        }
+
+        JSONObject requestJSON = (JSONObject) o;
+
+        Request request = new Request(null, command, requestJSON, handler.getType());
+        IndexState state;
+        if (handler.requiresIndexName) {
+          String indexName = request.getString("indexName");
+          state = globalState.get(indexName);
+        } else {
+          state = null;
+        }
+      
+        FinishRequest finish;
+        try {
+          for(PreHandle h : handler.preHandlers) {
+            h.invoke(request);
+          }
+          // TODO: for "compute intensive" (eg search)
+          // handlers, we should use a separate executor?  And
+          // we should more gracefully handle the "Too Busy"
+          // case by accepting the connection, seeing backlog
+          // is too much, and sending HTTP 500 back
+
+          // nocommit remove this 3rd argument (cgi params)?
+          finish = handler.handle(state, request, params);
+        } catch (RequestFailedException rfe) {
+          String details = null;
+          if (rfe.param != null) {
+
+            // nocommit this seems to not help, ie if a
+            // handler threw an exception on a specific
+            // parameter, it means something went wrong w/
+            // that param, and it's not (rarely?) helpful to
+            // then list all the other valid params?
+
+            /*
+              if (rfe.request.getType() != null) {
+              Param p = rfe.request.getType().params.get(rfe.param);
+              if (p != null) {
+              if (p.type instanceof StructType) {
+              List<String> validParams = new ArrayList<String>(((StructType) p.type).params.keySet());
+              Collections.sort(validParams);
+              details = "valid params are: " + validParams.toString();
+              } else if (p.type instanceof ListType && (((ListType) p.type).subType instanceof StructType)) {
+              List<String> validParams = new ArrayList<String>(((StructType) ((ListType) p.type).subType).params.keySet());
+              Collections.sort(validParams);
+              details = "each element in the array may have these params: " + validParams.toString();
+              }
+              }
+              }
+            */
+          } else {
+            List<String> validParams = new ArrayList<String>(rfe.request.getType().params.keySet());
+            Collections.sort(validParams);
+            details = "valid params are: " + validParams.toString();
+          }
+
+          // nocommit get this working correctly:
+          if (false && details != null) {
+            rfe = new RequestFailedException(rfe, details);
+          }
+
+          sendException(x, rfe);
+          return;
+        } catch (Throwable t) {
+          sendException(x, t);
+          return;
+        }
+
+        // We remove params as they are accessed, so if
+        // anything is left it means it wasn't used:
+        if (Request.anythingLeft(requestJSON)) {
+          assert request != null;
+          JSONObject fullRequest;
+          try {
+            fullRequest = (JSONObject) new JSONParser(JSONParser.MODE_STRICTEST).parse(requestString, ContainerFactory.FACTORY_SIMPLE);          
+          } catch (ParseException pe) {
+            // The request parsed originally...:
+            assert false;
+
+            // Dead code but compiler disagrees:
+            fullRequest = null;
+          }
+
+          // Pretty print the leftover (unhandled) params:
+          String pretty = requestJSON.toJSONString(new JSONStyleIdent());
+          String s = "unrecognized parameters:\n" + pretty;
+          String details = findFirstWrongParam(handler.getType(), fullRequest, requestJSON, new ArrayList<String>());
+          if (details != null) {
+            s += "\n\n" + details;
+          }
+          throw new IllegalArgumentException(s);
+        }
+
+        responseString = finish.finish();
+      }
+      
+      byte[] responseBytes = responseString.getBytes("UTF-8");
+      x.sendResponseHeaders(200, responseBytes.length);
+      x.getResponseBody().write(responseBytes, 0, responseBytes.length);
+      x.getResponseBody().close();
+      in.close();
+
+      if (command.equals("shutdown")) {
+        globalState.shutdownNow.countDown();
       }
     }
   }
@@ -635,116 +526,80 @@ public class Server {
     System.out.println("\nUsage: java -cp <stuff> org.apache.lucene.server.Server [-port port] [-maxHTTPThreadCount count] [-stateDir /path/to/dir]\n\n");
   }
 
-  /** Sole constructor. */
-  public Server(Path globalStateDir) throws IOException {
+  public Server(Path globalStateDir, int port, int backlog) throws Exception {
     globalState = new GlobalState(globalStateDir);
-    staticFileHandler = new HttpStaticFileServerHandler(globalState.stateDir.resolve("plugins").toFile());
+    globalState.loadIndexNames();
+    
+    httpServer = HttpServer.create(new InetSocketAddress(port), backlog);
+    actualPort = httpServer.getAddress().getPort();
+    
+    globalState.addHandler("addDocument", new AddDocumentHandler(globalState));
+    globalState.addHandler("addDocuments", new AddDocumentsHandler(globalState));
+    globalState.addHandler("analyze", new AnalysisHandler(globalState));
+    globalState.addHandler("buildSuggest", new BuildSuggestHandler(globalState));
+    globalState.addHandler("bulkAddDocument", new BulkAddDocumentHandler(globalState));
+    globalState.addHandler("bulkAddDocuments", new BulkAddDocumentsHandler(globalState));
+    globalState.addHandler("bulkUpdateDocument", new BulkUpdateDocumentHandler(globalState));
+    globalState.addHandler("bulkUpdateDocuments", new BulkUpdateDocumentsHandler(globalState));
+    globalState.addHandler("commit", new CommitHandler(globalState));
+    globalState.addHandler("createIndex", new CreateIndexHandler(globalState));
+    globalState.addHandler("createSnapshot", new CreateSnapshotHandler(globalState));
+    globalState.addHandler("deleteAllDocuments", new DeleteAllDocumentsHandler(globalState));
+    globalState.addHandler("deleteIndex", new DeleteIndexHandler(globalState));
+    globalState.addHandler("deleteDocuments", new DeleteDocumentsHandler(globalState));
+    globalState.addHandler("help", new HelpHandler(globalState));
+    globalState.addHandler("indexStatus", new IndexStatusHandler(globalState));
+    globalState.addHandler("liveSettings", new LiveSettingsHandler(globalState));
+    globalState.addHandler("liveValues", new LiveValuesHandler(globalState));
+    globalState.addHandler("registerFields", new RegisterFieldHandler(globalState));
+    globalState.addHandler("releaseSnapshot", new ReleaseSnapshotHandler(globalState));
+    globalState.addHandler("search", new SearchHandler(globalState));
+    globalState.addHandler("settings", new SettingsHandler(globalState));
+    globalState.addHandler("shutdown", new ShutdownHandler(globalState));
+    globalState.addHandler("startIndex", new StartIndexHandler(globalState));
+    globalState.addHandler("stats", new StatsHandler(globalState));
+    globalState.addHandler("stopIndex", new StopIndexHandler(globalState));
+    globalState.addHandler("suggestLookup", new SuggestLookupHandler(globalState));
+    globalState.addHandler("refresh", new RefreshHandler(globalState));
+    globalState.addHandler("updateSuggest", new UpdateSuggestHandler(globalState));
+    globalState.addHandler("updateDocument", new UpdateDocumentHandler(globalState));
+    globalState.addHandler("setCommitUserData", new SetCommitUserDataHandler(globalState));
+    globalState.addHandler("getCommitUserData", new GetCommitUserDataHandler(globalState));
+    globalState.addHandler("linkReplica", new LinkReplicaHandler(globalState));
+
+    // docs are their own handler:
+    httpServer.createContext("/doc", new DocHandler());
+
+    // static files from plugins are their own handler:
+    httpServer.createContext("/plugins", new PluginsStaticFileHandler());
+    
+    for(Map.Entry<String,Handler> ent : globalState.getHandlers().entrySet()) {
+      httpServer.createContext("/" + ent.getKey(), new ServerHandler(ent.getValue()));
+    }
   }
 
-  /** Runs the server. */
-  public void run(int port, int maxHTTPThreadCount, CountDownLatch ready) throws Exception {
+  public void run(CountDownLatch ready) throws Exception {
 
-    globalState.loadIndexNames();
+    globalState.loadPlugins();
 
-    // nocommit use fixed thread pools, so we don't cycle
-    // threads through Lucene's CloseableThreadLocals!
-    ExecutorService bossThreads = new ThreadPoolExecutor(0, maxHTTPThreadCount, 60L,
-                                                         TimeUnit.SECONDS,
-                                                         new SynchronousQueue<Runnable>(),
-                                                         new NamedThreadFactory("LuceneServer-boss"));
-    ExecutorService workerThreads = new ThreadPoolExecutor(0, maxHTTPThreadCount, 60L,
-                                                           TimeUnit.SECONDS,
-                                                           new SynchronousQueue<Runnable>(),
-                                                           new
-                                                         NamedThreadFactory("LuceneServer-worker"));
-    
-    //ExecutorService bossThreads = Executors.newCachedThreadPool();
-    //ExecutorService workerThreads = Executors.newCachedThreadPool();
+    System.out.println("SVR: listening on port " + actualPort + ".");
 
-    ServerBootstrap bootstrap = null;
-    try {
+    httpServer.start();
 
-      ChannelFactory factory = new NioServerSocketChannelFactory(bossThreads, workerThreads, maxHTTPThreadCount);
-      //ChannelFactory factory = new NioServerSocketChannelFactory(bossThreads, workerThreads);
-      bootstrap = new ServerBootstrap(factory);
+    //System.out.println("SVR: done httpServer.start");
 
-      bootstrap.setOption("reuseAddress", true);
-      bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-          @Override
-          public ChannelPipeline getPipeline() {
-            ChannelPipeline p = Channels.pipeline();
-            p.addLast("decoder", new HttpRequestDecoder());
-            p.addLast("encoder", new HttpResponseEncoder());
-            p.addLast("deflater", new HttpContentCompressor(1));
-            // nocommit deflater (HttpContentCompressor)?
-            p.addLast("handler", new Dispatcher());
-            return p;
-          }
-        });
+    // Notify caller server is started:
+    ready.countDown();
 
-      bootstrap.setOption("child.tcpNoDelay", true);
-      bootstrap.setOption("child.keepAlive", true);
-        
-      // Bind and start to accept incoming connections.
-      Channel sc = bootstrap.bind(new InetSocketAddress(port));
-      this.actualPort = ((InetSocketAddress) sc.getLocalAddress()).getPort();
+    // Await shutdown:
+    globalState.shutdownNow.await();
 
-      globalState.addHandler("addDocument", new AddDocumentHandler(globalState));
-      globalState.addHandler("addDocuments", new AddDocumentsHandler(globalState));
-      globalState.addHandler("analyze", new AnalysisHandler(globalState));
-      globalState.addHandler("buildSuggest", new BuildSuggestHandler(globalState));
-      globalState.addHandler("bulkAddDocument", new BulkAddDocumentHandler(globalState));
-      globalState.addHandler("bulkAddDocuments", new BulkAddDocumentsHandler(globalState));
-      globalState.addHandler("bulkUpdateDocument", new BulkUpdateDocumentHandler(globalState));
-      globalState.addHandler("bulkUpdateDocuments", new BulkUpdateDocumentsHandler(globalState));
-      globalState.addHandler("commit", new CommitHandler(globalState));
-      globalState.addHandler("createIndex", new CreateIndexHandler(globalState));
-      globalState.addHandler("createSnapshot", new CreateSnapshotHandler(globalState));
-      globalState.addHandler("deleteAllDocuments", new DeleteAllDocumentsHandler(globalState));
-      globalState.addHandler("deleteIndex", new DeleteIndexHandler(globalState));
-      globalState.addHandler("deleteDocuments", new DeleteDocumentsHandler(globalState));
-      globalState.addHandler("help", new HelpHandler(globalState));
-      globalState.addHandler("indexStatus", new IndexStatusHandler(globalState));
-      globalState.addHandler("liveSettings", new LiveSettingsHandler(globalState));
-      globalState.addHandler("liveValues", new LiveValuesHandler(globalState));
-      globalState.addHandler("registerFields", new RegisterFieldHandler(globalState));
-      globalState.addHandler("releaseSnapshot", new ReleaseSnapshotHandler(globalState));
-      globalState.addHandler("search", new SearchHandler(globalState));
-      globalState.addHandler("settings", new SettingsHandler(globalState));
-      globalState.addHandler("shutdown", new ShutdownHandler(globalState));
-      globalState.addHandler("startIndex", new StartIndexHandler(globalState));
-      globalState.addHandler("stats", new StatsHandler(globalState));
-      globalState.addHandler("stopIndex", new StopIndexHandler(globalState));
-      globalState.addHandler("suggestLookup", new SuggestLookupHandler(globalState));
-      globalState.addHandler("refresh", new RefreshHandler(globalState));
-      globalState.addHandler("updateSuggest", new UpdateSuggestHandler(globalState));
-      globalState.addHandler("updateDocument", new UpdateDocumentHandler(globalState));
-      globalState.addHandler("setCommitUserData", new SetCommitUserDataHandler(globalState));
-      globalState.addHandler("getCommitUserData", new GetCommitUserDataHandler(globalState));
-      globalState.addHandler("linkReplica", new LinkReplicaHandler(globalState));
+    System.out.println("SVR: now shutdown");
 
-      globalState.loadPlugins();
+    httpServer.stop(0);
+    System.out.println("SVR: shutdown done");
 
-      System.out.println("SVR: listening on port " + actualPort + ".");
-
-      // Notify caller server is started:
-      ready.countDown();
-
-      // Await shutdown:
-      globalState.shutdownNow.await();
-
-      // Close everything:
-      sc.close().awaitUninterruptibly();
-
-      globalState.close();
-
-    } finally {
-      if (bootstrap != null) {
-        bootstrap.releaseExternalResources();
-      }
-      bossThreads.shutdown();
-      workerThreads.shutdown();
-    }
+    globalState.close();
   }
 
   /** Command-line entry. */
@@ -777,6 +632,7 @@ public class Server {
       }
     }
 
-    new Server(stateDir).run(port, maxHTTPThreadCount, new CountDownLatch(1));
+    // nocommit don't hardwire 50 tcp queue length
+    new Server(stateDir, port, 50).run(new CountDownLatch(1));
   }
 }
