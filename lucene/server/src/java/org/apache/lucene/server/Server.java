@@ -42,6 +42,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.lucene.server.handlers.*;
 import org.apache.lucene.server.params.Param;
@@ -532,7 +533,7 @@ public class Server {
     
     httpServer = HttpServer.create(new InetSocketAddress(port), backlog);
     actualPort = httpServer.getAddress().getPort();
-    
+
     globalState.addHandler("addDocument", new AddDocumentHandler(globalState));
     globalState.addHandler("addDocuments", new AddDocumentsHandler(globalState));
     globalState.addHandler("analyze", new AnalysisHandler(globalState));
@@ -634,5 +635,45 @@ public class Server {
 
     // nocommit don't hardwire 50 tcp queue length
     new Server(stateDir, port, 50).run(new CountDownLatch(1));
+  }
+
+  private static class BinaryClientHandler implements Runnable {
+    public BinaryClientHandler(
+  }
+
+  private static class BinaryServer extends Thread {
+    private final ServerSocket serverSocket;
+    public final int actualPort;
+
+    private final ExecutorService threadPool = Executors.newCachedThreadPool();
+    private boolean stop;
+    
+    public BinaryServer(int port) throws IOException {
+      serverSocket = new ServerSocket(port);
+      actualPort = serverSocket.getInetAddress().getPort();
+    }
+
+    public void stop() {
+      stop = true;
+      join();
+    }
+
+    public void run() {
+      while (stop == false) {
+        Socket clientSocket = null;
+        try {
+          clientSocket = this.serverSocket.accept();
+        } catch (IOException e) {
+          if (stop) {
+            break;
+          }
+          throw new RuntimeException("Error accepting client connection", e);
+        }
+        threadPool.execute(new BinaryClientHandler(clientSocket));
+      }
+
+      this.threadPool.shutdown();
+      System.out.println("Server Stopped.") ;
+    }
   }
 }
