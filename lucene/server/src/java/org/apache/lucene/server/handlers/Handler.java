@@ -17,6 +17,7 @@ package org.apache.lucene.server.handlers;
  * limitations under the License.
  */
 
+import java.io.OutputStream;
 import java.io.Reader;
 import java.util.List;
 import java.util.Map;
@@ -85,7 +86,7 @@ public abstract class Handler {
   }
 
   /** Invoked for handlers that use binary communication. */
-  public void handleBinary(DataInput in, DataOutput out) throws Exception {
+  public void handleBinary(DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
     throw new UnsupportedOperationException();
   }
 

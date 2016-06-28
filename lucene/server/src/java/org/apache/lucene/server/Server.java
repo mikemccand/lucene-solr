@@ -20,17 +20,21 @@ package org.apache.lucene.server;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.FileNameMap;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.lucene.server.handlers.*;
 import org.apache.lucene.server.params.Param;
@@ -51,6 +57,9 @@ import org.apache.lucene.server.params.PolyType;
 import org.apache.lucene.server.params.Request;
 import org.apache.lucene.server.params.RequestFailedException;
 import org.apache.lucene.server.params.StructType;
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.InputStreamDataInput;
+import org.apache.lucene.store.OutputStreamDataOutput;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -69,8 +78,11 @@ public class Server {
 
   final GlobalState globalState;
   final HttpServer httpServer;
+  final ExecutorService httpThreadPool;
+  final BinaryServer binaryServer;
 
   public final int actualPort;
+  public final int actualBinaryPort;
 
   private static Map<String, List<String>> splitQuery(URI uri) throws UnsupportedEncodingException {
     final Map<String, List<String>> params = new LinkedHashMap<String, List<String>>();
@@ -527,12 +539,26 @@ public class Server {
     System.out.println("\nUsage: java -cp <stuff> org.apache.lucene.server.Server [-port port] [-maxHTTPThreadCount count] [-stateDir /path/to/dir]\n\n");
   }
 
-  public Server(Path globalStateDir, int port, int backlog) throws Exception {
+  public Server(Path globalStateDir, int port, int backlog, int threadCount) throws Exception {
     globalState = new GlobalState(globalStateDir);
     globalState.loadIndexNames();
     
     httpServer = HttpServer.create(new InetSocketAddress(port), backlog);
+
+    System.out.println("SERVER THREAD COUNT " + threadCount);
+
+    httpThreadPool = Executors.newFixedThreadPool(threadCount);
+    httpServer.setExecutor(httpThreadPool);
     actualPort = httpServer.getAddress().getPort();
+
+    int binaryPort;
+    if (port == 0) {
+      binaryPort = 0;
+    } else {
+      binaryPort = port+1;
+    }
+    binaryServer = new BinaryServer(binaryPort);
+    actualBinaryPort = binaryServer.actualPort;
 
     globalState.addHandler("addDocument", new AddDocumentHandler(globalState));
     globalState.addHandler("addDocuments", new AddDocumentsHandler(globalState));
@@ -583,9 +609,10 @@ public class Server {
 
     globalState.loadPlugins();
 
-    System.out.println("SVR: listening on port " + actualPort + ".");
+    System.out.println("SVR: listening on port " + actualPort + "/" + actualBinaryPort + ".");
 
     httpServer.start();
+    binaryServer.start();
 
     //System.out.println("SVR: done httpServer.start");
 
@@ -596,8 +623,10 @@ public class Server {
     globalState.shutdownNow.await();
 
     System.out.println("SVR: now shutdown");
-
     httpServer.stop(0);
+    httpThreadPool.shutdown();
+    System.out.println("SVR: now shutdown binary server");
+    binaryServer.close();
     System.out.println("SVR: shutdown done");
 
     globalState.close();
@@ -633,47 +662,102 @@ public class Server {
       }
     }
 
-    // nocommit don't hardwire 50 tcp queue length
-    new Server(stateDir, port, 50).run(new CountDownLatch(1));
+    // nocommit don't hardwire 50 tcp queue length, 10 threads
+    new Server(stateDir, port, 50, 10).run(new CountDownLatch(1));
   }
 
   private static class BinaryClientHandler implements Runnable {
-    public BinaryClientHandler(
+
+    private static final int MAGIC = 0x3414f5c;
+
+    private final Socket socket;
+
+    private final GlobalState globalState;
+
+    public BinaryClientHandler(GlobalState globalState, Socket socket) {
+      this.globalState = globalState;
+      this.socket = socket;
+    }
+
+    @Override
+    public void run() {
+      try {
+        _run();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    private void _run() throws Exception {
+      try (InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
+        DataInput dataIn = new InputStreamDataInput(in);
+        int x = dataIn.readInt();
+        if (x != MAGIC) {
+          throw new IllegalArgumentException("wrong magic header: got " + x + " but expected " + MAGIC);
+        }
+        int length = dataIn.readVInt();
+        if (length > 128) {
+          throw new IllegalArgumentException("command length too long: got " + length);
+        }
+        byte[] bytes = new byte[length];
+        dataIn.readBytes(bytes, 0, length);
+        String command = new String(bytes, 0, length, StandardCharsets.UTF_8);
+
+        Handler handler = globalState.getHandler(command);
+        if (handler.binaryRequest() == false) {
+          throw new IllegalArgumentException("command " + command + " cannot handle binary requests");
+        }
+
+        handler.handleBinary(dataIn, new OutputStreamDataOutput(out), out);
+      }
+    }
   }
 
-  private static class BinaryServer extends Thread {
+  private class BinaryServer extends Thread {
     private final ServerSocket serverSocket;
     public final int actualPort;
 
-    private final ExecutorService threadPool = Executors.newCachedThreadPool();
+    private final ExecutorService threadPool;
     private boolean stop;
     
     public BinaryServer(int port) throws IOException {
       serverSocket = new ServerSocket(port);
-      actualPort = serverSocket.getInetAddress().getPort();
+      actualPort = serverSocket.getLocalPort();
+      threadPool = Executors.newCachedThreadPool(
+                         new ThreadFactory() {
+                           @Override
+                           public Thread newThread(Runnable r) {
+                             Thread thread = new Thread(r);
+                             thread.setName("Binary Server Thread");
+                             return thread;
+                           }
+                         });
+      System.out.println("BINARY THREADS: " + threadPool);
     }
 
-    public void stop() {
+    public void close() throws IOException, InterruptedException {
       stop = true;
+      serverSocket.close();
       join();
     }
 
     public void run() {
+      System.out.println("start binary server");
       while (stop == false) {
         Socket clientSocket = null;
         try {
-          clientSocket = this.serverSocket.accept();
+          clientSocket = serverSocket.accept();
         } catch (IOException e) {
           if (stop) {
             break;
           }
           throw new RuntimeException("Error accepting client connection", e);
         }
-        threadPool.execute(new BinaryClientHandler(clientSocket));
+        threadPool.execute(new BinaryClientHandler(globalState, clientSocket));
       }
 
-      this.threadPool.shutdown();
-      System.out.println("Server Stopped.") ;
+      threadPool.shutdown();
+      System.out.println("Binary Server Stopped.") ;
     }
   }
 }
