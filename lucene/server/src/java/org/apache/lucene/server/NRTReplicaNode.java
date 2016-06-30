@@ -19,32 +19,94 @@ package org.apache.lucene.server;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.InetAddress;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.replicator.nrt.CopyJob;
+import org.apache.lucene.replicator.nrt.CopyState;
 import org.apache.lucene.replicator.nrt.FileMetaData;
+import org.apache.lucene.replicator.nrt.NodeCommunicationException;
 import org.apache.lucene.replicator.nrt.ReplicaNode;
 import org.apache.lucene.search.SearcherFactory;
+import org.apache.lucene.server.handlers.CopyFilesHandler;
+import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.Directory;
 
 public class NRTReplicaNode extends ReplicaNode {
 
-  public NRTReplicaNode(int id, Directory dir, SearcherFactory searcherFactory, PrintStream printStream) throws IOException {
+  InetAddress primaryAddress;
+  int primaryPort;
+  final String indexName;
+
+  public NRTReplicaNode(String indexName, int id, Directory dir, SearcherFactory searcherFactory, PrintStream printStream) throws IOException {
     super(id, dir, searcherFactory, printStream);
+    this.indexName = indexName;
   }
 
   public CopyJob launchPreCopyFiles(AtomicBoolean finished, long curPrimaryGen, Map<String,FileMetaData> files) throws IOException {
     return launchPreCopyMerge(finished, curPrimaryGen, files);
   }
 
+  /** Pulls CopyState off the wire */
+  private static CopyState readCopyState(DataInput in) throws IOException {
+
+    // Decode a new CopyState
+    byte[] infosBytes = new byte[in.readVInt()];
+    in.readBytes(infosBytes, 0, infosBytes.length);
+
+    long gen = in.readVLong();
+    long version = in.readVLong();
+    Map<String,FileMetaData> files = CopyFilesHandler.readFilesMetaData(in);
+
+    int count = in.readVInt();
+    Set<String> completedMergeFiles = new HashSet<>();
+    for(int i=0;i<count;i++) {
+      completedMergeFiles.add(in.readString());
+    }
+    long primaryGen = in.readVLong();
+
+    return new CopyState(files, version, gen, infosBytes, completedMergeFiles, primaryGen, null);
+  }
+
+
   @Override
   protected CopyJob newCopyJob(String reason, Map<String,FileMetaData> files, Map<String,FileMetaData> prevFiles,
                                boolean highPriority, CopyJob.OnceDone onceDone) throws IOException {
-    // nocommit todo
-    return null;
+
+    // TODO: we should instead keep a persistent connection between nodes instead of opening new socket every time for each copy job:
+
+    CopyState copyState;
+    Connection c;
+
+    // Exceptions in here mean something went wrong talking over the socket, which are fine (e.g. primary node crashed):
+    try {
+      c = new Connection(primaryAddress, primaryPort);
+      c.out.writeInt(Server.BINARY_MAGIC);
+      c.out.writeString("sendMeFiles");
+      c.out.writeString(indexName);
+      c.out.writeVInt(id);
+      c.flush();
+
+      if (files == null) {
+        // No incoming CopyState: ask primary for latest one now
+        c.out.writeByte((byte) 1);
+        c.flush();
+        copyState = readCopyState(c.in);
+        files = copyState.files;
+      } else {
+        c.out.writeByte((byte) 0);
+        copyState = null;
+      }
+    } catch (Throwable t) {
+      throw new NodeCommunicationException("exc while reading files to copy", t);
+    }
+
+    return new SimpleCopyJob(reason, c, copyState, this, files, highPriority, onceDone);
   }
 
   @Override

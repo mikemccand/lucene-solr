@@ -17,6 +17,7 @@ package org.apache.lucene.server;
  * limitations under the License.
  */
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -73,6 +74,8 @@ import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 
 public class Server {
+
+  public static final int BINARY_MAGIC = 0x3414f5c;
 
   private static final boolean VERBOSE = false;
 
@@ -594,6 +597,10 @@ public class Server {
     globalState.addHandler("getCommitUserData", new GetCommitUserDataHandler(globalState));
     globalState.addHandler("linkReplica", new LinkReplicaHandler(globalState));
 
+    // binary protocol:
+    globalState.addHandler("copyFies", new CopyFilesHandler(globalState));
+    globalState.addHandler("sendMeFies", new SendMeFilesHandler(globalState));
+
     // docs are their own handler:
     httpServer.createContext("/doc", new DocHandler());
 
@@ -668,8 +675,6 @@ public class Server {
 
   private static class BinaryClientHandler implements Runnable {
 
-    private static final int MAGIC = 0x3414f5c;
-
     private final Socket socket;
 
     private final GlobalState globalState;
@@ -692,8 +697,8 @@ public class Server {
       try (InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
         DataInput dataIn = new InputStreamDataInput(in);
         int x = dataIn.readInt();
-        if (x != MAGIC) {
-          throw new IllegalArgumentException("wrong magic header: got " + x + " but expected " + MAGIC);
+        if (x != BINARY_MAGIC) {
+          throw new IllegalArgumentException("wrong magic header: got " + x + " but expected " + BINARY_MAGIC);
         }
         int length = dataIn.readVInt();
         if (length > 128) {
@@ -708,7 +713,10 @@ public class Server {
           throw new IllegalArgumentException("command " + command + " cannot handle binary requests");
         }
 
-        handler.handleBinary(dataIn, new OutputStreamDataOutput(out), out);
+        // nocommit what buffer size?
+        OutputStream bufferedOut = new BufferedOutputStream(out);
+
+        handler.handleBinary(dataIn, new OutputStreamDataOutput(bufferedOut), bufferedOut);
       }
     }
   }

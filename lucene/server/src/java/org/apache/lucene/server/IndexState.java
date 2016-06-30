@@ -155,7 +155,7 @@ public class IndexState implements Closeable {
   public Directory origIndexDir;
 
   /** Possibly NRTCachingDir wrap of origIndexDir */
-  Directory indexDir;
+  public Directory indexDir;
 
   /** Taxonomy directory */
   Directory taxoDir;
@@ -163,14 +163,12 @@ public class IndexState implements Closeable {
   public IndexWriter writer;
 
   /** Only non-null if we are primary NRT replication index */
-  private NRTPrimaryNode nrtPrimaryNode;
+  // nocommit make private again, add methods to do stuff to it:
+  public NRTPrimaryNode nrtPrimaryNode;
   
   /** Only non-null if we are replica NRT replication index */
   // nocommit make private again, add methods to do stuff to it:
   public NRTReplicaNode nrtReplicaNode;
-
-  private InetAddress primaryAddress;
-  private int primaryPort;
 
   /** Taxonomy writer */
   DirectoryTaxonomyWriter taxoWriter;
@@ -449,6 +447,10 @@ public class IndexState implements Closeable {
 
   public boolean isReplica() {
     return nrtReplicaNode != null;
+  }
+
+  public boolean isPrimary() {
+    return nrtPrimaryNode != null;
   }
 
   /** Context to hold state for a single indexing request. */
@@ -1299,9 +1301,6 @@ public class IndexState implements Closeable {
       throw new IllegalStateException("index \"" + name + "\" was already started");
     }
 
-    this.primaryAddress = primaryAddress;
-    this.primaryPort = primaryPort;
-
     // nocommit share code better w/ start and startPrimary!
     
     boolean success = false;
@@ -1343,7 +1342,7 @@ public class IndexState implements Closeable {
 
       boolean verbose = getBooleanSetting("index.verbose");
 
-      nrtReplicaNode = new NRTReplicaNode(0, indexDir,
+      nrtReplicaNode = new NRTReplicaNode(name, 0, indexDir,
                                           new SearcherFactory() {
                                             @Override
                                             public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
@@ -1353,6 +1352,8 @@ public class IndexState implements Closeable {
                                             }
                                           },
                                           verbose ? System.out : null);
+      nrtReplicaNode.primaryAddress = primaryAddress;
+      nrtReplicaNode.primaryPort = primaryPort;
 
       startSearcherPruningThread(globalState.shutdownNow);
       success = true;

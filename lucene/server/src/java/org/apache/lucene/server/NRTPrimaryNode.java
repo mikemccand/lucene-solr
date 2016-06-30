@@ -30,7 +30,7 @@ import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherManager;
 
-class NRTPrimaryNode extends PrimaryNode {
+public class NRTPrimaryNode extends PrimaryNode {
 
   public NRTPrimaryNode(IndexWriter writer, int id, long primaryGen, long forcePrimaryVersion,
                         SearcherFactory searcherFactory, PrintStream printStream) throws IOException {

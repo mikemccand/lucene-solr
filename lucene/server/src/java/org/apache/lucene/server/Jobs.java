@@ -21,6 +21,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.PriorityQueue;
 
+import org.apache.lucene.replicator.nrt.CopyJob;
+import org.apache.lucene.replicator.nrt.Node;
 import org.apache.lucene.store.AlreadyClosedException;
 
 /** Runs CopyJob(s) in background thread; each ReplicaNode has an instance of this

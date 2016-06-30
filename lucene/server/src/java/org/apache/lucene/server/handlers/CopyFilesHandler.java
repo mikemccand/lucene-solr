@@ -18,14 +18,18 @@ package org.apache.lucene.server.handlers;
  */
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.lucene.facet.taxonomy.SearcherTaxonomyManager.SearcherAndTaxonomy;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.replicator.nrt.CopyJob.OnceDone;
 import org.apache.lucene.replicator.nrt.CopyJob;
 import org.apache.lucene.replicator.nrt.FileMetaData;
 import org.apache.lucene.server.FinishRequest;
@@ -43,14 +47,16 @@ import net.minidev.json.JSONObject;
 
 /** Copies files from this replica's primary to the local index directory */
 public class CopyFilesHandler extends Handler {
-  private static StructType TYPE = new StructType(
-                                                  new Param("indexName", "Index name", new StringType()),
-                                                  new Param("replicaHostName", "Host name/IP of the replica node", new StringType()),
-                                                  new Param("replicaPort", "TCP port of the replica node", new IntType()));
+  private static StructType TYPE = new StructType();
 
   @Override
   public StructType getType() {
     return TYPE;
+  }
+
+  @Override
+  public FinishRequest handle(IndexState state, Request request, Map<String,List<String>> params) {
+    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -68,11 +74,7 @@ public class CopyFilesHandler extends Handler {
     super(state);
   }
 
-  public FinishRequest handle(IndexState state, Request request, Map<String,List<String>> params) throws Exception {
-    throw new UnsupportedOperationException();
-  }
-
-  static void writeFilesMetaData(DataOutput out, Map<String,FileMetaData> files) throws IOException {
+  public static void writeFilesMetaData(DataOutput out, Map<String,FileMetaData> files) throws IOException {
     out.writeVInt(files.size());
     for(Map.Entry<String,FileMetaData> ent : files.entrySet()) {
       out.writeString(ent.getKey());
@@ -87,7 +89,7 @@ public class CopyFilesHandler extends Handler {
     }
   }
 
-  static Map<String,FileMetaData> readFilesMetaData(DataInput in) throws IOException {
+  public static Map<String,FileMetaData> readFilesMetaData(DataInput in) throws IOException {
     int fileCount = in.readVInt();
     //System.out.println("readFilesMetaData: fileCount=" + fileCount);
     Map<String,FileMetaData> files = new HashMap<>();
@@ -106,7 +108,7 @@ public class CopyFilesHandler extends Handler {
   }
 
   @Override
-  public void handleBinary(DataInput in, DataOutput out) throws Exception {
+  public void handleBinary(DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
 
     String indexName = in.readString();
     long primaryGen = in.readVLong();
@@ -118,13 +120,8 @@ public class CopyFilesHandler extends Handler {
     // these are the files that the remote (primary) wants us to copy
     Map<String,FileMetaData> files = readFilesMetaData(in);
 
-    // diff the files we are supposed to copy against what's already in our index, and launch a copy job (which sends a reverse request back
-    // to the primary asking for the specific files).  typically all incoming files will be "new" to us, since this is invoked for pre-copy
-    // of a just finished (on primary) merge:
     AtomicBoolean finished = new AtomicBoolean();
     CopyJob job = state.nrtReplicaNode.launchPreCopyFiles(finished, primaryGen, files);
-
-    // TODO: keep alive mechanism so primary can better "guess" when we dropped off
 
     // we hold open this request, only finishing/closing once our copy has finished, so primary knows when we finished
     while (true) {
@@ -133,8 +130,10 @@ public class CopyFilesHandler extends Handler {
         break;
       }
       Thread.sleep(10);
+      // TODO: keep alive mechanism so primary can better "guess" when we dropped off
     }
 
     out.writeByte((byte) 1);
+    streamOut.flush();
   }
 }

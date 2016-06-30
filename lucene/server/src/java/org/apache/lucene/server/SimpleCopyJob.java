@@ -1,4 +1,4 @@
-package org.apache.lucene.replicator.nrt;
+package org.apache.lucene.server;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -23,6 +23,13 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.lucene.replicator.nrt.CopyJob;
+import org.apache.lucene.replicator.nrt.CopyOneFile;
+import org.apache.lucene.replicator.nrt.CopyState;
+import org.apache.lucene.replicator.nrt.FileMetaData;
+import org.apache.lucene.replicator.nrt.Node;
+import org.apache.lucene.replicator.nrt.NodeCommunicationException;
 import org.apache.lucene.util.IOUtils;
 
 /** Handles one set of files that need copying, either because we have a
@@ -35,7 +42,7 @@ class SimpleCopyJob extends CopyJob {
 
   private Iterator<Map.Entry<String,FileMetaData>> iter;
 
-  public SimpleCopyJob(String reason, Connection c, CopyState copyState, SimpleReplicaNode dest, Map<String,FileMetaData> files, boolean highPriority, OnceDone onceDone)
+  public SimpleCopyJob(String reason, Connection c, CopyState copyState, NRTReplicaNode dest, Map<String,FileMetaData> files, boolean highPriority, OnceDone onceDone)
     throws IOException {
     super(reason, files, dest, highPriority, onceDone);
     dest.message("create SimpleCopyJob o" + ord);
