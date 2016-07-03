@@ -551,6 +551,7 @@ public class Server {
     System.out.println("SERVER THREAD COUNT " + threadCount);
 
     httpThreadPool = Executors.newFixedThreadPool(threadCount);
+    globalState.localAddress = httpServer.getAddress();
     httpServer.setExecutor(httpThreadPool);
     actualPort = httpServer.getAddress().getPort();
 
@@ -599,7 +600,8 @@ public class Server {
 
     // binary protocol:
     globalState.addHandler("copyFies", new CopyFilesHandler(globalState));
-    globalState.addHandler("sendMeFies", new SendMeFilesHandler(globalState));
+    globalState.addHandler("sendMeFiles", new SendMeFilesHandler(globalState));
+    globalState.addHandler("addReplia", new AddReplicaHandler(globalState));
 
     // docs are their own handler:
     httpServer.createContext("/doc", new DocHandler());

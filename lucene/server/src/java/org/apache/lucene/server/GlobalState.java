@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -135,6 +136,9 @@ public class GlobalState implements Closeable {
   private final JSONObject indexNames = new JSONObject();
   
   private long lastIndicesGen;
+
+  /** The host/port we are bound to; set by the server */
+  public InetSocketAddress localAddress;
 
   /** Sole constructor. */
   public GlobalState(Path stateDir) throws IOException {

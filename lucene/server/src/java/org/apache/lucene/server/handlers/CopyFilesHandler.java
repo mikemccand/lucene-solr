@@ -45,7 +45,9 @@ import org.apache.lucene.store.DataOutput;
 
 import net.minidev.json.JSONObject;
 
-/** Copies files from this replica's primary to the local index directory */
+// nocommit it's silly to separate copyFiles and sendMeFiles?  we should do it in one connection instead
+
+/** Primary invokes this on a replica to ask it to copy files */
 public class CopyFilesHandler extends Handler {
   private static StructType TYPE = new StructType();
 
@@ -111,11 +113,12 @@ public class CopyFilesHandler extends Handler {
   public void handleBinary(DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
 
     String indexName = in.readString();
-    long primaryGen = in.readVLong();
     IndexState state = globalState.get(indexName);
     if (state.isReplica() == false) {
       throw new IllegalArgumentException("index \"" + indexName + "\" is not a replica or was not started yet");
     }
+
+    long primaryGen = in.readVLong();
 
     // these are the files that the remote (primary) wants us to copy
     Map<String,FileMetaData> files = readFilesMetaData(in);

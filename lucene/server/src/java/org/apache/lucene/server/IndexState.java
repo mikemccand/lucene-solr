@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -1257,7 +1258,7 @@ public class IndexState implements Closeable {
         snapshotGenToVersion.put(c.getGeneration(), sis.getVersion());
       }
 
-      nrtPrimaryNode = new NRTPrimaryNode(writer, 0, primaryGen, -1,
+      nrtPrimaryNode = new NRTPrimaryNode(name, globalState.localAddress, writer, 0, primaryGen, -1,
                                           new SearcherFactory() {
                                             @Override
                                             public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
@@ -1342,7 +1343,7 @@ public class IndexState implements Closeable {
 
       boolean verbose = getBooleanSetting("index.verbose");
 
-      nrtReplicaNode = new NRTReplicaNode(name, 0, indexDir,
+      nrtReplicaNode = new NRTReplicaNode(name, globalState.localAddress, 0, indexDir,
                                           new SearcherFactory() {
                                             @Override
                                             public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
@@ -1352,8 +1353,7 @@ public class IndexState implements Closeable {
                                             }
                                           },
                                           verbose ? System.out : null);
-      nrtReplicaNode.primaryAddress = primaryAddress;
-      nrtReplicaNode.primaryPort = primaryPort;
+      nrtReplicaNode.primaryAddress = new InetSocketAddress(primaryAddress, primaryPort);
 
       startSearcherPruningThread(globalState.shutdownNow);
       success = true;

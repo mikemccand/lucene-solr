@@ -20,6 +20,7 @@ package org.apache.lucene.server;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -39,13 +40,15 @@ import org.apache.lucene.store.Directory;
 
 public class NRTReplicaNode extends ReplicaNode {
 
-  InetAddress primaryAddress;
-  int primaryPort;
+  InetSocketAddress primaryAddress;
+
+  InetSocketAddress localAddress;
   final String indexName;
 
-  public NRTReplicaNode(String indexName, int id, Directory dir, SearcherFactory searcherFactory, PrintStream printStream) throws IOException {
+  public NRTReplicaNode(String indexName, InetSocketAddress localAddress, int id, Directory dir, SearcherFactory searcherFactory, PrintStream printStream) throws IOException {
     super(id, dir, searcherFactory, printStream);
     this.indexName = indexName;
+    this.localAddress = localAddress;
   }
 
   public CopyJob launchPreCopyFiles(AtomicBoolean finished, long curPrimaryGen, Map<String,FileMetaData> files) throws IOException {
@@ -85,7 +88,7 @@ public class NRTReplicaNode extends ReplicaNode {
 
     // Exceptions in here mean something went wrong talking over the socket, which are fine (e.g. primary node crashed):
     try {
-      c = new Connection(primaryAddress, primaryPort);
+      c = new Connection(primaryAddress);
       c.out.writeInt(Server.BINARY_MAGIC);
       c.out.writeString("sendMeFiles");
       c.out.writeString(indexName);
@@ -111,6 +114,21 @@ public class NRTReplicaNode extends ReplicaNode {
 
   @Override
   protected void sendNewReplica() throws IOException {
+    message("send new_replica to primary tcpPort=" + primaryAddress.getPort());
+    try (Connection c = new Connection(primaryAddress)) {
+      c.out.writeInt(Server.BINARY_MAGIC);
+      c.out.writeString("addReplica");
+      c.out.writeString(indexName);
+      c.out.writeVInt(id);
+      
+      c.out.writeVInt(localAddress.getPort());
+      byte[] bytes = localAddress.getAddress().getAddress();
+      c.out.writeVInt(bytes.length);
+      c.out.writeBytes(bytes, 0, bytes.length);
+      
+    } catch (Throwable t) {
+      message("ignoring exc " + t + " sending new_replica to primary address=" + primaryAddress);
+    }
   }
 
   @Override

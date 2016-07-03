@@ -22,7 +22,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.store.InputStreamDataInput;
@@ -35,12 +37,12 @@ class Connection implements Closeable {
   public final InputStream sockIn;
   public final BufferedOutputStream bos;
   public final Socket s;
-  public final int destTCPPort;
+  public final InetSocketAddress destAddress;
   public long lastKeepAliveNS = System.nanoTime();
 
-  public Connection(InetAddress address, int tcpPort) throws IOException {
-    this.destTCPPort = tcpPort;
-    this.s = new Socket(address, tcpPort);
+  public Connection(InetSocketAddress address) throws IOException {
+    this.destAddress = address;
+    this.s = new Socket(address.getAddress(), address.getPort());
     this.sockIn = s.getInputStream();
     this.in = new InputStreamDataInput(sockIn);
     this.bos = new BufferedOutputStream(s.getOutputStream());
