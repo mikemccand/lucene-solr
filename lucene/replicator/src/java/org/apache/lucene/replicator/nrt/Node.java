@@ -39,10 +39,10 @@ import org.apache.lucene.store.IndexInput;
  *
  * @lucene.experimental */
 
-abstract class Node implements Closeable {
+public abstract class Node implements Closeable {
 
-  static boolean VERBOSE_FILES = true;
-  static boolean VERBOSE_CONNECTIONS = false;
+  public static final boolean VERBOSE_FILES = true;
+  public static final boolean VERBOSE_CONNECTIONS = false;
 
   // Keys we store into IndexWriter's commit user data:
 
@@ -56,7 +56,8 @@ abstract class Node implements Closeable {
   /** Compact ordinal for this node */
   protected final int id;
 
-  protected final Directory dir;
+  /** {@link Directory} this node reads from / writes to */
+  public final Directory dir;
 
   protected final SearcherFactory searcherFactory;
   
@@ -119,7 +120,7 @@ abstract class Node implements Closeable {
     }
   }
 
-  protected void message(String message) {
+  public void message(String message) {
     if (printStream != null) {
       long now = System.nanoTime();
       printStream.println(String.format(Locale.ROOT,
@@ -197,7 +198,7 @@ abstract class Node implements Closeable {
           if (VERBOSE_FILES) {
             message("file " + fileName + " has length=" + bytesToString(length));
           }
-        } catch (FileNotFoundException | NoSuchFileException e) {
+      } catch (FileNotFoundException | NoSuchFileException e) {
         if (VERBOSE_FILES) {
           message("file " + fileName + ": will copy [file does not exist]");
         }

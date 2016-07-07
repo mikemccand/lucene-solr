@@ -597,6 +597,7 @@ public class Server {
     globalState.addHandler("setCommitUserData", new SetCommitUserDataHandler(globalState));
     globalState.addHandler("getCommitUserData", new GetCommitUserDataHandler(globalState));
     globalState.addHandler("linkReplica", new LinkReplicaHandler(globalState));
+    globalState.addHandler("writeNRTPoint", new WriteNRTPointHandler(globalState));
 
     // binary protocol:
     globalState.addHandler("copyFies", new CopyFilesHandler(globalState));

@@ -45,7 +45,46 @@ import org.apache.lucene.store.DataOutput;
 
 import net.minidev.json.JSONObject;
 
-// nocommit it's silly to separate copyFiles and sendMeFiles?  we should do it in one connection instead
+/*
+  Primary/replica communications:
+
+    - at any given moment, primary knows the replicas it should push changes to, and replica knows the current primary
+
+    - every time a new primary is started, the primaryGen (a long) is incremented, so replicas can always know if they are talking to a new
+      primary e.g. after crashing and starting up again
+
+    - someone asks primary to make a new NRT point (could be external or just on a self schedule like once per second)
+
+    - primary writes all docs to new segments, makes a new in-memory SegmentInfos
+
+    - primary sends copyFiles command to all known replicas
+
+    - each replica sends sendMeFiles command to primary, asking for the latest copyState, which is an incRef'd set of files referenced by
+      the current in-memory SegmentInfos
+
+    - each replica diffs the file set against what it already has in its index and copies the new files
+
+    - when copy is done, replica switches local searcher manager to new NRT point, and primary decRefs the copyState.  replica also decRefs
+      old nrt point
+
+    - on primary, when merge finishes, we "warm" by sending copyFiles to all replicas, with the files for the newly merged segment; replica
+      then sends sendMeFiles back to primary, copying those merged files
+
+    - if replica crashes, primary just removes it from the list of replicas it notifies of new nrt points or new merges
+
+    - when replica finally comes back up, possibly much later, it does a sendMeFiles as it would for a new nrt point.  if the primary had
+      changed while the replica was down, it's possible replica must delete its commit points before copying files to prevent an apparent
+      index corruption if the replica crashes again while it is copying.  TODO: if replica then starts again, with no segments file in the
+      index, are we then forced to do a full index copy?
+
+    - if primary crashes, whichever replica has the newest NRT point is picked as the new primary
+
+    - TODO: when primary crashes
+
+*/
+
+// nocommit it's silly to separate copyFiles and sendMeFiles?  we should do it in one connection instead ... or more generally just re-use
+// binary connections for more than one command
 
 /** Primary invokes this on a replica to ask it to copy files */
 public class CopyFilesHandler extends Handler {

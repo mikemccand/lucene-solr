@@ -290,7 +290,7 @@ class SimplePrimaryNode extends PrimaryNode {
 
       verifyAtLeastMarkerCount(atLeastMarkerCount, null);
  
-     // Tell caller the version before pushing to replicas, so that even if we crash after this, caller will know what version we
+      // Tell caller the version before pushing to replicas, so that even if we crash after this, caller will know what version we
       // (possibly) pushed to some replicas.  Alternatively we could make this 2 separate ops?
       long version = getCopyStateVersion();
       message("send flushed version=" + version);
