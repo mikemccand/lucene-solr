@@ -51,8 +51,10 @@ public class TestReplication extends ServerBaseTestCase {
     try {
 
       server1.send("createIndex", "{indexName: index, rootDir: " + primaryPath.toAbsolutePath() + "}");
+      server2.send("createIndex", "{indexName: index, rootDir: " + replicaPath.toAbsolutePath() + "}");
+
       server1.send("liveSettings", "{indexName: index, minRefreshSec: 0.001}");
-      server1.send("startIndex", "{indexName: index, mode: primary, primaryGen: 0}");
+      server2.send("liveSettings", "{indexName: index, minRefreshSec: 0.001}");
 
       JSONObject o = new JSONObject();
       put(o, "body", "{type: text, highlight: true, store: true, analyzer: {class: StandardAnalyzer}, similarity: {class: BM25Similarity, b: 0.15}}");
@@ -60,13 +62,14 @@ public class TestReplication extends ServerBaseTestCase {
       o2.put("indexName", "index");
       o2.put("fields", o);
       server1.send("registerFields", o2);
+      server2.send("registerFields", o2);
+      
+      server1.send("startIndex", "{indexName: index, mode: primary, primaryGen: 0}");
       server1.send("addDocument", "{indexName: index, fields: {body: 'here is a test'}}");
       server1.send("refresh", "{indexName: index}");
       JSONObject result = server1.send("search", "{indexName: index, queryText: test, retrieveFields: [body]}");
       System.out.println("GOT: " + result);
 
-      server2.send("createIndex", "{indexName: index, rootDir: " + replicaPath.toAbsolutePath() + "}");
-      server2.send("liveSettings", "{indexName: index, minRefreshSec: 0.001}");
       server2.send("startIndex", "{indexName: index, mode: replica, primaryAddress: \"127.0.0.1\", primaryGen: 0, primaryPort: " + server1.binaryPort + "}");
 
       // nocommit do we need a replica command to pull latest nrt point w/o having primary write a new one?  or maybe replica on start
@@ -77,8 +80,9 @@ public class TestReplication extends ServerBaseTestCase {
       System.out.println("\nTEST: writeNRTPoint");
       result = server1.send("writeNRTPoint", "{indexName: index}");
       int version = getInt(result, "version");
+      Thread.sleep(2000);
       System.out.println("\nTEST: now search replica");
-      result = server2.send("search", "{indexName: index, queryText: test, retrieveFields: [body], searcher: {version: " + version + "}}");
+      result = server2.send("search", "{indexName: index, queryText: test, retrieveFields: [body]}");
       System.out.println("GOT: " + result);
 
     } finally {

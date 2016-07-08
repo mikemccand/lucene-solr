@@ -132,7 +132,9 @@ public class SendMeFilesHandler extends Handler {
         // Starting offset in the file we should start sending bytes from:
         long fpStart = in.readVLong();
 
-        try (IndexInput file = state.origIndexDir.openInput(fileName, IOContext.DEFAULT)) {
+        System.out.println("SendMe: now read file " + fileName + " from fpStart=" + fpStart);
+
+        try (IndexInput file = state.indexDir.openInput(fileName, IOContext.DEFAULT)) {
           long len = file.length();
           //message("fetch " + fileName + ": send len=" + len);
           out.writeVLong(len);
@@ -151,9 +153,12 @@ public class SendMeFilesHandler extends Handler {
 
         fileCount++;
       }
- 
+
+      streamOut.flush();
+      
       state.nrtPrimaryNode.message("top: done fetch files for R" + replicaID + ": sent " + fileCount + " files; sent " + totBytesSent + " bytes");
     } catch (Throwable t) {
+      t.printStackTrace(System.out);
       state.nrtPrimaryNode.message("top: exception during fetch: " + t.getMessage() + "; now close socket");
     } finally {
       if (copyState != null) {

@@ -739,6 +739,7 @@ public class Server {
         OutputStream bufferedOut = new BufferedOutputStream(out);
 
         handler.handleBinary(dataIn, new OutputStreamDataOutput(bufferedOut), bufferedOut);
+        bufferedOut.flush();
       }
     }
   }

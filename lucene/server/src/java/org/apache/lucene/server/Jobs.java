@@ -65,6 +65,7 @@ class Jobs extends Thread implements Closeable {
         assert finish;
         break;
       }
+      System.out.println("JOBS: run " + topJob);
 
       this.setName("jobs o" + topJob.ord);
 

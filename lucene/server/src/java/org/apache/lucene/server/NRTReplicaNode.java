@@ -161,6 +161,6 @@ public class NRTReplicaNode extends ReplicaNode {
 
   @Override
   protected void launch(CopyJob job) {
-    // nocommit todo
+    jobs.launch(job);
   }
 }
