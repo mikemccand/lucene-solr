@@ -152,7 +152,7 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   }
     
   protected static void startServer() throws Exception {
-    server = new RunServer(STATE_DIR);
+    server = new RunServer("test", STATE_DIR);
   }
 
   protected static void createAndStartIndex(String indexName) throws Exception {

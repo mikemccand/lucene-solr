@@ -240,7 +240,7 @@ public class Server {
       StringBuilder b = new StringBuilder();
       boolean inHttp = false;
       for(String line : lines) {
-        if (line.startsWith("\tat com.sun.net.httpserver") || line.startsWith("\tat sun.net.httpserver") || line.startsWith("\tat java.lang.Thread.run")) {
+        if (line.startsWith("\tat com.sun.net.httpserver") || line.startsWith("\tat sun.net.httpserver") || line.startsWith("\tat java.lang.Thread.run") || line.startsWith("\tat java.util.concurrent.ThreadPoolExecutor")) {
           if (inHttp == false) {
             inHttp = true;
             line = "\tat <httpserver>";
@@ -288,6 +288,7 @@ public class Server {
       }
 
       String command = x.getRequestURI().getPath().substring(1);
+      System.out.println("SVR " + globalState.nodeName + ": start handle " + command);
 
       Map<String,List<String>> params = splitQuery(x.getRequestURI());
 
@@ -421,6 +422,7 @@ public class Server {
           sendException(x, t);
           return;
         }
+        System.out.println("SVR " + globalState.nodeName + ": done handle");
 
         // We remove params as they are accessed, so if
         // anything is left it means it wasn't used:
@@ -447,7 +449,14 @@ public class Server {
           throw new IllegalArgumentException(s);
         }
 
-        responseString = finish.finish();
+        System.out.println("SVR " + globalState.nodeName + ": start finish");
+        try {
+          responseString = finish.finish();
+        } catch (Throwable t) {
+          sendException(x, t);
+          return;
+        }
+        System.out.println("SVR " + globalState.nodeName + ": done finish");
       }
       
       byte[] responseBytes = responseString.getBytes("UTF-8");
@@ -542,8 +551,8 @@ public class Server {
     System.out.println("\nUsage: java -cp <stuff> org.apache.lucene.server.Server [-port port] [-maxHTTPThreadCount count] [-stateDir /path/to/dir]\n\n");
   }
 
-  public Server(Path globalStateDir, int port, int backlog, int threadCount) throws Exception {
-    globalState = new GlobalState(globalStateDir);
+  public Server(String nodeName, Path globalStateDir, int port, int backlog, int threadCount) throws Exception {
+    globalState = new GlobalState(nodeName, globalStateDir);
     globalState.loadIndexNames();
     
     httpServer = HttpServer.create(new InetSocketAddress(port), backlog);
@@ -563,6 +572,7 @@ public class Server {
     }
     binaryServer = new BinaryServer(binaryPort);
     actualBinaryPort = binaryServer.actualPort;
+    globalState.localBinaryAddress = (InetSocketAddress) binaryServer.serverSocket.getLocalSocketAddress();
 
     globalState.addHandler("addDocument", new AddDocumentHandler(globalState));
     globalState.addHandler("addDocuments", new AddDocumentsHandler(globalState));
@@ -596,13 +606,21 @@ public class Server {
     globalState.addHandler("updateDocument", new UpdateDocumentHandler(globalState));
     globalState.addHandler("setCommitUserData", new SetCommitUserDataHandler(globalState));
     globalState.addHandler("getCommitUserData", new GetCommitUserDataHandler(globalState));
-    globalState.addHandler("linkReplica", new LinkReplicaHandler(globalState));
+
+    // primary only, binary protocol, to record remote address of a replica for an index on this node
+    globalState.addHandler("addReplica", new AddReplicaHandler(globalState));
+
+    // primary only, to create a new NRT point and notify previously linked replicas to copy it:
     globalState.addHandler("writeNRTPoint", new WriteNRTPointHandler(globalState));
 
-    // binary protocol:
+    // replica only, binary protocol: asks replica to copy specific files from its primary (used for merge warming)
     globalState.addHandler("copyFies", new CopyFilesHandler(globalState));
+
+    // primary only, binary: send files to me
     globalState.addHandler("sendMeFiles", new SendMeFilesHandler(globalState));
-    globalState.addHandler("addReplia", new AddReplicaHandler(globalState));
+
+    // replica only, binary: notifies replica that its primary just created a new NRT point
+    globalState.addHandler("newNRTPoint", new NewNRTPointHandler(globalState));
 
     // docs are their own handler:
     httpServer.createContext("/doc", new DocHandler());
@@ -619,7 +637,7 @@ public class Server {
 
     globalState.loadPlugins();
 
-    System.out.println("SVR: listening on port " + actualPort + "/" + actualBinaryPort + ".");
+    System.out.println("SVR " + globalState.nodeName + ": listening on port " + actualPort + "/" + actualBinaryPort + ".");
 
     httpServer.start();
     binaryServer.start();
@@ -632,12 +650,9 @@ public class Server {
     // Await shutdown:
     globalState.shutdownNow.await();
 
-    System.out.println("SVR: now shutdown");
     httpServer.stop(0);
     httpThreadPool.shutdown();
-    System.out.println("SVR: now shutdown binary server");
     binaryServer.close();
-    System.out.println("SVR: shutdown done");
 
     globalState.close();
   }
@@ -673,7 +688,7 @@ public class Server {
     }
 
     // nocommit don't hardwire 50 tcp queue length, 10 threads
-    new Server(stateDir, port, 50, 10).run(new CountDownLatch(1));
+    new Server("main", stateDir, port, 50, 10).run(new CountDownLatch(1));
   }
 
   private static class BinaryClientHandler implements Runnable {
@@ -692,11 +707,14 @@ public class Server {
       try {
         _run();
       } catch (Exception e) {
+        System.out.println("SVR " + globalState.nodeName + ": hit exception");
+        e.printStackTrace(System.out);
         throw new RuntimeException(e);
       }
     }
 
     private void _run() throws Exception {
+      System.out.println("SVR " + globalState.nodeName + ": handle binary client");
       try (InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
         DataInput dataIn = new InputStreamDataInput(in);
         int x = dataIn.readInt();
@@ -710,6 +728,7 @@ public class Server {
         byte[] bytes = new byte[length];
         dataIn.readBytes(bytes, 0, length);
         String command = new String(bytes, 0, length, StandardCharsets.UTF_8);
+        System.out.println("SVR " + globalState.nodeName + ": binary: command=" + command);
 
         Handler handler = globalState.getHandler(command);
         if (handler.binaryRequest() == false) {
@@ -725,7 +744,7 @@ public class Server {
   }
 
   private class BinaryServer extends Thread {
-    private final ServerSocket serverSocket;
+    public final ServerSocket serverSocket;
     public final int actualPort;
 
     private final ExecutorService threadPool;
@@ -739,11 +758,10 @@ public class Server {
                            @Override
                            public Thread newThread(Runnable r) {
                              Thread thread = new Thread(r);
-                             thread.setName("Binary Server Thread");
+                             thread.setName("binary " + globalState.nodeName);
                              return thread;
                            }
                          });
-      System.out.println("BINARY THREADS: " + threadPool);
     }
 
     public void close() throws IOException, InterruptedException {
@@ -753,9 +771,9 @@ public class Server {
     }
 
     public void run() {
-      System.out.println("start binary server");
       while (stop == false) {
         Socket clientSocket = null;
+        System.out.println("SVR " + globalState.nodeName + ": binary: now accept");
         try {
           clientSocket = serverSocket.accept();
         } catch (IOException e) {
@@ -764,11 +782,11 @@ public class Server {
           }
           throw new RuntimeException("Error accepting client connection", e);
         }
+        System.out.println("SVR " + globalState.nodeName + ": binary: done accept: " + clientSocket);
         threadPool.execute(new BinaryClientHandler(globalState, clientSocket));
       }
 
       threadPool.shutdown();
-      System.out.println("Binary Server Stopped.") ;
     }
   }
 }

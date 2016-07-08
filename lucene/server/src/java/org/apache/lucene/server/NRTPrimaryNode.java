@@ -42,8 +42,8 @@ import org.apache.lucene.util.ThreadInterruptedException;
 
 public class NRTPrimaryNode extends PrimaryNode {
 
-  private int[] replicaIDs;
-  private InetSocketAddress[] replicaAddresses;
+  public int[] replicaIDs = new int[0];
+  public InetSocketAddress[] replicaAddresses = new InetSocketAddress[0];
   private final InetSocketAddress localAddress;
   final String indexName;
 
@@ -254,6 +254,19 @@ public class NRTPrimaryNode extends PrimaryNode {
   public void addReplica(int replicaID, InetSocketAddress replicaAddress) throws IOException {
 
     message("add replica: " + warmingSegments.size() + " current warming merges");
+
+    // nocommit switch to List<>:
+    synchronized(this) {
+      int count = this.replicaIDs.length + 1;
+      int[] replicaIDs = new int[count];
+      System.arraycopy(this.replicaIDs, 0, replicaIDs, 0, count-1);
+      this.replicaIDs = replicaIDs;
+      replicaIDs[count-1] = replicaID;
+      InetSocketAddress[] replicaAddresses = new InetSocketAddress[count];
+      System.arraycopy(this.replicaAddresses, 0, replicaAddresses, 0, count-1);
+      replicaAddresses[count-1] = replicaAddress;
+      this.replicaAddresses = replicaAddresses;
+    }
 
     // Step through all currently warming segments and try to add this replica if it isn't there already:
     synchronized(warmingSegments) {

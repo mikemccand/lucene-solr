@@ -18,6 +18,7 @@ package org.apache.lucene.server.handlers;
  */
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +28,7 @@ import org.apache.lucene.server.FinishRequest;
 import org.apache.lucene.server.GlobalState;
 import org.apache.lucene.server.IndexState;
 import org.apache.lucene.server.params.EnumType;
+import org.apache.lucene.server.params.IntType;
 import org.apache.lucene.server.params.LongType;
 import org.apache.lucene.server.params.Param;
 import org.apache.lucene.server.params.Request;
@@ -44,7 +46,9 @@ public class StartIndexHandler extends Handler {
                                                               "primary", "Primary index, replicating changes to zero or more replicas",
                                                               "replica", "Replica index"),
                                                  "standalone"),
-                                       new Param("primaryGen", "For mode=primary, the generation of this primary (should increment each time a new primary starts for this index)", new LongType())
+                                       new Param("primaryGen", "For mode=primary, the generation of this primary (should increment each time a new primary starts for this index)", new LongType()),
+                                       new Param("primaryAddress", "For mode=replica, the IP address or host name of the remote primary", new StringType()),
+                                       new Param("primaryPort", "For mode=replica, the TCP port of the remote primary", new IntType())
                                                  );
   @Override
   public StructType getType() {
@@ -65,10 +69,20 @@ public class StartIndexHandler extends Handler {
   public FinishRequest handle(final IndexState state, final Request r, Map<String,List<String>> params) throws Exception {
     final String mode = r.getEnum("mode");
     final long primaryGen;
+    final String primaryAddress;
+    final int primaryPort;
     if (mode.equals("primary")) {
       primaryGen = r.getLong("primaryGen");
+      primaryAddress = null;
+      primaryPort = -1;
+    } else if (mode.equals("replica")) {
+      primaryGen = r.getLong("primaryGen");
+      primaryAddress = r.getString("primaryAddress");
+      primaryPort = r.getInt("primaryPort");
     } else {
       primaryGen = -1;
+      primaryAddress = null;
+      primaryPort = -1;
     }
 
     return new FinishRequest() {
@@ -78,7 +92,7 @@ public class StartIndexHandler extends Handler {
         if (mode.equals("primary")) {
           state.startPrimary(primaryGen);
         } else if (mode.equals("replica")) {
-          //state.startReplica();
+          state.startReplica(new InetSocketAddress(primaryAddress, primaryPort), primaryGen);
         } else {
           state.start();
         }

@@ -70,6 +70,8 @@ public class AddReplicaHandler extends Handler {
 
     int replicaID = in.readVInt();
 
+    System.out.println("AddReplicaHandler: add indexName=" + indexName);
+
     // nocommit factor this out into readInetSocketAddress:
     int port = in.readVInt();
     int length = in.readVInt();
@@ -77,7 +79,7 @@ public class AddReplicaHandler extends Handler {
     in.readBytes(bytes, 0, length);
 
     InetSocketAddress replicaAddress = new InetSocketAddress(InetAddress.getByAddress(bytes), port);
-
+    System.out.println("AddReplicaHandler: now add ID=" + replicaID + " address=" + replicaAddress);
     state.nrtPrimaryNode.addReplica(replicaID, replicaAddress);
   }
 

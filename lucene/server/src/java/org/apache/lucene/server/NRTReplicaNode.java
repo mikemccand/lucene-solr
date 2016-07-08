@@ -44,15 +44,40 @@ public class NRTReplicaNode extends ReplicaNode {
 
   InetSocketAddress localAddress;
   final String indexName;
+  final Jobs jobs;
 
-  public NRTReplicaNode(String indexName, InetSocketAddress localAddress, int id, Directory dir, SearcherFactory searcherFactory, PrintStream printStream) throws IOException {
+  public NRTReplicaNode(String indexName, InetSocketAddress primaryAddress, InetSocketAddress localAddress, int id, Directory dir,
+                        SearcherFactory searcherFactory, PrintStream printStream, long primaryGen) throws IOException {
     super(id, dir, searcherFactory, printStream);
     this.indexName = indexName;
     this.localAddress = localAddress;
-  }
+    this.primaryAddress = primaryAddress;
 
+    // Handles fetching files from primary:
+    jobs = new Jobs(this);
+    jobs.setName("R" + id + ".copyJobs");
+    jobs.setDaemon(true);
+    jobs.start();
+
+    start(primaryGen);
+  }
+  
   public CopyJob launchPreCopyFiles(AtomicBoolean finished, long curPrimaryGen, Map<String,FileMetaData> files) throws IOException {
     return launchPreCopyMerge(finished, curPrimaryGen, files);
+  }
+
+  @Override
+  public void close() throws IOException {
+    jobs.close();
+    System.out.println("CLOSE NRT REPLICA");
+    message("top: jobs closed");
+    synchronized(mergeCopyJobs) {
+      for (CopyJob job : mergeCopyJobs) {
+        message("top: cancel merge copy job " + job);
+        job.cancel("jobs closing", null);
+      }
+    }
+    super.close();
   }
 
   /** Pulls CopyState off the wire */
@@ -75,7 +100,6 @@ public class NRTReplicaNode extends ReplicaNode {
 
     return new CopyState(files, version, gen, infosBytes, completedMergeFiles, primaryGen, null);
   }
-
 
   @Override
   protected CopyJob newCopyJob(String reason, Map<String,FileMetaData> files, Map<String,FileMetaData> prevFiles,
@@ -114,7 +138,7 @@ public class NRTReplicaNode extends ReplicaNode {
 
   @Override
   protected void sendNewReplica() throws IOException {
-    message("send new_replica to primary tcpPort=" + primaryAddress.getPort());
+    message("send new_replica to primary tcpPort=" + primaryAddress.getPort() + " localAddress=" + localAddress);
     try (Connection c = new Connection(primaryAddress)) {
       c.out.writeInt(Server.BINARY_MAGIC);
       c.out.writeString("addReplica");
@@ -125,8 +149,12 @@ public class NRTReplicaNode extends ReplicaNode {
       byte[] bytes = localAddress.getAddress().getAddress();
       c.out.writeVInt(bytes.length);
       c.out.writeBytes(bytes, 0, bytes.length);
+      System.out.println("done send new_replica");
+      c.flush();
       
     } catch (Throwable t) {
+      System.out.println("GOT:");
+      t.printStackTrace(System.out);
       message("ignoring exc " + t + " sending new_replica to primary address=" + primaryAddress);
     }
   }

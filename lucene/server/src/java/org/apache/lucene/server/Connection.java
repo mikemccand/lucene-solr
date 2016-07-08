@@ -30,8 +30,8 @@ import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.store.InputStreamDataInput;
 import org.apache.lucene.store.OutputStreamDataOutput;
 
-/** Simple point-to-point TCP connection */
-class Connection implements Closeable {
+/** Simple point-to-point, non-persistent TCP connection */
+public class Connection implements Closeable {
   public final DataInput in;
   public final DataOutput out;
   public final InputStream sockIn;

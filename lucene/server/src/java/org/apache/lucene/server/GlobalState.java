@@ -140,8 +140,14 @@ public class GlobalState implements Closeable {
   /** The host/port we are bound to; set by the server */
   public InetSocketAddress localAddress;
 
+  /** The host/port we are bound to for binary communications; set by the server */
+  public InetSocketAddress localBinaryAddress;
+
+  public final String nodeName;
+
   /** Sole constructor. */
-  public GlobalState(Path stateDir) throws IOException {
+  public GlobalState(String nodeName, Path stateDir) throws IOException {
+    this.nodeName = nodeName;
     this.stateDir = stateDir;
     if (Files.exists(stateDir) == false) {
       Files.createDirectories(stateDir);

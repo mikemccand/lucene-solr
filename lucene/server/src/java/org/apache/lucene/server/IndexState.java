@@ -442,8 +442,9 @@ public class IndexState implements Closeable {
     }
   }
 
+  /** True if this index is started. */
   public boolean isStarted() {
-    return writer != null || nrtReplicaNode != null;
+    return writer != null || nrtReplicaNode != null || nrtPrimaryNode != null;
   }
 
   public boolean isReplica() {
@@ -884,6 +885,14 @@ public class IndexState implements Closeable {
       closeables.add(indexDir);
       closeables.add(taxoDir);
       nrtPrimaryNode = null;
+    } else if (nrtReplicaNode != null) {
+      closeables.add(reopenThreadPrimary);
+      closeables.add(searcherManager);
+      closeables.add(nrtReplicaNode);
+      closeables.add(slm);
+      closeables.add(indexDir);
+      closeables.add(taxoDir);
+      nrtPrimaryNode = null;
     } else if (writer != null) {
       closeables.add(reopenThread);
       closeables.add(manager);
@@ -910,11 +919,6 @@ public class IndexState implements Closeable {
     // nocommit need sync:
 
     globalState.indices.remove(name);
-  }
-
-  /** True if this index is started. */
-  public boolean started() {
-    return writer != null;
   }
 
   /** Live setting: et the mininum refresh time (seconds), which is the
@@ -1231,6 +1235,8 @@ public class IndexState implements Closeable {
       if (verbose) {
         iwc.setInfoStream(new PrintStreamInfoStream(System.out));
       }
+      // nocommit
+      verbose = true;
 
       iwc.setSimilarity(sim);
       iwc.setOpenMode(openMode);
@@ -1297,7 +1303,7 @@ public class IndexState implements Closeable {
   }
 
   /** Start this index as replica, pulling NRT changes from the specified primary */
-  public synchronized void startReplica(InetAddress primaryAddress, int primaryPort) throws Exception {
+  public synchronized void startReplica(InetSocketAddress primaryAddress, long primaryGen) throws Exception {
     if (isStarted()) {
       throw new IllegalStateException("index \"" + name + "\" was already started");
     }
@@ -1343,7 +1349,10 @@ public class IndexState implements Closeable {
 
       boolean verbose = getBooleanSetting("index.verbose");
 
-      nrtReplicaNode = new NRTReplicaNode(name, globalState.localAddress, 0, indexDir,
+      // nocommit
+      verbose = true;
+
+      nrtReplicaNode = new NRTReplicaNode(name, primaryAddress, globalState.localBinaryAddress, 0, indexDir,
                                           new SearcherFactory() {
                                             @Override
                                             public IndexSearcher newSearcher(IndexReader r, IndexReader previousReader) throws IOException {
@@ -1352,15 +1361,14 @@ public class IndexState implements Closeable {
                                               return searcher;
                                             }
                                           },
-                                          verbose ? System.out : null);
-      nrtReplicaNode.primaryAddress = new InetSocketAddress(primaryAddress, primaryPort);
+                                          verbose ? System.out : null, primaryGen);
 
       startSearcherPruningThread(globalState.shutdownNow);
       success = true;
     } finally {
       if (!success) {
         IOUtils.closeWhileHandlingException(reopenThread,
-                                            nrtPrimaryNode,
+                                            nrtReplicaNode,
                                             writer,
                                             taxoWriter,
                                             slm,
@@ -1668,6 +1676,8 @@ public class IndexState implements Closeable {
   public SearcherAndTaxonomy acquire() throws IOException {
     if (nrtPrimaryNode != null) {
       return new SearcherAndTaxonomy(nrtPrimaryNode.mgr.acquire(), null);
+    } else if (nrtReplicaNode != null) {
+      return new SearcherAndTaxonomy(nrtReplicaNode.mgr.acquire(), null);
     } else {
       return manager.acquire();
     }
@@ -1676,6 +1686,8 @@ public class IndexState implements Closeable {
   public void release(SearcherAndTaxonomy s) throws IOException {
     if (nrtPrimaryNode != null) {
       nrtPrimaryNode.mgr.release(s.searcher);
+    } else if (nrtReplicaNode != null) {
+      nrtReplicaNode.mgr.release(s.searcher);
     } else {
       manager.release(s);
     }
@@ -1698,7 +1710,7 @@ public class IndexState implements Closeable {
   }
 
   public void verifyStarted(Request r) {
-    if (started() == false) {
+    if (isStarted() == false) {
       String message = "index '" + name + "' isn't started; call startIndex first";
       if (r == null) {
         throw new IllegalStateException(message);

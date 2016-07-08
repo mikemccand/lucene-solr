@@ -43,6 +43,9 @@ public class RunServer {
   /** Which socket port this server is listening on */
   public final int port;
 
+  /** Which socket port this server is listening on for binary communications */
+  public final int binaryPort;
+
   /** The main server thread */
   private Thread serverThread;
 
@@ -56,7 +59,7 @@ public class RunServer {
    *  check results. */
   public JSONObject lastResult;
 
-  public RunServer(final Path globalStateDir) throws Exception {
+  public RunServer(final String name, final Path globalStateDir) throws Exception {
     final CountDownLatch ready = new CountDownLatch(1);
     final Exception[] exc = new Exception[1];
     final AtomicReference<Server> theServer = new AtomicReference<>();
@@ -64,7 +67,7 @@ public class RunServer {
         @Override
         public void run() {
           try {
-            Server s = new Server(globalStateDir, 0, 10, 1);
+            Server s = new Server(name, globalStateDir, 0, 10, 1);
             theServer.set(s);
             s.run(ready);
           } catch (Exception e) {
@@ -82,6 +85,7 @@ public class RunServer {
     }
 
     port = theServer.get().actualPort;
+    binaryPort = theServer.get().actualBinaryPort;
   }
 
   public void shutdown() throws Exception {
@@ -190,7 +194,10 @@ public class RunServer {
       InputStream is = c.getInputStream();
       is.read(bytes);
       c.disconnect();
-      return (JSONObject) JSONValue.parseStrict(new String(bytes, "UTF-8"));
+      //System.out.println("PARSE: " + new String(bytes, "UTF-8"));
+      JSONObject result = (JSONObject) JSONValue.parseStrict(new String(bytes, "UTF-8"));
+      //System.out.println("  got: " + result);
+      return result;
     } else {
       InputStream is = c.getErrorStream();
       is.read(bytes);
