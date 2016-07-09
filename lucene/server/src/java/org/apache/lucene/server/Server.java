@@ -288,7 +288,7 @@ public class Server {
       }
 
       String command = x.getRequestURI().getPath().substring(1);
-      System.out.println("SVR " + globalState.nodeName + ": start handle " + command);
+      //System.out.println("SVR " + globalState.nodeName + ": start handle " + command);
 
       Map<String,List<String>> params = splitQuery(x.getRequestURI());
 
@@ -340,7 +340,6 @@ public class Server {
         }
       
         String requestString = new String(bytes, charset);
-        //System.out.println("REQ: " + requestString);
 
         Object o = null;
         try {
@@ -358,16 +357,17 @@ public class Server {
         JSONObject requestJSON = (JSONObject) o;
 
         Request request = new Request(null, command, requestJSON, handler.getType());
-        IndexState state;
-        if (handler.requiresIndexName) {
-          String indexName = request.getString("indexName");
-          state = globalState.get(indexName);
-        } else {
-          state = null;
-        }
-      
+
         FinishRequest finish;
         try {
+          IndexState state;
+          if (handler.requiresIndexName) {
+            String indexName = request.getString("indexName");
+            state = globalState.get(indexName);
+          } else {
+            state = null;
+          }
+      
           for(PreHandle h : handler.preHandlers) {
             h.invoke(request);
           }
@@ -422,7 +422,7 @@ public class Server {
           sendException(x, t);
           return;
         }
-        System.out.println("SVR " + globalState.nodeName + ": done handle");
+        //System.out.println("SVR " + globalState.nodeName + ": done handle");
 
         // We remove params as they are accessed, so if
         // anything is left it means it wasn't used:
@@ -449,14 +449,14 @@ public class Server {
           throw new IllegalArgumentException(s);
         }
 
-        System.out.println("SVR " + globalState.nodeName + ": start finish");
+        //System.out.println("SVR " + globalState.nodeName + ": start finish");
         try {
           responseString = finish.finish();
         } catch (Throwable t) {
           sendException(x, t);
           return;
         }
-        System.out.println("SVR " + globalState.nodeName + ": done finish");
+        //System.out.println("SVR " + globalState.nodeName + ": done finish");
       }
       
       byte[] responseBytes = responseString.getBytes("UTF-8");
@@ -557,8 +557,6 @@ public class Server {
     
     httpServer = HttpServer.create(new InetSocketAddress(port), backlog);
 
-    System.out.println("SERVER THREAD COUNT " + threadCount);
-
     httpThreadPool = Executors.newFixedThreadPool(threadCount);
     globalState.localAddress = httpServer.getAddress();
     httpServer.setExecutor(httpThreadPool);
@@ -614,7 +612,7 @@ public class Server {
     globalState.addHandler("writeNRTPoint", new WriteNRTPointHandler(globalState));
 
     // replica only, binary protocol: asks replica to copy specific files from its primary (used for merge warming)
-    globalState.addHandler("copyFies", new CopyFilesHandler(globalState));
+    globalState.addHandler("copyFiles", new CopyFilesHandler(globalState));
 
     // primary only, binary: send files to me
     globalState.addHandler("sendMeFiles", new SendMeFilesHandler(globalState));
@@ -774,7 +772,7 @@ public class Server {
     public void run() {
       while (stop == false) {
         Socket clientSocket = null;
-        System.out.println("SVR " + globalState.nodeName + ": binary: now accept");
+        //System.out.println("SVR " + globalState.nodeName + ": binary: now accept");
         try {
           clientSocket = serverSocket.accept();
         } catch (IOException e) {
@@ -783,7 +781,7 @@ public class Server {
           }
           throw new RuntimeException("Error accepting client connection", e);
         }
-        System.out.println("SVR " + globalState.nodeName + ": binary: done accept: " + clientSocket);
+        //System.out.println("SVR " + globalState.nodeName + ": binary: done accept: " + clientSocket);
         threadPool.execute(new BinaryClientHandler(globalState, clientSocket));
       }
 

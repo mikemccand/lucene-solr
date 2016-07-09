@@ -276,7 +276,11 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
           o = ((JSONObject) o).get(name);
           if (o == null) {
             // Likely a test bug: try to help out:
-            throw new IllegalArgumentException("path " + path.substring(0, tokStart-1) + " does not have member ." + name);
+            if (tokStart == 0) {
+              throw new IllegalArgumentException("JSONObject does not have member " + name);
+            } else {
+              throw new IllegalArgumentException("path " + path.substring(0, tokStart-1) + " does not have member ." + name);
+            }
           }
         }
         tokStart = upto;

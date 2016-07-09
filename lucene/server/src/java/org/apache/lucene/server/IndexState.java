@@ -81,6 +81,7 @@ import org.apache.lucene.index.SimpleMergedSegmentWarmer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ControlledRealTimeReopenThread;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ReferenceManager.RefreshListener;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherLifetimeManager;
@@ -1235,8 +1236,6 @@ public class IndexState implements Closeable {
       if (verbose) {
         iwc.setInfoStream(new PrintStreamInfoStream(System.out));
       }
-      // nocommit
-      verbose = true;
 
       iwc.setSimilarity(sim);
       iwc.setOpenMode(openMode);
@@ -1348,9 +1347,6 @@ public class IndexState implements Closeable {
       nrtPrimaryNode = null;
 
       boolean verbose = getBooleanSetting("index.verbose");
-
-      // nocommit
-      verbose = true;
 
       nrtReplicaNode = new NRTReplicaNode(name, primaryAddress, globalState.localBinaryAddress, 0, indexDir,
                                           new SearcherFactory() {
@@ -1717,6 +1713,26 @@ public class IndexState implements Closeable {
       } else {
         r.fail("indexName", message);
       }
+    }
+  }
+
+  public void addRefreshListener(RefreshListener listener) {
+    if (nrtPrimaryNode != null) {
+      nrtPrimaryNode.mgr.addListener(listener);
+    } else if (nrtReplicaNode != null) {
+      nrtReplicaNode.mgr.addListener(listener);
+    } else {
+      manager.addListener(listener);
+    }
+  }
+
+  public void removeRefreshListener(RefreshListener listener) {
+    if (nrtPrimaryNode != null) {
+      nrtPrimaryNode.mgr.removeListener(listener);
+    } else if (nrtReplicaNode != null) {
+      nrtReplicaNode.mgr.removeListener(listener);
+    } else {
+      manager.removeListener(listener);
     }
   }
 }

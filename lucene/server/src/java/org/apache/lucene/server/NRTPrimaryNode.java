@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -147,6 +148,40 @@ public class NRTPrimaryNode extends PrimaryNode {
           lastWarnNS = ns;
         }
 
+        // Because a replica can suddenly start up and "join" into this merge pre-copy:
+        synchronized(preCopy.connections) {
+          Iterator<Connection> it = preCopy.connections.iterator();
+          while (it.hasNext()) {
+            Connection c = it.next();
+            try {
+              long nowNS = System.nanoTime();
+              boolean done = false;
+              while (c.sockIn.available() > 0) {
+                byte b = c.in.readByte();
+                if (b == 0) {
+                  // keep-alive
+                  c.lastKeepAliveNS = nowNS;
+                  message("keep-alive for socket=" + c.s + " merge files=" + files.keySet());
+                } else {
+                  // merge is done pre-copying to this node
+                  if (b != 1) {
+                    throw new IllegalArgumentException();
+                  }
+                  message("connection socket=" + c.s + " is done warming its merge " + info + " files=" + files.keySet());
+                  IOUtils.closeWhileHandlingException(c);
+                  it.remove();
+                  done = true;
+                  break;
+                }
+              }
+            } catch (Throwable t) {
+              message("top: ignore exception trying to read byte during warm for segment=" + info + " to replica socket=" + c.s + ": " + t + " files=" + files.keySet());
+              IOUtils.closeWhileHandlingException(c);
+              it.remove();
+            }
+          }
+        }
+
         // TODO
 
         // Process keep-alives:
@@ -201,6 +236,7 @@ public class NRTPrimaryNode extends PrimaryNode {
         }
         */
       }
+      message("top: done warming merge " + info);
     } finally {
       warmingSegments.remove(preCopy);
     }
@@ -213,6 +249,42 @@ public class NRTPrimaryNode extends PrimaryNode {
     this.replicaAddresses = replicaAddresses;
   }
 
+  void sendNewNRTPointToReplicas() {
+    System.out.println("NRTPrimaryNode: sendNRTPoint");
+    // Something did get flushed (there were indexing ops since the last flush):
+
+    // nocommit: we used to notify caller of the version, before trying to push to replicas, in case we crash after flushing but
+    // before notifying all replicas, at which point we have a newer version index than client knew about?
+    long version = getCopyStateVersion();
+
+    int[] replicaIDs;
+    InetSocketAddress[] replicaAddresses;
+    synchronized (this) {
+      replicaIDs = this.replicaIDs;
+      replicaAddresses = this.replicaAddresses;
+    }
+
+    message("send flushed version=" + version + " replica count " + replicaIDs.length);
+
+    // Notify current replicas:
+    for(int i=0;i<replicaIDs.length;i++) {
+      int replicaID = replicaIDs[i];
+      try (Connection c = new Connection(replicaAddresses[i])) {
+        message("send NEW_NRT_POINT to R" + replicaID + " at address=" + replicaAddresses[i]);
+        c.out.writeInt(Server.BINARY_MAGIC);
+        c.out.writeString("newNRTPoint");
+        c.out.writeString(indexName);
+        c.out.writeVLong(version);
+        c.out.writeVLong(primaryGen);
+        c.flush();
+        // TODO: we should use multicast to broadcast files out to replicas
+        // TODO: ... replicas could copy from one another instead of just primary
+        // TODO: we could also prioritize one replica at a time?
+      } catch (Throwable t) {
+        message("top: failed to connect R" + replicaID + " for newNRTPoint; skipping: " + t.getMessage());
+      }
+    }
+  }
 
   // TODO: awkward we are forced to do this here ... this should really live in replicator code, e.g. PrimaryNode.mgr should be this:
   static class PrimaryNodeReferenceManager extends ReferenceManager<IndexSearcher> {
@@ -233,6 +305,7 @@ public class NRTPrimaryNode extends PrimaryNode {
     @Override
     protected IndexSearcher refreshIfNeeded(IndexSearcher referenceToRefresh) throws IOException {
       if (primary.flushAndRefresh()) {
+        primary.sendNewNRTPointToReplicas();
         // NOTE: steals a ref from one ReferenceManager to another!
         return SearcherManager.getSearcher(searcherFactory, primary.mgr.acquire().getIndexReader(), referenceToRefresh.getIndexReader());
       } else {

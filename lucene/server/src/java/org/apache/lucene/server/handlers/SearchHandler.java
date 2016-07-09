@@ -32,6 +32,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.DoublePoint;
@@ -95,6 +98,7 @@ import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ReferenceManager.RefreshListener;
 import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
@@ -1467,13 +1471,76 @@ public class SearchHandler extends Handler {
             // openSearcher=true; now open the reader:
             s = openSnapshotReader(state, snapshot, diagnostics);
           } else {
-            // Specific searcher version was requested,
-            // but this searcher has timed out.  App
-            // should present a "your session expired" to
-            // user:
-            request.fail("searcher", "This searcher has expired.");
-            // Dead code but compiler disagrees:
-            s = null;
+
+            SearcherAndTaxonomy current = state.acquire();
+            long currentVersion = ((DirectoryReader) current.searcher.getIndexReader()).getVersion();
+            if (currentVersion == version) {
+              s = current;
+            } else if (version > currentVersion) {
+              System.out.println("SearchHandler: now await version=" + version + " vs currentVersion=" + currentVersion);
+
+              // TODO: should we have some timeout here?  if user passes bogus future version, we hang forever:
+              
+              // user is asking for search version beyond what we are currently searching ... wait for us to refresh to it:
+
+              state.release(current);
+
+              // TODO: Use FutureTask<SearcherAndTaxonomy> here?
+              
+              // nocommit: do this in an async way instead!  this task should be parked somewhere and resumed once refresh runs and exposes
+              // the requested version, instead of blocking the current search thread
+              Lock lock = new ReentrantLock();
+              Condition cond = lock.newCondition();
+              RefreshListener listener = new RefreshListener() {
+                  @Override
+                  public void beforeRefresh() {
+                  }
+
+                  public void afterRefresh(boolean didRefresh) throws IOException {
+                    SearcherAndTaxonomy current = state.acquire();
+                    System.out.println("SearchHandler: refresh completed newVersion=" + ((DirectoryReader) current.searcher.getIndexReader()).getVersion());
+                    try {
+                      if (((DirectoryReader) current.searcher.getIndexReader()).getVersion() >= version) {
+                        lock.lock();
+                        try {
+                          System.out.println("SearchHandler: now signal new version");
+                          cond.signal();
+                        } finally {
+                          lock.unlock();
+                        }
+                      }
+                    } finally {
+                      state.release(current);
+                    }
+                  };
+                };
+              state.addRefreshListener(listener);
+              lock.lock();
+              try {
+                current = state.acquire();
+                if (((DirectoryReader) current.searcher.getIndexReader()).getVersion() < version) {
+                  // still not there yet
+                  state.release(current);
+                  System.out.println("SearchHandler: now await new version");
+                  cond.await();
+                  System.out.println("SearchHandler: done await new version");
+                  current = state.acquire();
+                  assert ((DirectoryReader) current.searcher.getIndexReader()).getVersion() >= version;
+                }
+                s = current;
+              } finally {
+                lock.unlock();
+                state.removeRefreshListener(listener);
+              }
+            } else {
+              // Specific searcher version was requested,
+              // but this searcher has timed out.  App
+              // should present a "your session expired" to
+              // user:
+              request.fail("searcher", "This searcher has expired.");
+              // Dead code but compiler disagrees:
+              s = null;
+            }
           }
         } else {
           // nocommit messy ... we pull an old searcher
