@@ -551,11 +551,11 @@ public class Server {
     System.out.println("\nUsage: java -cp <stuff> org.apache.lucene.server.Server [-port port] [-maxHTTPThreadCount count] [-stateDir /path/to/dir]\n\n");
   }
 
-  public Server(String nodeName, Path globalStateDir, int port, int backlog, int threadCount) throws Exception {
+  public Server(String nodeName, Path globalStateDir, int port, int backlog, int threadCount, String bindHost) throws Exception {
     globalState = new GlobalState(nodeName, globalStateDir);
     globalState.loadIndexNames();
     
-    httpServer = HttpServer.create(new InetSocketAddress(port), backlog);
+    httpServer = HttpServer.create(new InetSocketAddress(bindHost, port), backlog);
 
     httpThreadPool = Executors.newFixedThreadPool(threadCount);
     globalState.localAddress = httpServer.getAddress();
@@ -568,7 +568,7 @@ public class Server {
     } else {
       binaryPort = port+1;
     }
-    binaryServer = new BinaryServer(binaryPort);
+    binaryServer = new BinaryServer(bindHost, binaryPort);
     actualBinaryPort = binaryServer.actualPort;
     globalState.localBinaryAddress = (InetSocketAddress) binaryServer.serverSocket.getLocalSocketAddress();
 
@@ -635,7 +635,7 @@ public class Server {
 
     globalState.loadPlugins();
 
-    System.out.println("SVR " + globalState.nodeName + ": listening on port " + actualPort + "/" + actualBinaryPort + ".");
+    System.out.println("SVR " + globalState.nodeName + ": listening on ports " + actualPort + "/" + actualBinaryPort + ".");
 
     httpServer.start();
     binaryServer.start();
@@ -659,6 +659,7 @@ public class Server {
   public static void main(String[] args) throws Exception {
     int port = 4000;
     int maxHTTPThreadCount = 2*Runtime.getRuntime().availableProcessors();
+    String bindHost = "127.0.0.1";
     Path stateDir = Paths.get(System.getProperty("user.home"), "lucene", "server");
     for(int i=0;i<args.length;i++) {
       if (args[i].equals("-port")) {
@@ -679,6 +680,12 @@ public class Server {
         }
         stateDir = Paths.get(args[i+1]);
         i++;
+      } else if (args[i].equals("-interface")) {
+        if (args.length == i+1) {
+          throw new IllegalArgumentException("no value specified after -stateDir");
+        }
+        bindHost = args[i+1];
+        i++;
       } else {
         usage();
         System.exit(-1);
@@ -686,7 +693,7 @@ public class Server {
     }
 
     // nocommit don't hardwire 50 tcp queue length, 10 threads
-    new Server("main", stateDir, port, 50, 10).run(new CountDownLatch(1));
+    new Server("main", stateDir, port, 50, 10, bindHost).run(new CountDownLatch(1));
   }
 
   private static class BinaryClientHandler implements Runnable {
@@ -749,8 +756,9 @@ public class Server {
     private final ExecutorService threadPool;
     private boolean stop;
     
-    public BinaryServer(int port) throws IOException {
-      serverSocket = new ServerSocket(port);
+    public BinaryServer(String host, int port) throws IOException {
+      serverSocket = new ServerSocket();
+      serverSocket.bind(new InetSocketAddress(host, port));
       actualPort = serverSocket.getLocalPort();
       threadPool = Executors.newCachedThreadPool(
                          new ThreadFactory() {

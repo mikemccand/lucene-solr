@@ -67,7 +67,7 @@ public class RunServer {
         @Override
         public void run() {
           try {
-            Server s = new Server(name, globalStateDir, 0, 10, 1);
+            Server s = new Server(name, globalStateDir, 0, 10, 1, "127.0.0.1");
             theServer.set(s);
             s.run(ready);
           } catch (Exception e) {

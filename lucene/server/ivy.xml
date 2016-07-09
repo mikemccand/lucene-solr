@@ -19,7 +19,6 @@
 <ivy-module version="2.0">
   <info organisation="org.apache.lucene" module="lucene-server"/>
   <dependencies>
-    <dependency org="io.netty" name="netty" rev="${/io.netty/netty}" transitive="false"/>
     <!-- only for Base64 encode/decode I think: -->
     <dependency org="commons-codec" name="commons-codec" rev="${/commons-codec/commons-codec}" transitive="false"/>
     <dependency org="com.ibm.icu" name="icu4j" rev="${/com.ibm.icu/icu4j}" transitive="false"/>
