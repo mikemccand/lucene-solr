@@ -78,7 +78,7 @@ class ChunkedSend:
       raise RuntimeError('Server returned HTTP %s, %s' % (r.status, r.reason))
 
 def launchServer(host, stateDir):
-  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlight/lucene-highlight-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port 4000 -stateDir %s -interface %s"' % (host, stateDir, host)
+  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port 4000 -stateDir %s -interface %s"' % (host, stateDir, host)
   print('%s: server command %s' % (host, command))
   p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -113,8 +113,8 @@ def send(host, port, command, args):
   r = h.getresponse()
   s = r.read()
   if r.status != 200:
-    print('FAILED:\n%s' % s.decode('utf-8'))
-  return s
+    print('FAILED SEND to %s:%s:\n%s' % (host, port, s.decode('utf-8')))
+  return s.decode('utf-8')
 
 def run(command, logFile = None):
   if logFile is not None:
@@ -142,6 +142,8 @@ port2, binaryPort2 = launchServer(host2, '/l/scratch/server/state')
 try:
   send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/l/scratch/server/index'})
   send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/l/scratch/server/index'})
+  #send(host1, port1, "settings", {'indexName': 'index', 'index.verbose': True})
+  #server.send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True})
 
   fields = {'indexName': 'index',
             'fields': {'body':
@@ -179,7 +181,8 @@ try:
       b.add(json.dumps({'fields': {'body': body, 'title': title, 'id': id}}))
       id += 1
       if id % 100000 == 0:
-        print('%d docs...' % id)
+        x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
+        print('%d docs...%d hits' % (id, x['totalHits']))
     b.add(']}')
   b.finish();
       

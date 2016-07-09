@@ -97,6 +97,7 @@ public abstract class ReplicaNode extends Node {
       
       state = "init";
       deleter = new ReplicaFileDeleter(this, dir);
+      success = true;
     } catch (Throwable t) {
       message("exc on init:");
       t.printStackTrace(printStream);
@@ -112,7 +113,7 @@ public abstract class ReplicaNode extends Node {
   protected synchronized void start(long curPrimaryGen) throws IOException {
 
     if (state.equals("init") == false) {
-      throw new IllegalStateException("already started");
+      throw new IllegalStateException("already started: state=" + state);
     }
 
     message("top: now start");
@@ -306,7 +307,9 @@ public abstract class ReplicaNode extends Node {
       message("top: done start");
       state = "idle";
     } catch (Throwable t) {
-      if (t.getMessage().startsWith("replica cannot start") == false) {
+      System.out.println("CAUGHT: " +t);
+      t.printStackTrace(System.out);
+      if (t.getMessage() == null || t.getMessage().startsWith("replica cannot start") == false) {
         message("exc on start:");
         t.printStackTrace(printStream);
       } else {
@@ -537,6 +540,7 @@ public abstract class ReplicaNode extends Node {
     message("top: newNRTPoint: job files=" + newNRTFiles);
 
     if (curNRTCopy != null) {
+      message("top: transfer and cancel old NRT copy");
       job.transferAndCancel(curNRTCopy);
       assert curNRTCopy.getFailed();
     }
@@ -556,6 +560,7 @@ public abstract class ReplicaNode extends Node {
       }
     }
 
+    System.out.println("now start job");
     try {
       job.start();
     } catch (NodeCommunicationException nce) {
@@ -568,7 +573,7 @@ public abstract class ReplicaNode extends Node {
       return null;
     }
 
-    // Runs in the background jobs thread, maybe slowly/throttled, and calls finishSync once it's done:
+    // Runs in the background jobs thread, maybe slowly/throttled, and calls finishNRTCopy once it's done:
     launch(curNRTCopy);
     return curNRTCopy;
   }

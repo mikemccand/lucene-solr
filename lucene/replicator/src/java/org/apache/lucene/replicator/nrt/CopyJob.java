@@ -155,15 +155,13 @@ public abstract class CopyJob implements Comparable<CopyJob> {
 
         prevJob.current = null;
 
-        totBytes += current.metaData.length;
-
         // So it's not in our copy list anymore:
         it.remove();
       } else {
         dest.message("xfer: file " + fileName + " will be fully copied");
       }
     }
-    dest.message("xfer: " + bytesAlreadyCopied + " bytes already copied of " + totBytes);
+    dest.message("xfer: " + bytesAlreadyCopied + " bytes already copied");
 
     // Delete all temp files the old job wrote but we don't need:
     dest.message("xfer: now delete old temp files: " + prevJob.copiedFiles.values());

@@ -61,7 +61,7 @@ public abstract class PrimaryNode extends Node {
   // IncRef'd state of the last published NRT point; when a replica comes asking, we give it this as the current NRT point:
   private CopyState copyState;
 
-  protected final long primaryGen;
+  public final long primaryGen;
 
   /** Contains merged segments that have been copied to all running replicas (as of when that merge started warming). */
   final Set<String> finishedMergedFiles = Collections.synchronizedSet(new HashSet<String>());

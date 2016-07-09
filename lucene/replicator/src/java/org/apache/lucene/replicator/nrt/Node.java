@@ -64,8 +64,8 @@ public abstract class Node implements Closeable {
   // Tracks NRT readers, opened from IW (primary) or opened from replicated SegmentInfos pulled across the wire (replica):
   public ReferenceManager<IndexSearcher> mgr;
 
-  /** Startup time of original test, carefully propogated to all nodes to produce consistent "seconds since start time" in messages */
-  public static long globalStartNS;
+  /** Startup time of cluster, carefully propogated to all nodes to produce consistent "seconds since start time" in messages */
+  public static long globalStartNS = System.nanoTime();
 
   /** When this node was started */
   public static final long localStartNS = System.nanoTime();
