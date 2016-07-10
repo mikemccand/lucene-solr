@@ -52,8 +52,8 @@ public class CommitHandler extends Handler {
     return new FinishRequest() {
       @Override
       public String finish() throws IOException {
-        state.commit();
-        return "{}";
+        long gen = state.commit();
+        return "{\"indexGen: " + gen + "}";
       }
     };
   }

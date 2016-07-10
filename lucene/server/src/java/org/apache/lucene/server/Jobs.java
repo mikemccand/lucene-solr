@@ -19,6 +19,7 @@ package org.apache.lucene.server;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.PriorityQueue;
 
 import org.apache.lucene.replicator.nrt.CopyJob;
@@ -65,7 +66,7 @@ class Jobs extends Thread implements Closeable {
         assert finish;
         break;
       }
-      //System.out.println("JOBS: run " + topJob);
+      node.message("JOBS: run " + topJob);
 
       this.setName("jobs o" + topJob.ord);
 
@@ -104,7 +105,10 @@ class Jobs extends Thread implements Closeable {
       } else {
         // Job finished, now notify caller:
         try {
+          long startNS = System.nanoTime();
           topJob.onceDone.run(topJob);
+          long endNS = System.nanoTime();
+          node.message(String.format(Locale.ROOT, "%.2f msec to run job.onceDone for %s", (endNS - startNS)/1000000., topJob));
         } catch (Throwable t) {
           node.message("ignore exception calling OnceDone: " + t);
           t.printStackTrace(System.out);

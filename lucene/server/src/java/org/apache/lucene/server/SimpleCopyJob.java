@@ -133,9 +133,10 @@ class SimpleCopyJob extends CopyJob {
   @Override
   public void finish() throws IOException {
     dest.message(String.format(Locale.ROOT,
-                               "top: file copy done; took %.1f msec to copy %d bytes; now rename %d tmp files",
+                               "top: file copy done; took %.1f msec to copy %d bytes (%.2f MB/sec); now rename %d tmp files",
                                (System.nanoTime() - startNS)/1000000.0,
                                totBytesCopied,
+                               (totBytesCopied/1024./1024.)/((System.nanoTime() - startNS)/1000000000.0),
                                copiedFiles.size()));
 
     // NOTE: if any of the files we copied overwrote a file in the current commit point, we (ReplicaNode) removed the commit point up

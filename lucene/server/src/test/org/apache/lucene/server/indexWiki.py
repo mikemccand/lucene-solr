@@ -84,7 +84,7 @@ class ChunkedSend:
       raise RuntimeError('Server returned HTTP %s, %s' % (r.status, r.reason))
 
 def launchServer(host, stateDir):
-  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port 4000 -stateDir %s -interface %s"' % (host, stateDir, host)
+  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port 4000 -stateDir %s -interface %s"' % (host, stateDir, host)
   print('%s: server command %s' % (host, command))
   p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -127,7 +127,9 @@ def run(command, logFile = None):
     command += ' >> %s 2>&1' % logFile
   print('RUN: %s' % command)
   result = subprocess.call(command, shell=True)
-  if result < 0:
+  if result != 0:
+    if logFile is not None:
+      print(open(logFile).read())
     raise RuntimeError('command failed with result %s: %s' % (result, command))
 
 def rmDir(host, path):
@@ -137,7 +139,7 @@ os.chdir('/l/newluceneserver/lucene')
 if '-rebuild' in sys.argv:
   run('ant jar', 'ant.log')
   #run('ssh %s rm -rf /l/newluceneserver' % host2)
-  run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host2)
+  run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host1)
 
 rmDir(host1, '/b/scratch/server')
 rmDir(host2, '/b/scratch/server')
@@ -148,9 +150,9 @@ port2, binaryPort2 = launchServer(host2, '/b/scratch/server/state')
 try:
   send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server/index'})
   send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server/index'})
-  #send(host1, port1, "settings", {'indexName': 'index', 'index.verbose': True})
-  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 30.0})
-  #send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True})
+  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 5.0})
+  send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True, 'directory': 'MMapDirectory', 'nrtCachingDirectory.maxSizeMB': 0.0})
+  send(host1, port1, "settings", {'indexName': 'index', 'index.verbose': False, 'directory': 'MMapDirectory', 'nrtCachingDirectory.maxSizeMB': 0.0})
 
   fields = {'indexName': 'index',
             'fields': {'body':
@@ -170,7 +172,7 @@ try:
   send(host2, port2, 'registerFields', fields)
 
   send(host1, port1, 'startIndex', {'indexName': 'index', 'mode': 'primary', 'primaryGen': 0})
-  send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
+  #send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
 
   b = ChunkedSend(host1, port1, 'bulkAddDocument', 65536)
   b.add('{"indexName": "index", "documents": [')
@@ -188,10 +190,19 @@ try:
         b.add(',')
       b.add(json.dumps({'fields': {'body': body, 'title': title, 'id': id}}))
       id += 1
+
+      if id == 1:
+        print('now start up replica!')
+        send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
+        
       if id % 100000 == 0:
-        x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
         dps = id / (time.time()-tStart)
-        print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
+        if id >= 2000000:
+          x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
+          print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
+        else:
+          print('%d docs... %.1f docs/sec' % (id, dps))
+
     b.add(']}')
   b.finish();
   

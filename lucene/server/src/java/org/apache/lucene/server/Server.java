@@ -732,7 +732,7 @@ public class Server {
     }
 
     private void _run() throws Exception {
-      System.out.println("SVR " + globalState.nodeName + ": handle binary client");
+      System.out.println("SVR " + globalState.nodeName + ": handle binary client; buffer: " + socket.getReceiveBufferSize());
       try (InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
         DataInput dataIn = new InputStreamDataInput(in);
         int x = dataIn.readInt();
@@ -802,7 +802,7 @@ public class Server {
           }
           throw new RuntimeException("Error accepting client connection", e);
         }
-        //System.out.println("SVR " + globalState.nodeName + ": binary: done accept: " + clientSocket);
+        //System.out.println("SVR " + globalState.nodeName + ": binary: done accept: " + clientSocket + " rcv buffer " + clientSocket.getReceiveBufferSize());
         threadPool.execute(new BinaryClientHandler(globalState, clientSocket));
       }
 

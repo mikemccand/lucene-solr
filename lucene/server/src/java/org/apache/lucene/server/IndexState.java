@@ -989,13 +989,20 @@ public class IndexState implements Closeable {
   }
 
   /** Commit all state. */
-  public synchronized void commit() throws IOException {
+  public synchronized long commit() throws IOException {
+
+    long gen;
+
+    // nocommit this does nothing on replica?  make a failing test!
+    
     if (writer != null) {
       // nocommit: two phase commit?
       if (taxoWriter != null) {
         taxoWriter.commit();
-}
-      writer.commit();
+      }
+      gen = writer.commit();
+    } else {
+      gen = -1;
     }
 
     // nocommit needs test case that creates index, changes
@@ -1017,6 +1024,8 @@ public class IndexState implements Closeable {
     saveState.put("state", getSaveState());
     saveLoadState.save(saveState);
     //System.out.println("IndexState.commit name=" + name + " state=" + saveState.toJSONString(new JSONStyleIdent()));
+
+    return gen;
   }
 
   /** Load all previously saved state. */

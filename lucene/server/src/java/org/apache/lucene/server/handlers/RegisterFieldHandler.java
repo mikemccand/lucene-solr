@@ -284,6 +284,7 @@ public class RegisterFieldHandler extends Handler {
                                "double", "Double value.",
                                "int", "Int value.",
                                "long", "Long value.",
+                               "latlon", "A latitude/longitude point",
                                // nocommit name this "dynamic" instead of "virtual"?
                                "virtual", "Virtual field defined with a JavaScript expression.",
                                // nocommit need tests for internal:
@@ -490,6 +491,8 @@ public class RegisterFieldHandler extends Handler {
       if (dv || sorted || grouped) {
         ft.setDocValuesType(DocValuesType.NUMERIC);
       }
+    } else if (type.equals("latlon")) {
+      ft.setDimensions(2, Integer.BYTES);
     } else {
       assert false;
     }
@@ -507,7 +510,7 @@ public class RegisterFieldHandler extends Handler {
 
     if (f.hasParam("search")) {
       if (f.getBoolean("search")) {
-        if (type.equals("int") || type.equals("long") || type.equals("float") || type.equals("double")) {
+        if (type.equals("int") || type.equals("long") || type.equals("float") || type.equals("double") || type.equals("latlon")) {
           usePoints = true;
         } else {
           ft.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
