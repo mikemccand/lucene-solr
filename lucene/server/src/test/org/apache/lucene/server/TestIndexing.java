@@ -19,6 +19,7 @@ package org.apache.lucene.server;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.MalformedInputException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
@@ -262,13 +263,21 @@ public class TestIndexing extends ServerBaseTestCase {
   }
 
   public void testInvalidNormsFormat() throws Exception {
-    System.out.println("\nTEST: now start");
     try {
       send("settings", "{normsFormat: NoSuchNormsFormat}");
       fail("did not hit exception");
     } catch (IOException ioe) {
       assertTrue(ioe.getMessage().contains("unrecognized value \"NoSuchNormsFormat\""));
     }
+  }
+
+  public void testInvalidUTF8() throws Exception {
+    String s = "{\"indexName\": \"foo\"}";
+    byte[] bytes = s.getBytes("UTF-8");
+    // replaces the last 'o' in foo with illegal UTF-8 byte:
+    bytes[bytes.length-3] = (byte) 0xff;
+    Exception e = expectThrows(IOException.class, () -> server.sendRaw("createIndex", bytes));
+    assertTrue(e.toString().contains("MalformedInputException"));
   }
 
   public void testNormsFormat() throws Exception {

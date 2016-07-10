@@ -922,7 +922,7 @@ public class IndexState implements Closeable {
     globalState.indices.remove(name);
   }
 
-  /** Live setting: et the mininum refresh time (seconds), which is the
+  /** Live setting: set the mininum refresh time (seconds), which is the
    *  longest amount of time a client may wait for a
    *  searcher to reopen. */
   public synchronized void setMinRefreshSec(double min) {

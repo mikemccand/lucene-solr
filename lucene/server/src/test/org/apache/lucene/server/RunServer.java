@@ -122,6 +122,7 @@ public class RunServer {
   
   JSONObject _send(String command, String args) throws Exception {
     JSONObject o;
+    // we do permissive parsing here so tests can do e.g. {indexName: foo} without the double quotes around all strings:
     try {
       o = (JSONObject) new JSONParser(JSONParser.MODE_PERMISSIVE & ~(JSONParser.ACCEPT_TAILLING_DATA)).parse(args);
     } catch (ParseException pe) {
@@ -172,15 +173,18 @@ public class RunServer {
   }
 
   public JSONObject sendRaw(String command, String body) throws Exception {
-    byte[] bytes = body.getBytes("UTF-8");
+    return sendRaw(command, body.getBytes("UTF-8"));
+  }
+
+  public JSONObject sendRaw(String command, byte[] body) throws Exception {
     HttpURLConnection c = (HttpURLConnection) new URL("http://localhost:" + port + "/" + command).openConnection();
     c.setUseCaches(false);
     c.setDoOutput(true);
     c.setRequestMethod("POST");
-    c.setRequestProperty("Content-Length", ""+bytes.length);
+    c.setRequestProperty("Content-Length", ""+body.length);
     c.setRequestProperty("Charset", "UTF-8");
     try {
-      c.getOutputStream().write(bytes);
+      c.getOutputStream().write(body);
     } catch (ConnectException ce) {
       System.out.println("FAILED port=" + port + ":");
       ce.printStackTrace(System.out);
@@ -189,7 +193,7 @@ public class RunServer {
     // c.connect()
     int code = c.getResponseCode();
     int size = c.getContentLength();
-    bytes = new byte[size];
+    byte[] bytes = new byte[size];
     if (code == 200) {
       InputStream is = c.getInputStream();
       is.read(bytes);

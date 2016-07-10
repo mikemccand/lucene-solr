@@ -127,8 +127,8 @@ public class TestReplication extends ServerBaseTestCase {
       server1.send("createIndex", "{indexName: index, rootDir: " + primaryPath.toAbsolutePath() + "}");
       server2.send("createIndex", "{indexName: index, rootDir: " + replicaPath.toAbsolutePath() + "}");
 
-      server1.send("settings", "{indexName: index, index.verbose: true}");
-      server2.send("settings", "{indexName: index, index.verbose: true}");
+      //server1.send("settings", "{indexName: index, index.verbose: true}");
+      //server2.send("settings", "{indexName: index, index.verbose: true}");
       
       server1.send("liveSettings", "{indexName: index, minRefreshSec: 0.001}");
       server2.send("liveSettings", "{indexName: index, minRefreshSec: 0.001}");
@@ -150,7 +150,7 @@ public class TestReplication extends ServerBaseTestCase {
       int id = 0;
       int lastSearchCount = 0;
       
-      for(int i=0;i<100000;i++) {
+      for(int i=0;i<100;i++) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"indexName\": \"index\", \"documents\": [");
         for(int j=0;j<100;j++) {
@@ -179,6 +179,12 @@ public class TestReplication extends ServerBaseTestCase {
           lastSearchCount = searchCount;
         }
       }
+
+      // make sure replica reflects all indexed docs:
+      JSONObject result = server1.send("writeNRTPoint", "{indexName: index}");
+      long version = getLong(result, "version");
+      result = server2.send("search", "{indexName: index, queryText: '*:*', retrieveFields: [body], searcher: {version: " + version + "}}");
+      assertEquals(100*100, getInt(result, "totalHits"));
 
     } finally {
       server1.shutdown();

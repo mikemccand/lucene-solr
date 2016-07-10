@@ -1,3 +1,4 @@
+import time
 import sys
 import json
 import os
@@ -5,8 +6,13 @@ import subprocess
 import threading
 import http.client
 
-host1 = '10.17.4.92'
-host2 = '10.17.4.12'
+# TODO
+#   - test commit
+#   - test killing server, promoting new primary, etc.
+#   - test 2nd replica
+
+host1 = '10.17.4.12'
+host2 = '10.17.4.92'
 
 class ChunkedSend:
 
@@ -68,11 +74,11 @@ class ChunkedSend:
     if r.status == 200:
       size = r.getheader('Content-Length')
       s = r.read().decode('utf-8')
-      h.close()
+      self.h.close()
       return json.loads(s)
     elif r.status == http.client.BAD_REQUEST:
       s = r.read()
-      h.close()
+      self.h.close()
       raise RuntimeError('\n\nServer error:\n%s' % s.decode('utf-8'))
     else:
       raise RuntimeError('Server returned HTTP %s, %s' % (r.status, r.reason))
@@ -133,17 +139,18 @@ if '-rebuild' in sys.argv:
   #run('ssh %s rm -rf /l/newluceneserver' % host2)
   run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host2)
 
-rmDir(host1, '/l/scratch/server')
-rmDir(host2, '/l/scratch/server')
+rmDir(host1, '/b/scratch/server')
+rmDir(host2, '/b/scratch/server')
 
-port1, binaryPort1 = launchServer(host1, '/l/scratch/server/state')
-port2, binaryPort2 = launchServer(host2, '/l/scratch/server/state')
+port1, binaryPort1 = launchServer(host1, '/b/scratch/server/state')
+port2, binaryPort2 = launchServer(host2, '/b/scratch/server/state')
 
 try:
-  send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/l/scratch/server/index'})
-  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/l/scratch/server/index'})
+  send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server/index'})
+  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server/index'})
   #send(host1, port1, "settings", {'indexName': 'index', 'index.verbose': True})
-  #server.send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True})
+  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 30.0})
+  #send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True})
 
   fields = {'indexName': 'index',
             'fields': {'body':
@@ -169,7 +176,8 @@ try:
   b.add('{"indexName": "index", "documents": [')
 
   id = 0
-  with open('/lucenedata/enwiki/enwiki-20120502-lines-1k.txt', 'r') as f:
+  tStart = time.time()
+  with open('/lucenedata/enwiki/enwiki-20120502-lines-1k-fixed-utf8.txt', 'r') as f:
     f.readline()
     while True:
       line = f.readline()
@@ -182,10 +190,10 @@ try:
       id += 1
       if id % 100000 == 0:
         x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
-        print('%d docs...%d hits' % (id, x['totalHits']))
+        dps = id / (time.time()-tStart)
+        print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
     b.add(']}')
   b.finish();
-      
   
 finally:
   send(host1, port1, 'shutdown', {})

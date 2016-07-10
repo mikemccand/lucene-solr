@@ -34,7 +34,11 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -308,13 +312,16 @@ public class Server {
       List<String> v = headers.get("Transfer-Encoding");
 
       String responseString;
+
+      CharsetDecoder decoder = Charset.forName(charset).newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT);
       
       if (v != null && v.get(0).equalsIgnoreCase("chunked")) {
         // length not known in advance
         if (handler.doStream()) {
-          // nocommit catch exceptions and make them presentable!
           try {
-            responseString = handler.handleStreamed(new InputStreamReader(in), params);
+            responseString = handler.handleStreamed(new InputStreamReader(in, decoder), params);
           } catch (Throwable t) {
             sendException(x, t);
             return;
@@ -338,8 +345,14 @@ public class Server {
         if (upto != length) {
           throw new IllegalArgumentException("did not read enough bytes: expected " + length + " but got " + upto);
         }
-      
-        String requestString = new String(bytes, charset);
+
+        String requestString;
+        try {
+          requestString = decoder.decode(ByteBuffer.wrap(bytes)).toString();
+        } catch (Throwable t) {
+          sendException(x, t);
+          return;
+        }
 
         Object o = null;
         try {
