@@ -666,6 +666,7 @@ public class Server {
     binaryServer.close();
 
     globalState.close();
+    System.out.println("SVR: done close");
   }
 
   /** Command-line entry. */

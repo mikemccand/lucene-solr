@@ -42,6 +42,7 @@ public class Connection implements Closeable {
 
   public Connection(InetSocketAddress address) throws IOException {
     this.destAddress = address;
+    System.out.println("CONNECT: " + address);
     this.s = new Socket(address.getAddress(), address.getPort());
     this.sockIn = s.getInputStream();
     this.in = new InputStreamDataInput(sockIn);

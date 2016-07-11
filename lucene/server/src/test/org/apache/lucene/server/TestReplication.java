@@ -185,10 +185,12 @@ public class TestReplication extends ServerBaseTestCase {
       long version = getLong(result, "version");
       result = server2.send("search", "{indexName: index, queryText: '*:*', retrieveFields: [body], searcher: {version: " + version + "}}");
       assertEquals(100*100, getInt(result, "totalHits"));
+      System.out.println("TEST: done");
 
     } finally {
-      server1.shutdown();
+      // shutdown replica before primary:
       server2.shutdown();
+      server1.shutdown();
     }
   }
 }
