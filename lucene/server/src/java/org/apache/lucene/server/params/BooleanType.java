@@ -27,7 +27,7 @@ public class BooleanType extends Type {
   @Override
   public void validate(Object o) {
     if (!(o instanceof Boolean)) {
-      throw new IllegalArgumentException("expected Boolean but got " + o.getClass());
+      throw new IllegalArgumentException("expected Boolean but got " + o.getClass() + ": " + o);
     }
   }
 }

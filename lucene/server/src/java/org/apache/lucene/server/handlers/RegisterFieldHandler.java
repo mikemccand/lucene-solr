@@ -420,6 +420,13 @@ public class RegisterFieldHandler extends Handler {
     boolean sorted = f.getBoolean("sort");
     boolean grouped = f.getBoolean("group");
 
+    boolean stored;
+    if (f.hasParam("store")) {
+      stored = f.getBoolean("store");
+    } else {
+      stored = false;
+    }
+
     // TODO: current we only highlight using
     // PostingsHighlighter; if we enable others (that use
     // term vectors), we need to fix this so app specifies
@@ -492,18 +499,23 @@ public class RegisterFieldHandler extends Handler {
         ft.setDocValuesType(DocValuesType.NUMERIC);
       }
     } else if (type.equals("latlon")) {
+      if (stored) {
+        f.fail("stored", "latlon fields cannot be stored");
+      }
       ft.setDimensions(2, Integer.BYTES);
+      if (sorted) {
+        ft.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+      }
     } else {
       assert false;
     }
 
     // nocommit LatLonPoint, InetAddressPoint, BiggishInteger
 
-    if (f.hasParam("store")) {
-      ft.setStored(f.getBoolean("store"));
-      if (!ft.stored() && highlighted) {
-        f.fail("store", "store=false is not allowed when highlight=true");
-      }
+    if (stored) {
+      ft.setStored(true);
+    } else if (highlighted) {
+      f.fail("store", "store=false is not allowed when highlight=true");
     }
 
     boolean usePoints = false;

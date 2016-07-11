@@ -48,7 +48,7 @@ public class TestHighlight extends ServerBaseTestCase {
     put(o, "dateFacet", "{type: atom, search: false, store: false, facet: hierarchy}");
     put(o, "author", "{type: text, search: false, facet: flat, group: true}");
     // Register multi-valued field:
-    put(o, "authors", "{type: text, highlight: true, facet: flat, multiValued: true, analyzer: {class: StandardAnalyzer}}");
+    put(o, "authors", "{type: text, highlight: true, store: true, facet: flat, multiValued: true, analyzer: {class: StandardAnalyzer}}");
     JSONObject o2 = new JSONObject();
     o2.put("fields", o);
     o2.put("indexName", "index");

@@ -60,6 +60,7 @@ class Jobs extends Thread implements Closeable {
 
   @Override
   public void run() {
+    // nocommit: prioritize jobs better here, the way an OS assigns CPU to processes:
     while (true) {
       SimpleCopyJob topJob = getNextJob();
       if (topJob == null) {

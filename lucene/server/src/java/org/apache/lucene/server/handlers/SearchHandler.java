@@ -40,6 +40,8 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LatLonDocValuesField;
+import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.expressions.Bindings;
 import org.apache.lucene.expressions.Expression;
@@ -61,7 +63,9 @@ import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
 import org.apache.lucene.facet.taxonomy.FastTaxonomyFacetCounts;
 import org.apache.lucene.facet.taxonomy.SearcherTaxonomyManager.SearcherAndTaxonomy;
 import org.apache.lucene.facet.taxonomy.TaxonomyFacetCounts;
+import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
@@ -157,7 +161,11 @@ public class SearchHandler extends Handler {
 
   private final static Type SORT_TYPE = new ListType(
                                             new StructType(new Param("field", "The field to sort on.  Pass <code>docid</code> for index order and <code>score</code> for relevance sort.", new StringType()),
-                                                           new Param("missingLast", "Whether missing values should sort last instead of first.  Note that this runs \"before\" reverse, so if you sort missing firse and reverse=true then missing values will be at the end.", new BooleanType(), false),
+                                                           new Param("origin", "For distance sort, the point that we measure distance from",
+                                                                     new StructType(
+                                                                                    new Param("latitude", "Latitude of the origin", new FloatType()),
+                                                                                    new Param("longitude", "Longitude of the origin", new FloatType()))),
+                                                           new Param("missingLast", "Whether missing values should sort last instead of first.  Note that this runs \"before\" reverse, so if you sort missing first and reverse=true then missing values will be at the end.", new BooleanType(), false),
                                                            new Param("reverse", "Sort in reverse of the field's natural order", new BooleanType(), false)));
 
   private final static Type BOOLEAN_OCCUR_TYPE = new EnumType("must", "Clause is required.",
@@ -244,11 +252,23 @@ public class SearchHandler extends Handler {
                                          new PolyEntry("text", "Parse text into query using default QueryParser.",
                                                        new Param("text", "Query text to parse", new StringType()),
                                                        new Param("defaultField", "Default field for QueryParser", new StringType())),
+                                         new PolyEntry("LatLonBoxQuery", "A Query that matches documents containing a LatLonPoint inside a box (see @lucene:sandbox:org.apache.lucene.document.LatLonPoint#newBoxQuery)",
+                                                       new Param("minLatitude", "Minimum latitude, inclusive", new FloatType()),
+                                                       new Param("maxLatitude", "Maximum latitude, inclusive", new FloatType()),
+                                                       new Param("minLongitude", "Minimum longitude, inclusive", new FloatType()),
+                                                       new Param("maxLongitude", "Maximum longitude, inclusive", new FloatType())),
+                                         new PolyEntry("LatLonDistanceQuery", "A Query that matches documents containing a LatLonPoint within a specified distance of an origin point (see @lucene:sandbox:org.apache.lucene.document.LatLonPoint#newDistanceQuery)",
+                                                       new Param("latitude", "Latitude of the origin", new FloatType()),
+                                                       new Param("longitude", "Longitude of the origin", new FloatType()),
+                                                       new Param("radiusMeters", "Radius in meters", new FloatType())),
+                                         new PolyEntry("LatLonPolygonQuery", "A Query that matches documents containing a LatLonPoint within a specified polygon (see @lucene:sandbox:org.apache.lucene.document.LatLonPoint#newPolygonQuery)",
+                                                       new Param("vertices", "Array of latitude/longitude points",
+                                                                 new ListType(new ListType(new FloatType()))),
+                                                       new Param("holes", "Array of array of latitude/longitude points for the holes to exclude hits within the polygon",
+                                                                 new ListType(new ListType(new ListType(new FloatType()))))),
                                          new PolyEntry("WildcardQuery", "Implements the wildcard search query (see @lucene:core:org.apache.lucene.search.WildcardQuery)",
                                                        new Param("term", "Wildcard text", new StringType())))));
 
-
-  
   static {
     QUERY_TYPE_WRAP.set(QUERY_TYPE);
   }
@@ -697,8 +717,14 @@ public class SearchHandler extends Handler {
 
         if (fd.valueSource != null) {
           sf = fd.valueSource.getSortField(sub.getBoolean("reverse"));
+        } else if (fd.valueType.equals("latlon")) {
+          if (fd.fieldType.docValuesType() == DocValuesType.NONE) {
+            sub.fail("field", "field \"" + fieldName + "\" was not registered with sort=true");
+          }
+          Request sub2 = sub.getStruct("origin");
+          sf = LatLonDocValuesField.newDistanceSort(fieldName, sub2.getDouble("latitude"), sub2.getDouble("longitude"));
         } else {
-          if ((fd.fieldType != null && fd.fieldType.docValuesType() == null) ||
+          if ((fd.fieldType != null && fd.fieldType.docValuesType() == DocValuesType.NONE) ||
               (fd.fieldType == null && fd.valueSource == null)) {
             sub.fail("field", "field \"" + fieldName + "\" was not registered with sort=true");
           }
@@ -1052,7 +1078,6 @@ public class SearchHandler extends Handler {
       // nocommit also set queries
       
       if (fd.valueType.equals("int")) {
-        System.out.println("field=" + field);
         q = IntPoint.newRangeQuery(field, toMinInt(min), toMaxInt(max));
       } else if (fd.valueType.equals("long")) {
         q = LongPoint.newRangeQuery(field, toMinLong(min), toMaxLong(max));
@@ -1070,6 +1095,56 @@ public class SearchHandler extends Handler {
         r.fail("no field specified");
       }
       q = new TermQuery(new Term(field, pr.r.getString("term")));
+    } else if (pr.name.equals("LatLonBoxQuery")) {
+      q = LatLonPoint.newBoxQuery(field, 
+                                  pr.r.getDouble("minLatitude"),
+                                  pr.r.getDouble("maxLatitude"),
+                                  pr.r.getDouble("minLongitude"),
+                                  pr.r.getDouble("maxLongitude"));
+    } else if (pr.name.equals("LatLonDistanceQuery")) {
+      q = LatLonPoint.newDistanceQuery(field, 
+                                       pr.r.getDouble("latitude"),
+                                       pr.r.getDouble("longitude"),
+                                       pr.r.getDouble("radiusMeters"));
+    } else if (pr.name.equals("LatLonPolygonQuery")) {
+      List<Object> vertices = pr.r.getList("vertices");
+      double[] polyLats = new double[vertices.size()];
+      double[] polyLons = new double[vertices.size()];
+      for(int i=0;i<vertices.size();i++) {
+        Object o = vertices.get(i);
+        if ((o instanceof JSONArray) == false) {
+          pr.r.fail("vertices", "polygon vertices must be array of [latitude, longitude]; got: " + o);
+        }
+        JSONArray latLon = (JSONArray) o;
+        if (latLon.size() != 2) {
+          pr.r.fail("vertices", "polygon vertices must be array of [latitude, longitude]; got: " + o);
+        }
+        polyLats[i] = ((Number) latLon.get(0)).doubleValue();
+        polyLons[i] = ((Number) latLon.get(1)).doubleValue();
+      }
+
+      Polygon[] holes;
+      if (pr.r.hasParam("holes")) {
+        List<Object> o = pr.r.getList("holes");
+        holes = new Polygon[o.size()];
+        for(int i=0;i<o.size();i++) {
+          JSONArray o2 = (JSONArray) o.get(i);
+          double[] holeLats = new double[o2.size()];
+          double[] holeLons = new double[o2.size()];
+          for(int j=0;j<o2.size();j++) {
+            JSONArray o3 = (JSONArray) o2.get(j);
+            holeLats[j] = ((Number) o3.get(0)).doubleValue();
+            holeLons[j] = ((Number) o3.get(1)).doubleValue();
+          }
+          holes[i] = new Polygon(holeLats, holeLons);
+        }
+      } else {
+        holes = new Polygon[0];
+      }
+      q = LatLonPoint.newPolygonQuery(field, new Polygon(polyLats, polyLons, holes));
+
+      // TODO: LatLonPoint.nearest!
+
     } else if (pr.name.equals("ToParentBlockJoinQuery")) {
       Query childQuery = parseQuery(timeStamp, topRequest, state, pr.r.getStruct("childQuery"), field, useBlockJoinCollector, dynamicFields);
       BitSetProducer parentsFilter = new QueryBitSetProducer(parseQuery(timeStamp, topRequest, state, pr.r.getStruct("parentsFilter"), field, useBlockJoinCollector, dynamicFields));

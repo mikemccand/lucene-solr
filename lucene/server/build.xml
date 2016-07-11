@@ -46,21 +46,23 @@
     <pathelement path="${suggest.jar}"/>
     <pathelement path="${expressions.jar}"/>
     <pathelement path="${replicator.jar}"/>
+    <pathelement path="${sandbox.jar}"/>
     <fileset dir="../expressions/lib"/>
     <fileset dir="lib"/>
     <path refid="base.classpath"/>
   </path>
 
-  <target name="javadocs" depends="javadocs-facet,javadocs-highlighter,javadocs-suggest,javadocs-analyzers-common,compile-core">
+  <target name="javadocs" depends="javadocs-facet,javadocs-highlighter,javadocs-suggest,javadocs-analyzers-common,javadocs-sandbox,compile-core">
     <invoke-module-javadoc>
       <links>
         <link href="../facet"/>
         <link href="../highlighter"/>
         <link href="../suggest"/>
+        <link href="../sandbox"/>
       </links>
     </invoke-module-javadoc>
   </target>
 
-  <target name="compile-core" depends="jar-analyzers-common, jar-analyzers-icu, jar-facet, jar-grouping, jar-highlighter, jar-join, jar-misc, jar-queries, jar-queryparser, jar-suggest, jar-expressions, jar-replicator, common.compile-core" />
+  <target name="compile-core" depends="jar-analyzers-common, jar-analyzers-icu, jar-facet, jar-grouping, jar-highlighter, jar-join, jar-misc, jar-queries, jar-queryparser, jar-suggest, jar-expressions, jar-replicator, jar-sandbox, common.compile-core" />
 
 </project>

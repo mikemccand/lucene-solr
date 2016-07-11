@@ -53,7 +53,7 @@ public class CommitHandler extends Handler {
       @Override
       public String finish() throws IOException {
         long gen = state.commit();
-        return "{\"indexGen: " + gen + "}";
+        return "{\"indexGen\": " + gen + "}";
       }
     };
   }

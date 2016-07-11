@@ -11,10 +11,10 @@ import http.client
 #   - test killing server, promoting new primary, etc.
 #   - test 2nd replica
 
-#host1 = '10.17.4.12'
-#host2 = '10.17.4.92'
-host1 = '127.0.0.1'
-host2 = '127.0.0.1'
+host1 = '10.17.4.12'
+host2 = '10.17.4.92'
+#host1 = '127.0.0.1'
+#host2 = '127.0.0.1'
 
 class ChunkedSend:
 

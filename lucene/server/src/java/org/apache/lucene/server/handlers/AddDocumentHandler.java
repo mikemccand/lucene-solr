@@ -33,6 +33,8 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatDocValuesField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LatLonDocValuesField;
+import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
@@ -119,6 +121,10 @@ public class AddDocumentHandler extends Handler {
         if (!(o instanceof Number)) {
           fail(fd.name, "for float or double field, expected Number value but got " + o);
         }
+      } else if (fd.valueType.equals("latlon")) {
+        if (o instanceof double[] == false) {
+          fail(fd.name, "for latlon field, expected [lat, lon] double array " + o);
+        }
       } else {
         // int or long
         if (!(o instanceof Integer) && !(o instanceof Long)) {
@@ -164,8 +170,9 @@ public class AddDocumentHandler extends Handler {
     // nocommit what about sorted numeric?
 
     // Separately index doc values:
-    if (fd.fieldType.docValuesType() == DocValuesType.BINARY ||
-        fd.fieldType.docValuesType() == DocValuesType.SORTED) {
+    DocValuesType dvType = fd.fieldType.docValuesType();
+    if (dvType == DocValuesType.BINARY ||
+        dvType == DocValuesType.SORTED) {
       assert o instanceof String;
       BytesRef br = new BytesRef((String) o);
       if (fd.fieldType.docValuesType() == DocValuesType.BINARY) {
@@ -173,7 +180,11 @@ public class AddDocumentHandler extends Handler {
       } else {
         doc.add(new SortedDocValuesField(fd.name, br));
       }
-    } else if (fd.fieldType.docValuesType() == DocValuesType.NUMERIC) {
+    } else if (fd.valueType.equals("latlon") && dvType == DocValuesType.SORTED_NUMERIC) {
+      double[] latLon = (double[]) o;
+      doc.add(new LatLonDocValuesField(fd.name, latLon[0], latLon[1]));
+    } else if (dvType == DocValuesType.NUMERIC || dvType == DocValuesType.SORTED_NUMERIC) {
+      // nocommit do multi-valued numerics work?  do we ever set SORTED_NUMERIC?
       if (fd.valueType.equals("float")) {
         doc.add(new FloatDocValuesField(fd.name, ((Number) o).floatValue()));
       } else if (fd.valueType.equals("double")) {
@@ -186,6 +197,7 @@ public class AddDocumentHandler extends Handler {
         assert fd.valueType.equals("boolean");
         doc.add(new NumericDocValuesField(fd.name, ((Integer) o).intValue()));
       }
+      
     }
 
     // maybe add separate points field:
@@ -198,14 +210,16 @@ public class AddDocumentHandler extends Handler {
         doc.add(new FloatPoint(fd.name, ((Number) o).floatValue()));
       } else if (fd.valueType.equals("double")) {
         doc.add(new DoublePoint(fd.name, ((Number) o).doubleValue()));
+      } else if (fd.valueType.equals("latlon")) {
+        double[] latLon = (double[]) o;
+        doc.add(new LatLonPoint(fd.name, latLon[0], latLon[1]));
       } else {
         throw new AssertionError();
       }
     }
       
     if (fd.fieldType.stored() || fd.fieldType.indexOptions() != IndexOptions.NONE) {
-      // We use fieldTypeNoDV because we separately added
-      // (above) the doc values field:
+      // We use fieldTypeNoDV because we separately added (above) the doc values field:
       Field f = new MyField(fd.name, fd.fieldTypeNoDV, o);
       f.setBoost(boost);
       doc.add(f);
@@ -371,6 +385,26 @@ public class AddDocumentHandler extends Handler {
         values.add(p.getText());
       }
       o = values;
+    } else if (fd.valueType.equals("latlon")) {
+      if (token != JsonToken.START_ARRAY) {
+        fail(fd.name, "latlon field must be [lat, lon] value; got " + token);
+      }
+      double[] latLon = new double[2];
+      token = p.nextToken();
+      if (token != JsonToken.VALUE_NUMBER_FLOAT) {
+        fail(fd.name, "latlon field must be [lat, lon] value; got " + token);
+      }
+      latLon[0] = p.getDoubleValue();
+      token = p.nextToken();
+      if (token != JsonToken.VALUE_NUMBER_FLOAT) {
+        fail(fd.name, "latlon field must be [lat, lon] value; got " + token);
+      }
+      latLon[1] = p.getDoubleValue();
+      token = p.nextToken();
+      if (token != JsonToken.END_ARRAY) {
+        fail(fd.name, "latlon field must be [lat, lon] value; got " + token);
+      }
+      o = latLon;
     } else {
       String message;
       if (token == JsonToken.VALUE_NULL) {

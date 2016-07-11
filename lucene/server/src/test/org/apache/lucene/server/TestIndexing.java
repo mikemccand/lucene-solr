@@ -379,7 +379,7 @@ public class TestIndexing extends ServerBaseTestCase {
 
     // Cannot highlight a facet=hierarchy field:
     assertFailsWith("registerFields",
-                    "{fields: {bad: {type: atom, facet: hierarchy, highlight: true}}}",
+                    "{fields: {bad: {type: atom, facet: hierarchy, highlight: true, store: true}}}",
                     "registerFields > fields > bad > facet: facet=hierarchy fields cannot have highlight=true");
 
     // Cannot create a pointless do-nothing field:
