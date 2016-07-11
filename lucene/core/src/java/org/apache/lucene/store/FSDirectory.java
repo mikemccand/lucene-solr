@@ -297,7 +297,8 @@ public abstract class FSDirectory extends BaseDirectory {
     Files.move(directory.resolve(source), directory.resolve(dest), StandardCopyOption.ATOMIC_MOVE);
     // TODO: should we move directory fsync to a separate 'syncMetadata' method?
     // for example, to improve listCommits(), IndexFileDeleter could also call that after deleting segments_Ns
-    IOUtils.fsync(directory, true);
+    // nocommit
+    //IOUtils.fsync(directory, true);
     maybeDeletePendingFiles();
   }
 

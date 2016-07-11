@@ -11,8 +11,10 @@ import http.client
 #   - test killing server, promoting new primary, etc.
 #   - test 2nd replica
 
-host1 = '10.17.4.12'
-host2 = '10.17.4.92'
+#host1 = '10.17.4.12'
+#host2 = '10.17.4.92'
+host1 = '127.0.0.1'
+host2 = '127.0.0.1'
 
 class ChunkedSend:
 
@@ -83,8 +85,8 @@ class ChunkedSend:
     else:
       raise RuntimeError('Server returned HTTP %s, %s' % (r.status, r.reason))
 
-def launchServer(host, stateDir):
-  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port 4000 -stateDir %s -interface %s"' % (host, stateDir, host)
+def launchServer(host, stateDir, port):
+  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx2g -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
   print('%s: server command %s' % (host, command))
   p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -137,20 +139,21 @@ def rmDir(host, path):
 
 os.chdir('/l/newluceneserver/lucene')
 if '-rebuild' in sys.argv:
-  run('ant jar', 'ant.log')
+  run('ant clean jar', 'ant.log')
   #run('ssh %s rm -rf /l/newluceneserver' % host2)
-  run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host1)
+  if host2 != host1:
+    run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host1)
 
-rmDir(host1, '/b/scratch/server')
-rmDir(host2, '/b/scratch/server')
+rmDir(host1, '/b/scratch/server1')
+rmDir(host2, '/b/scratch/server2')
 
-port1, binaryPort1 = launchServer(host1, '/b/scratch/server/state')
-port2, binaryPort2 = launchServer(host2, '/b/scratch/server/state')
+port1, binaryPort1 = launchServer(host1, '/b/scratch/server1/state', 4000)
+port2, binaryPort2 = launchServer(host2, '/b/scratch/server2/state', 5000)
 
 try:
-  send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server/index'})
-  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server/index'})
-  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 5.0})
+  send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server1/index'})
+  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server2/index'})
+  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 128., 'maxRefreshSec': 5.0})
   send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True, 'directory': 'MMapDirectory', 'nrtCachingDirectory.maxSizeMB': 0.0})
   send(host1, port1, "settings", {'indexName': 'index', 'index.verbose': False, 'directory': 'MMapDirectory', 'nrtCachingDirectory.maxSizeMB': 0.0})
 

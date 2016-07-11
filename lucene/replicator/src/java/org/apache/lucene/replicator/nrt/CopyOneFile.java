@@ -80,10 +80,12 @@ public class CopyOneFile implements Closeable {
     dest.finishCopyFile(name);
   }
 
+  // TODO: use https://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html#copy(java.nio.file.Path,%20java.io.OutputStream) and https://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html#copy(java.io.InputStream,%20java.nio.file.Path,%20java.nio.file.CopyOption...)
+
   /** Copy another chunk of bytes, returning true once the copy is done */
   public boolean visit() throws IOException {
-    // Copy up to 640 KB per visit:
-    for(int i=0;i<10;i++) {
+    // Copy up to 1.2 MB per visit:
+    for(int i=0;i<20;i++) {
       long bytesLeft = bytesToCopy - bytesCopied;
       if (bytesLeft == 0) {
         long checksum = out.getChecksum();
@@ -104,10 +106,12 @@ public class CopyOneFile implements Closeable {
         close();
 
         if (Node.VERBOSE_FILES) {
-          dest.message(String.format(Locale.ROOT, "file %s: done copying [%s, %.3fms]",
+          long nowNS = System.nanoTime();
+          dest.message(String.format(Locale.ROOT, "file %s: done copying [%s, %.3fms, %.2f MB/sec]",
                                      name,
                                      Node.bytesToString(metaData.length),
-                                     (System.nanoTime() - copyStartNS)/1000000.0));
+                                     (nowNS - copyStartNS)/1000000.0,
+                                     (metaData.length/1024./1024.)/((nowNS - copyStartNS)/1000000000.0)));
         }
 
         return true;

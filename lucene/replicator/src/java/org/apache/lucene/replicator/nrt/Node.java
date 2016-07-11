@@ -41,7 +41,7 @@ import org.apache.lucene.store.IndexInput;
 
 public abstract class Node implements Closeable {
 
-  public static final boolean VERBOSE_FILES = true;
+  public static final boolean VERBOSE_FILES = false;
   public static final boolean VERBOSE_CONNECTIONS = false;
 
   // Keys we store into IndexWriter's commit user data:

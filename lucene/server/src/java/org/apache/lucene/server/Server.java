@@ -732,7 +732,7 @@ public class Server {
     }
 
     private void _run() throws Exception {
-      System.out.println("SVR " + globalState.nodeName + ": handle binary client; buffer: " + socket.getReceiveBufferSize());
+      System.out.println("SVR " + globalState.nodeName + ": handle binary client; receive buffer=" + socket.getReceiveBufferSize());
       try (InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
         DataInput dataIn = new InputStreamDataInput(in);
         int x = dataIn.readInt();
