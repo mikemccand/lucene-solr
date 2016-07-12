@@ -17,6 +17,7 @@ package org.apache.lucene.server;
  * limitations under the License.
  */
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -318,9 +319,11 @@ public class Server {
         .onUnmappableCharacter(CodingErrorAction.REPORT);
       
       if (v != null && v.get(0).equalsIgnoreCase("chunked")) {
-        // length not known in advance
+        // client is streaming the request to us; length not known in advance
         if (handler.doStream()) {
           try {
+            // TODO: BufferedInputStream didn't seem to help?  Maybe HttpServer is already buffereing chunked requests here?
+            //responseString = handler.handleStreamed(new InputStreamReader(new BufferedInputStream(in, 128*1024), decoder), params);
             responseString = handler.handleStreamed(new InputStreamReader(in, decoder), params);
           } catch (Throwable t) {
             sendException(x, t);
@@ -459,7 +462,7 @@ public class Server {
           if (details != null) {
             s += "\n\n" + details;
           }
-          throw new IllegalArgumentException(s);
+          sendException(x, new IllegalArgumentException(s));
         }
 
         //System.out.println("SVR " + globalState.nodeName + ": start finish");

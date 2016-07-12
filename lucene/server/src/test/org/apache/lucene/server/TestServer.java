@@ -79,8 +79,6 @@ public class TestServer extends ServerBaseTestCase {
     return ((Number) result.get("indexGen")).longValue();
   }
 
-  // nocommit add test making sure we catch extra unused params
-
   private JSONObject search(String body) throws Exception {
     return search(body, -1, null, false, true, null, null);
   }
@@ -130,6 +128,18 @@ public class TestServer extends ServerBaseTestCase {
     long gen = addDocument(0, "Bob", "this is a test", 10f, "2012/10/17");
     JSONObject o = search("test", gen, null, false, true, null, null);
     assertEquals(1, getInt(o, "totalHits"));
+  }
+
+  public void testUnusedParamsAreCaught() throws Exception {
+    deleteAllDocs();
+    long gen = addDocument(0, "Bob", "this is a test", 10f, "2012/10/17");
+    JSONObject o = new JSONObject();
+    o.put("indexName", "index");
+    o.put("queryText", "*:*");
+    o.put("extra", 17);
+    Exception e = expectThrows(IOException.class, () -> {send("search", o);});
+    //e.printStackTrace(System.out);
+    assertTrue(e.toString().contains("param extra is unrecognized"));
   }
 
   public void testNumericSort() throws Exception {
@@ -369,6 +379,17 @@ public class TestServer extends ServerBaseTestCase {
       // expected
       assertTrue(ioe.toString().indexOf("could not parse HTTP request data as JSON") != -1);
     }
+  }
+
+  public void testManyIndices() throws Exception {
+    stopIndex("index");
+    deleteIndex("index");
+    for(int i=0;i<100;i++) {
+      createAndStartIndex("index");
+      stopIndex("index");
+      deleteIndex("index");
+    }
+    createAndStartIndex("index");
   }
 
   // nocommit assert that exact field name w/ error is in

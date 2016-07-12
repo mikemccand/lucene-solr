@@ -490,7 +490,7 @@ public class IndexState implements Closeable {
     private final Document doc;
     private final AddDocumentContext ctx;
 
-    // Position of this document in the bulk request:
+    // Position of this document in the bulk request, referenced if this doc hits an error while indexing:
     private final int index;
 
     /** Sole constructor. */
@@ -1251,6 +1251,12 @@ public class IndexState implements Closeable {
       iwc.setRAMBufferSizeMB(indexRAMBufferSizeMB);
 
       ConcurrentMergeScheduler cms = (ConcurrentMergeScheduler) iwc.getMergeScheduler();
+      if (getBooleanSetting("index.merge.scheduler.auto_throttle")) {
+        cms.enableAutoIOThrottle();
+      } else {
+        cms.disableAutoIOThrottle();
+      }
+      
       cms.setMaxMergesAndThreads(getIntSetting("concurrentMergeScheduler.maxMergeCount"),
                                  getIntSetting("concurrentMergeScheduler.maxThreadCount"));
 

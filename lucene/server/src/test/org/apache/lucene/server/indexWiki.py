@@ -16,6 +16,8 @@ host2 = '10.17.4.92'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
+DO_REPLICA = True
+
 class ChunkedSend:
 
   def __init__(self, host, port, command, chunkSize):
@@ -37,7 +39,7 @@ class ChunkedSend:
       return
 
     if finish or self.pendingBytes > self.chunkSize:
-      s = ''.join(self.pending)
+      s = b''.join(self.pending)
       upto = 0
       while True:
         chunk = s[self.chunkSize*upto:self.chunkSize*(1+upto)]
@@ -46,12 +48,12 @@ class ChunkedSend:
         if not finish and len(chunk) < self.chunkSize:
           break
         m = []
-        m.append('%s\r\n' % hex(len(chunk))[2:])
+        m.append(('%s\r\n' % hex(len(chunk))[2:]).encode('utf-8'))
         m.append(chunk)
         #print 'send: %s' % chunk                                                                                                                            
-        m.append('\r\n')
+        m.append(b'\r\n')
         try:
-          self.h.send(''.join(m).encode('utf-8'))
+          self.h.send(b''.join(m))
         except:
           # Something went wrong; see if server told us what:                                                                                                
           r = self.h.getresponse()
@@ -86,11 +88,11 @@ class ChunkedSend:
       raise RuntimeError('Server returned HTTP %s, %s' % (r.status, r.reason))
 
 def launchServer(host, stateDir, port):
-  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx2g -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
+  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx4g -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
   print('%s: server command %s' % (host, command))
   p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-  # Read lines until we see the server is started:
+  # Read lines until we see the server is started, then launch bg thread to read future lines:
   while True:
     line = p.stdout.readline()
     line = line.decode('utf-8')
@@ -103,6 +105,7 @@ def launchServer(host, stateDir, port):
       x = x.replace('.', '')
       ports = (int(y) for y in x.split('/'))
       break
+    
   thread = threading.Thread(target=readServerOutput, args=(host, p))
   thread.start()
   return ports
@@ -144,18 +147,27 @@ if '-rebuild' in sys.argv:
   if host2 != host1:
     run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host1)
 
-rmDir(host1, '/b/scratch/server1')
-rmDir(host2, '/b/scratch/server2')
+ROOT_DIR = '/l/scratch'
 
-port1, binaryPort1 = launchServer(host1, '/b/scratch/server1/state', 4000)
-port2, binaryPort2 = launchServer(host2, '/b/scratch/server2/state', 5000)
+rmDir(host1, '%s/server1' % ROOT_DIR)
+rmDir(host2, '%s/server2' % ROOT_DIR)
+
+port1, binaryPort1 = launchServer(host1, '%s/server1/state' % ROOT_DIR, 4000)
+port2, binaryPort2 = launchServer(host2, '%s/server2/state' % ROOT_DIR, 5000)
 
 try:
-  send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server1/index'})
-  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '/b/scratch/server2/index'})
+  send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server1/index' % ROOT_DIR})
+  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server2/index' % ROOT_DIR})
   send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 128., 'maxRefreshSec': 5.0})
-  send(host2, port2, "settings", {'indexName': 'index', 'index.verbose': True, 'directory': 'MMapDirectory', 'nrtCachingDirectory.maxSizeMB': 0.0})
-  send(host1, port1, "settings", {'indexName': 'index', 'index.verbose': False, 'directory': 'MMapDirectory', 'nrtCachingDirectory.maxSizeMB': 0.0})
+  send(host2, port2, "settings", {'indexName': 'index',
+                                  'index.verbose': True,
+                                  'directory': 'MMapDirectory',
+                                  'nrtCachingDirectory.maxSizeMB': 0.0,
+                                  'index.merge.scheduler.auto_throttle': False})
+  send(host1, port1, "settings", {'indexName': 'index',
+                                  'index.verbose': False,
+                                  'directory': 'MMapDirectory',
+                                  'nrtCachingDirectory.maxSizeMB': 0.0})
 
   fields = {'indexName': 'index',
             'fields': {'body':
@@ -174,39 +186,54 @@ try:
   send(host1, port1, 'registerFields', fields)
   send(host2, port2, 'registerFields', fields)
 
-  send(host1, port1, 'startIndex', {'indexName': 'index', 'mode': 'primary', 'primaryGen': 0})
+  if DO_REPLICA:
+    send(host1, port1, 'startIndex', {'indexName': 'index', 'mode': 'primary', 'primaryGen': 0})
+  else:
+    send(host1, port1, 'startIndex', {'indexName': 'index'})
+    
   #send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
 
   b = ChunkedSend(host1, port1, 'bulkAddDocument', 65536)
-  b.add('{"indexName": "index", "documents": [')
+  b.add(b'{"indexName": "index", "documents": [')
 
   id = 0
   tStart = time.time()
-  with open('/lucenedata/enwiki/enwiki-20120502-lines-1k-fixed-utf8.txt', 'r') as f:
-    f.readline()
+  nextPrint = 100000
+  replicaStarted = False
+  with open('/lucenedata/enwiki/enwiki-20120502-lines-1k-fixed-utf8.txt.blocks', 'rb') as f:
     while True:
-      line = f.readline()
-      if line == '':
+      header = f.readline()
+      if header == b'':
         break
-      title, date, body = line.split('\t')
-      if id > 0:
-        b.add(',')
-      b.add(json.dumps({'fields': {'body': body, 'title': title, 'id': id}}))
-      id += 1
+      #print("header: %s" % header)
+      byteCount, docCount = (int(x) for x in header.strip().split())
+      buf = f.read(byteCount)
+      #print('%d docs, %d bytes (%.2f bytes/doc)' % (byteCount, docCount, float(byteCount)/docCount))
+      #print("  buf %s" % type(buf))
+      b.add(buf)
 
-      if id == 1:
+      if DO_REPLICA and id > 0 and not replicaStarted:
         print('now start up replica!')
         send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
+        replicaStarted = True
         
-      if id % 100000 == 0:
+      if id >= nextPrint:
         dps = id / (time.time()-tStart)
         if id >= 2000000:
-          x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
+          if DO_REPLICA:
+            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
+          else:
+            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
           print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
         else:
           print('%d docs... %.1f docs/sec' % (id, dps))
 
-    b.add(']}')
+        while nextPrint <= id:
+          nextPrint += 100000
+
+      id += docCount
+
+    b.add(b']}')
   b.finish();
   
 finally:

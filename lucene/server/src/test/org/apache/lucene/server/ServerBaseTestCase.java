@@ -160,6 +160,14 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
     send("startIndex", "{indexName: " + indexName + "}");
   }
 
+  protected static void stopIndex(String indexName) throws Exception {
+    send("stopIndex", "{indexName: " + indexName + "}");
+  }
+
+  protected static void deleteIndex(String indexName) throws Exception {
+    send("deleteIndex", "{indexName: " + indexName + "}");
+  }
+
   protected static void createIndex(String indexName) throws Exception {
     server.curIndexPath = createTempDir(indexName);
     rmDir(server.curIndexPath);

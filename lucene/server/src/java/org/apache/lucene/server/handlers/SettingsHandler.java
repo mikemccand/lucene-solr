@@ -53,6 +53,7 @@ public class SettingsHandler extends Handler {
         new Param("concurrentMergeScheduler.maxMergeCount", "Maximum backlog of pending merges before indexing threads are stalled", new IntType(), 9),
 
         new Param("index.verbose", "Turn on IndexWriter's infoStream (to stdout)", new BooleanType(), false),
+        new Param("index.merge.scheduler.auto_throttle", "Turn on/off the merge scheduler's auto throttling", new BooleanType(), true),
         // nocommit how to accept any class on the CP that
         // implements NormsFormat and has default ctor ...?
         new Param("normsFormat", "Which NormsFormat should be used for all indexed fields.",

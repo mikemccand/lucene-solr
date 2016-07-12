@@ -48,6 +48,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -108,11 +109,12 @@ public class GlobalState implements Closeable {
 
   // TODO: really this queue should be based on total size
   // of the queued docs:
-  private final static int MAX_BUFFERED_DOCS = 2*MAX_INDEXING_THREADS;
+  private final static int MAX_BUFFERED_DOCS = 20*MAX_INDEXING_THREADS;
 
   private final Map<String,Plugin> plugins = new HashMap<String,Plugin>();
 
-  final BlockingQueue<Runnable> docsToIndex = new ArrayBlockingQueue<Runnable>(MAX_BUFFERED_DOCS, true);
+  // Seems to be faster than ArrayBlockingQueue:e
+  final BlockingQueue<Runnable> docsToIndex = new LinkedBlockingQueue<Runnable>(MAX_BUFFERED_DOCS);
 
   /** Common thread pool to index documents. */
   public final ExecutorService indexService = new BlockingThreadPoolExecutor(MAX_BUFFERED_DOCS,
