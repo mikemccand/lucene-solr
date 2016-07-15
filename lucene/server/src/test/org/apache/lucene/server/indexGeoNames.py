@@ -7,16 +7,14 @@ import threading
 import http.client
 
 # TODO
-#   - test commit
-#   - test killing server, promoting new primary, etc.
-#   - test 2nd replica
+#   - index lat/lon as geopoint!
 
 host1 = '10.17.4.92'
 host2 = '10.17.4.12'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
-DO_REPLICA = True
+DO_REPLICA = False
 
 class ChunkedSend:
 
@@ -58,7 +56,7 @@ class ChunkedSend:
           # Something went wrong; see if server told us what:                                                                                                
           r = self.h.getresponse()
           s = r.read()
-          raise RuntimeError('\n\nServer error:\n%s' % s)
+          raise RuntimeError('\n\nServer error:\n%s' % s.decode('utf-8'))
         upto += 1
       del self.pending[:]
       self.pending.append(chunk)
@@ -124,7 +122,8 @@ def send(host, port, command, args):
   r = h.getresponse()
   s = r.read()
   if r.status != 200:
-    print('FAILED SEND to %s:%s:\n%s' % (host, port, s.decode('utf-8')))
+    raise RuntimeError('FAILED: %s:%s:\n%s' % (host, port, s.decode('utf-8')))
+    
   return s.decode('utf-8')
 
 def run(command, logFile = None):
@@ -151,48 +150,63 @@ if '-rebuild' in sys.argv:
 ROOT_DIR = '/l/scratch'
 
 rmDir(host1, '%s/server1' % ROOT_DIR)
-rmDir(host2, '%s/server2' % ROOT_DIR)
+
+if DO_REPLICA:
+  rmDir(host2, '%s/server2' % ROOT_DIR)
 
 port1, binaryPort1 = launchServer(host1, '%s/server1/state' % ROOT_DIR, 4000)
-port2, binaryPort2 = launchServer(host2, '%s/server2/state' % ROOT_DIR, 5000)
+if DO_REPLICA:
+  port2, binaryPort2 = launchServer(host2, '%s/server2/state' % ROOT_DIR, 5000)
 
 try:
   send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server1/index' % ROOT_DIR})
-  send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server2/index' % ROOT_DIR})
+  if DO_REPLICA:
+    send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server2/index' % ROOT_DIR})
   send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 128., 'maxRefreshSec': 5.0})
-  send(host2, port2, "settings", {'indexName': 'index',
-                                  'index.verbose': True,
-                                  'directory': 'MMapDirectory',
-                                  'nrtCachingDirectory.maxSizeMB': 0.0,
-                                  'index.merge.scheduler.auto_throttle': False})
+  if DO_REPLICA:
+    send(host2, port2, "settings", {'indexName': 'index',
+                                    'index.verbose': False,
+                                    'directory': 'MMapDirectory',
+                                    'nrtCachingDirectory.maxSizeMB': 0.0,
+                                    'index.merge.scheduler.auto_throttle': False})
   send(host1, port1, "settings", {'indexName': 'index',
                                   'index.verbose': False,
                                   'directory': 'MMapDirectory',
-                                  'nrtCachingDirectory.maxSizeMB': 0.0})
+                                  'nrtCachingDirectory.maxSizeMB': 0.0,
+                                  'index.merge.scheduler.auto_throttle': False})
+  
 
   fields = {'indexName': 'index',
-            'fields': {'body':
-                       {'type': 'text',
-                        'highlight': True,
-                        'store': True},
-                       'title':
-                       {'type': 'text',
-                        'highlight': True,
-                        'store': True},
-                       'id':
-                       {'type': 'int',
-                        'store': True,
-                        'sort': True}}}
+            'fields':
+            {
+              'name': {'type': 'text'},
+              'asciiname': {'type': 'text'},
+              'geonameid': {'type': 'long', 'search': True, 'store': True, 'sort': True, 'multiValued': True},
+              'elevation': {'type': 'int', 'search': True, 'sort': True, 'multiValued': True},
+              'feature_class': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'latitude': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'longitude': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'cc2': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'timezone': {'type': 'text'},
+              'dem': {'type': 'text'},
+              'country_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'admin1_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'admin2_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'admin3_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'admin4_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'feature_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'alternatenames': {'type': 'text'},
+              'population': {'type': 'long', 'search': True, 'sort': True, 'multiValued': True}}}
 
   send(host1, port1, 'registerFields', fields)
-  send(host2, port2, 'registerFields', fields)
+  if DO_REPLICA:
+    send(host2, port2, 'registerFields', fields)
 
   if DO_REPLICA:
     send(host1, port1, 'startIndex', {'indexName': 'index', 'mode': 'primary', 'primaryGen': 0})
+    send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
   else:
     send(host1, port1, 'startIndex', {'indexName': 'index'})
-    
-  #send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
 
   b = ChunkedSend(host1, port1, 'bulkAddDocument', 65536)
   b.add(b'{"indexName": "index", "documents": [')
@@ -201,31 +215,24 @@ try:
   tStart = time.time()
   nextPrint = 100000
   replicaStarted = False
-  #with open('/lucenedata/enwiki/enwiki-20120502-lines-1k-fixed-utf8.txt.blocks', 'rb') as f:
-  with open('/l/data/enwiki-20120502-lines-1k-fixed-utf8.txt.blocks', 'rb') as f:
+  with open('/lucenedata/geonames/documents.json', 'r') as f:
     while True:
-      header = f.readline()
-      if header == b'':
+      line = f.readline()
+      if len(line) == 0:
         break
-      #print("header: %s" % header)
-      byteCount, docCount = (int(x) for x in header.strip().split())
-      buf = f.read(byteCount)
-      #print('%d docs, %d bytes (%.2f bytes/doc)' % (byteCount, docCount, float(byteCount)/docCount))
-      #print("  buf %s" % type(buf))
-      b.add(buf)
+      if id > 0:
+        b.add(b',')
+      b.add(('{"fields": %s}' % line.rstrip()).encode('utf-8'))
 
-      if DO_REPLICA and id > 0 and not replicaStarted:
-        print('now start up replica!')
-        send(host2, port2, 'startIndex', {'indexName': 'index', 'mode': 'replica', 'primaryAddress': host1, 'primaryGen': 0, 'primaryPort': binaryPort1})
-        replicaStarted = True
-        
+      id += 1
+
       if id >= nextPrint:
         dps = id / (time.time()-tStart)
         if id >= 2000000:
           if DO_REPLICA:
-            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
+            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
           else:
-            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['id']}));
+            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
           print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
         else:
           print('%d docs... %.1f docs/sec' % (id, dps))
@@ -233,11 +240,18 @@ try:
         while nextPrint <= id:
           nextPrint += 100000
 
-      id += docCount
-
-    b.add(b']}')
+  b.add(b']}')
   b.finish();
+
+  dps = id / (time.time()-tStart)
+  print('Total: %.1f docs/sec' % dps)
+
+  print('Now stop index...')
+  send(host1, port1, 'stopIndex', {'indexName': 'index'})
+  print('Done stop index...')
   
 finally:
+  # nocommit why is this leaving leftover files?  it should close all open indices gracefully?
   send(host1, port1, 'shutdown', {})
-  send(host2, port2, 'shutdown', {})
+  if DO_REPLICA:
+    send(host2, port2, 'shutdown', {})

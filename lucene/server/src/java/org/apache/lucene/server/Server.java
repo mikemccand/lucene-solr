@@ -207,6 +207,7 @@ public class Server {
     
     public ServerHandler(Handler handler) {
       this.handler = handler;
+      // nocommit should we set http keep-alive here?  e.g. bulk indexing request could stall for a while?
     }
 
     private void sendException(HttpExchange x, Throwable e) throws IOException {

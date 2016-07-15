@@ -442,9 +442,10 @@ public class RegisterFieldHandler extends Handler {
 
     boolean multiValued = f.getBoolean("multiValued");
     if (multiValued) {
-      if (sorted) {
-        f.fail("multiValued", "cannot sort on multiValued fields");
-      }
+      // nocommi not true!  but do we need something at search time so you can pick the picker?
+      //if (sorted) {
+      //f.fail("multiValued", "cannot sort on multiValued fields");
+      //}
       if (grouped) {
         f.fail("multiValued", "cannot group on multiValued fields");
       }
@@ -474,29 +475,53 @@ public class RegisterFieldHandler extends Handler {
       ft.setOmitNorms(true);
       ft.setTokenized(false);
       if (sorted || grouped) {
-        ft.setDocValuesType(DocValuesType.SORTED);
+        if (multiValued) {
+          ft.setDocValuesType(DocValuesType.SORTED_SET);
+        } else {
+          ft.setDocValuesType(DocValuesType.SORTED);
+        }
       } else if (grouped || dv) {
         ft.setDocValuesType(DocValuesType.BINARY);
       }
     } else if (type.equals("boolean")) {
       if (dv || sorted || grouped) {
-        ft.setDocValuesType(DocValuesType.NUMERIC);
+        if (multiValued) {
+          ft.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+        } else {
+          ft.setDocValuesType(DocValuesType.NUMERIC);
+        }
       }
     } else if (type.equals("long")) {
       if (dv || sorted || grouped) {
-        ft.setDocValuesType(DocValuesType.NUMERIC);
+        if (multiValued) {
+          ft.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+        } else {
+          ft.setDocValuesType(DocValuesType.NUMERIC);
+        }
       }
     } else if (type.equals("int")) {
       if (dv || sorted || grouped) {
-        ft.setDocValuesType(DocValuesType.NUMERIC);
+        if (multiValued) {
+          ft.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+        } else {
+          ft.setDocValuesType(DocValuesType.NUMERIC);
+        }
       }
     } else if (type.equals("double")) {
       if (dv || sorted || grouped) {
-        ft.setDocValuesType(DocValuesType.NUMERIC);
+        if (multiValued) {
+          ft.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+        } else {
+          ft.setDocValuesType(DocValuesType.NUMERIC);
+        }
       }
     } else if (type.equals("float")) {
       if (dv || sorted || grouped) {
-        ft.setDocValuesType(DocValuesType.NUMERIC);
+        if (multiValued) {
+          ft.setDocValuesType(DocValuesType.SORTED_NUMERIC);
+        } else {
+          ft.setDocValuesType(DocValuesType.NUMERIC);
+        }
       }
     } else if (type.equals("latlon")) {
       if (stored) {
@@ -509,6 +534,8 @@ public class RegisterFieldHandler extends Handler {
     } else {
       assert false;
     }
+
+    // System.out.println("REGISTER: " + name + " ft=" + ft);
 
     // nocommit LatLonPoint, InetAddressPoint, BiggishInteger
 

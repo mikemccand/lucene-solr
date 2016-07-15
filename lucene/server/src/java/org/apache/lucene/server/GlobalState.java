@@ -101,7 +101,7 @@ public class GlobalState implements Closeable {
   private static final String PLUGIN_PROPERTIES_FILE = "lucene-server-plugin.properties";
 
   // TODO: make these controllable
-  private final static int MAX_INDEXING_THREADS = 24;
+  private final static int MAX_INDEXING_THREADS = Runtime.getRuntime().availableProcessors();
 
   final DocHandler docHandler = new DocHandler();
 

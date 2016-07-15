@@ -38,6 +38,7 @@ import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.facet.FacetField;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
@@ -50,6 +51,7 @@ import org.apache.lucene.server.GlobalState;
 import org.apache.lucene.server.IndexState;
 import org.apache.lucene.server.params.*;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 
@@ -128,7 +130,7 @@ public class AddDocumentHandler extends Handler {
       } else {
         // int or long
         if (!(o instanceof Integer) && !(o instanceof Long)) {
-          fail(fd.name, "for int or long field, expected Integer or Long value but got " + o);
+          fail(fd.name, "for int or long field, expected Integer or Long value but got " + o + " of class=" + o.getClass());
         }
       }
     }
@@ -180,24 +182,51 @@ public class AddDocumentHandler extends Handler {
       } else {
         doc.add(new SortedDocValuesField(fd.name, br));
       }
+    } else if (dvType == DocValuesType.SORTED_SET) {
+      if (o instanceof List) { 
+        List<String> values = (List<String>) o;
+        for(String _o : values) {
+          doc.add(new SortedSetDocValuesField(fd.name, new BytesRef(_o)));
+        }
+      } else {
+        doc.add(new SortedSetDocValuesField(fd.name, new BytesRef((String) o)));
+      }
     } else if (fd.valueType.equals("latlon") && dvType == DocValuesType.SORTED_NUMERIC) {
       double[] latLon = (double[]) o;
       doc.add(new LatLonDocValuesField(fd.name, latLon[0], latLon[1]));
     } else if (dvType == DocValuesType.NUMERIC || dvType == DocValuesType.SORTED_NUMERIC) {
-      // nocommit do multi-valued numerics work?  do we ever set SORTED_NUMERIC?
       if (fd.valueType.equals("float")) {
-        doc.add(new FloatDocValuesField(fd.name, ((Number) o).floatValue()));
+        if (fd.multiValued) {
+          doc.add(new SortedNumericDocValuesField(fd.name, NumericUtils.floatToSortableInt(((Number) o).floatValue())));
+        } else {
+          doc.add(new FloatDocValuesField(fd.name, ((Number) o).floatValue()));
+        }
       } else if (fd.valueType.equals("double")) {
-        doc.add(new DoubleDocValuesField(fd.name, ((Number) o).doubleValue()));
+        if (fd.multiValued) {
+          doc.add(new SortedNumericDocValuesField(fd.name, NumericUtils.doubleToSortableLong(((Number) o).doubleValue())));
+        } else {
+          doc.add(new DoubleDocValuesField(fd.name, ((Number) o).doubleValue()));
+        }
       } else if (fd.valueType.equals("int")) {
-        doc.add(new NumericDocValuesField(fd.name, ((Number) o).intValue()));
+        if (fd.multiValued) {
+          doc.add(new SortedNumericDocValuesField(fd.name, ((Number) o).intValue()));
+        } else {
+          doc.add(new NumericDocValuesField(fd.name, ((Number) o).intValue()));
+        }
       } else if (fd.valueType.equals("long")) {
-        doc.add(new NumericDocValuesField(fd.name, ((Number) o).longValue()));
+        if (fd.multiValued) {
+          doc.add(new SortedNumericDocValuesField(fd.name, ((Number) o).longValue()));
+        } else {
+          doc.add(new NumericDocValuesField(fd.name, ((Number) o).longValue()));
+        }
       } else {
         assert fd.valueType.equals("boolean");
-        doc.add(new NumericDocValuesField(fd.name, ((Integer) o).intValue()));
+        if (fd.multiValued) {
+          doc.add(new SortedNumericDocValuesField(fd.name, ((Integer) o).intValue()));
+        } else {
+          doc.add(new NumericDocValuesField(fd.name, ((Integer) o).intValue()));
+        }
       }
-      
     }
 
     // maybe add separate points field:
@@ -285,8 +314,8 @@ public class AddDocumentHandler extends Handler {
   }
 
   /** Parse a Document using Jackson's streaming parser
-   * API.  The document should look like {indexName: 'foo',
-   * fields: {..., ...}} */
+   *  API.  The document should look like {indexName: 'foo',
+   *  fields: {..., ...}} */
   Document parseDocument(IndexState state, JsonParser p) throws IOException {
     //System.out.println("parseDocument: " + r);
     JsonToken token = p.nextToken();
@@ -336,23 +365,7 @@ public class AddDocumentHandler extends Handler {
    *  multi-valued case, or an object of the appropriate type
    *  in the single-valued case. */
   private static void parseOneField(JsonParser p, IndexState state, Document doc, String name) throws IOException {
-
-    FieldDef fd = state.getField(name);
-
-    if (fd.multiValued) {
-      // Field is multi-valued; parse an array
-      JsonToken token = p.nextToken();
-      if (token != JsonToken.START_ARRAY) {
-        fail(name, "field is multiValued; expected array but got " + token);
-      }
-      while (true) {
-        if (!parseOneValue(fd, p, doc)) {
-          break;
-        }
-      }
-    } else {
-      parseOneValue(fd, p, doc);
-    }
+    parseOneValue(state.getField(name), p, doc);
   }
 
   /** Parses the current json token into the corresponding
@@ -427,44 +440,61 @@ public class AddDocumentHandler extends Handler {
   private static boolean parseOneValue(FieldDef fd, JsonParser p, Document doc) throws IOException {
 
     Object o = null;
+    float boost = 1.0f;
 
     JsonToken token = p.nextToken();
-    if (token == JsonToken.END_ARRAY) {
-      assert fd.multiValued;
-      return false;
-    }
-
-    float boost = 1.0f;
-    if (fd.fieldType.indexOptions() != IndexOptions.NONE && token == JsonToken.START_OBJECT) {
-      // Parse a {boost: X, value: Y}
-      while(true) {
-        token = p.nextToken();
-        if (token == JsonToken.END_OBJECT) {
-          break;
+    if (token == JsonToken.START_ARRAY) {
+      if ("hierarchy".equals(fd.faceted) || "latlon".equals(fd.valueType)) {
+        o = getNativeValue(fd, token, p);
+      } else {
+        if (fd.multiValued == false) {
+          fail(fd.name, "expected single value, not array, since this field is not multiValued");        
         }
-        assert token == JsonToken.FIELD_NAME;
-        String key = p.getText();
-        if (key.equals("boost")) {
-          token = p.nextToken(); 
-          if (token == JsonToken.VALUE_NUMBER_INT || token == JsonToken.VALUE_NUMBER_FLOAT) {
-            boost = p.getFloatValue();
-          } else {
-            fail(fd.name, "boost in inner object field value must have float or int value; got: " + token);
+        while (true) {
+          if (!parseOneValue(fd, p, doc)) {
+            break;
           }
-        } else if (key.equals("value")) {
-          o = getNativeValue(fd, p.nextToken(), p);
-        } else {
-          fail(fd.name, "unrecognized json key \"" + key + "\" in inner object field value; must be boost or value");
         }
-      }
-      if (o == null) {
-        fail(fd.name, "missing 'value' key");
+        return true;
       }
     } else {
-      // Parse a native value:
-      o = getNativeValue(fd, token, p);
-    }
+      
+      if (token == JsonToken.END_ARRAY) {
+        assert fd.multiValued;
+        return false;
+      }
 
+      if (fd.fieldType.indexOptions() != IndexOptions.NONE && token == JsonToken.START_OBJECT) {
+        // Parse a {boost: X, value: Y}
+        while(true) {
+          token = p.nextToken();
+          if (token == JsonToken.END_OBJECT) {
+            break;
+          }
+          assert token == JsonToken.FIELD_NAME;
+          String key = p.getText();
+          if (key.equals("boost")) {
+            token = p.nextToken(); 
+            if (token == JsonToken.VALUE_NUMBER_INT || token == JsonToken.VALUE_NUMBER_FLOAT) {
+              boost = p.getFloatValue();
+            } else {
+              fail(fd.name, "boost in inner object field value must have float or int value; got: " + token);
+            }
+          } else if (key.equals("value")) {
+            o = getNativeValue(fd, p.nextToken(), p);
+          } else {
+            fail(fd.name, "unrecognized json key \"" + key + "\" in inner object field value; must be boost or value");
+          }
+        }
+        if (o == null) {
+          fail(fd.name, "missing 'value' key");
+        }
+      } else {
+        // Parse a native value:
+        o = getNativeValue(fd, token, p);
+      }
+    }
+    
     parseOneNativeValue(fd, doc, o, boost);
     return true;
   }

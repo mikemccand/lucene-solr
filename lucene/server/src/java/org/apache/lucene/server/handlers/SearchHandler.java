@@ -107,6 +107,10 @@ import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.SortedNumericSelector;
+import org.apache.lucene.search.SortedNumericSortField;
+import org.apache.lucene.search.SortedSetSelector;
+import org.apache.lucene.search.SortedSetSortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.TimeLimitingCollector;
@@ -161,6 +165,12 @@ public class SearchHandler extends Handler {
 
   private final static Type SORT_TYPE = new ListType(
                                             new StructType(new Param("field", "The field to sort on.  Pass <code>docid</code> for index order and <code>score</code> for relevance sort.", new StringType()),
+                                                           new Param("selector", "For multi valued fields, how to select which value is used for sorting",
+                                                                     new EnumType("min", "Minimum value",
+                                                                                  "max", "Maximum value",
+                                                                                  "middle_min", "Middle value of the set; if there are an even number of values, the lower of the middle two is chosen",
+                                                                                  "middle_max", "Middle value of the set; if there are an even number of values, the upper of the middle two is chosen"),
+                                                                     "min"),
                                                            new Param("origin", "For distance sort, the point that we measure distance from",
                                                                      new StructType(
                                                                                     new Param("latitude", "Latitude of the origin", new FloatType()),
@@ -691,8 +701,7 @@ public class SearchHandler extends Handler {
     return config;
   }
 
-  /** Decodes a list of Request into the corresponding
-   *  Sort. */
+  /** Decodes a list of Request into the corresponding Sort. */
   private static Sort parseSort(long timeStamp, IndexState state, List<Object> fields, List<String> sortFieldNames, Map<String,FieldDef> dynamicFields) {
     List<SortField> sortFields = new ArrayList<SortField>();
     for(Object _sub : fields) {
@@ -729,54 +738,99 @@ public class SearchHandler extends Handler {
             sub.fail("field", "field \"" + fieldName + "\" was not registered with sort=true");
           }
 
-          SortField.Type sortType;
-          if (fd.valueType.equals("atom")) {
-            sortType = SortField.Type.STRING;
-          } else if (fd.valueType.equals("long")) {
-            sortType = SortField.Type.LONG;
-          } else if (fd.valueType.equals("int")) {
-            sortType = SortField.Type.INT;
-          } else if (fd.valueType.equals("double")) {
-            sortType = SortField.Type.DOUBLE;
-          } else if (fd.valueType.equals("float")) {
-            sortType = SortField.Type.FLOAT;
+          if (fd.multiValued) {
+            String selectorString = sub.getEnum("selector");
+            if (fd.valueType.equals("atom")) {
+              SortedSetSelector.Type selector;
+              if (selectorString.equals("min")) {
+                selector = SortedSetSelector.Type.MIN;
+              } else if (selectorString.equals("max")) {
+                selector = SortedSetSelector.Type.MAX;
+              } else if (selectorString.equals("middle_min")) {
+                selector = SortedSetSelector.Type.MIDDLE_MIN;
+              } else if (selectorString.equals("middle_max")) {
+                selector = SortedSetSelector.Type.MIDDLE_MAX;
+              } else {
+                assert false;
+                // dead code but javac disagrees
+                selector = null;
+              }
+              sf = new SortedSetSortField(fieldName, sub.getBoolean("reverse"), selector);
+            } else if (fd.valueType.equals("int")) {
+              sf = new SortedNumericSortField(fieldName, SortField.Type.INT, sub.getBoolean("reverse"), parseNumericSelector(sub, selectorString));
+            } else if (fd.valueType.equals("long")) {
+              sf = new SortedNumericSortField(fieldName, SortField.Type.LONG, sub.getBoolean("reverse"), parseNumericSelector(sub, selectorString));
+            } else if (fd.valueType.equals("float")) {
+              sf = new SortedNumericSortField(fieldName, SortField.Type.FLOAT, sub.getBoolean("reverse"), parseNumericSelector(sub, selectorString));
+            } else if (fd.valueType.equals("double")) {
+              sf = new SortedNumericSortField(fieldName, SortField.Type.DOUBLE, sub.getBoolean("reverse"), parseNumericSelector(sub, selectorString));
+            } else {
+              sub.fail("field", "cannot sort by multiValued field \"" + fieldName + "\": type is " + fd.valueType);
+              assert false;
+              sf = null;
+            }
           } else {
-            sub.fail("field", "cannot sort by field \"" + fieldName + "\": type is " + fd.valueType);
-            assert false;
-            sortType = null;
-          }
+            SortField.Type sortType;
+            if (fd.valueType.equals("atom")) {
+              sortType = SortField.Type.STRING;
+            } else if (fd.valueType.equals("long")) {
+              sortType = SortField.Type.LONG;
+            } else if (fd.valueType.equals("int")) {
+              sortType = SortField.Type.INT;
+            } else if (fd.valueType.equals("double")) {
+              sortType = SortField.Type.DOUBLE;
+            } else if (fd.valueType.equals("float")) {
+              sortType = SortField.Type.FLOAT;
+            } else {
+              sub.fail("field", "cannot sort by field \"" + fieldName + "\": type is " + fd.valueType);
+              assert false;
+              sortType = null;
+            }
 
-          sf = new SortField(fieldName,
-                             sortType,
-                             sub.getBoolean("reverse"));
+            sf = new SortField(fieldName,
+                               sortType,
+                               sub.getBoolean("reverse"));
+          }
         }
         
         boolean hasMissingLast = sub.hasParam("missingLast");
 
         boolean missingLast = sub.getBoolean("missingLast");
 
-        if (sf.getType() == SortField.Type.STRING) {
+        if (fd.valueType.equals("atom")) {
           if (missingLast) {
             sf.setMissingValue(SortField.STRING_LAST);
           } else {
             sf.setMissingValue(SortField.STRING_FIRST);
           }
-        } else if (sf.getType() == SortField.Type.INT) {
+        } else if (fd.valueType.equals("int")) {
           sf.setMissingValue(missingLast ? Integer.MAX_VALUE : Integer.MIN_VALUE);
-        } else if (sf.getType() == SortField.Type.LONG) {
+        } else if (fd.valueType.equals("long")) {
           sf.setMissingValue(missingLast ? Long.MAX_VALUE : Long.MIN_VALUE);
-        } else if (sf.getType() == SortField.Type.FLOAT) {
+        } else if (fd.valueType.equals("float")) {
           sf.setMissingValue(missingLast ? Float.POSITIVE_INFINITY : Float.NEGATIVE_INFINITY);
-        } else if (sf.getType() == SortField.Type.DOUBLE) {
+        } else if (fd.valueType.equals("double")) {
           sf.setMissingValue(missingLast ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY);
         } else if (hasMissingLast) {
-          sub.fail("missingLast", "can only specify missingLast for string and numeric field types");
+          sub.fail("missingLast", "field=" + fieldName + ": can only specify missingLast for string and numeric field types: got SortField type " + sf.getType());
         }
       }
       sortFields.add(sf);
     }
 
     return new Sort(sortFields.toArray(new SortField[sortFields.size()]));
+  }
+
+  private static SortedNumericSelector.Type parseNumericSelector(Request r, String selectorString) {
+    if (selectorString.equals("min")) {
+      return SortedNumericSelector.Type.MIN;
+    } else if (selectorString.equals("max")) {
+      return SortedNumericSelector.Type.MAX;
+    } else {
+      r.fail("selector", "must be min or max for multi-valued numeric sort fields");
+      // dead code but javac disagrees
+      return null;
+    }
   }
 
   private static Object convertType(FieldDef fd, Object o) {

@@ -41,7 +41,9 @@ public class TestSort extends ServerBaseTestCase {
   private static void registerFields() throws Exception {
     JSONObject o = new JSONObject();
     put(o, "atom", "{type: atom, sort: true}");
+    put(o, "atomMV", "{type: atom, sort: true, multiValued: true}");
     put(o, "int", "{type: int, sort: true}");
+    put(o, "intMV", "{type: int, sort: true, multiValued: true}");
     put(o, "float", "{type: float, sort: true}");
     put(o, "long", "{type: long, sort: true}");
     put(o, "double", "{type: double, sort: true}");
@@ -63,9 +65,25 @@ public class TestSort extends ServerBaseTestCase {
     send("addDocument", "{fields: {id: 1, atom: b}}");
     // field is missing:
     send("addDocument", "{fields: {id: 2}}");
-    long gen = getLong("indexGen");
-
     verifySort("atom");
+  }
+
+  public void testMultiValuedAtomDefaultSelector() throws Exception {
+    deleteAllDocs();
+    send("addDocument", "{fields: {id: 0, atomMV: a}}");
+    send("addDocument", "{fields: {id: 1, atomMV: [b, c]}}");
+    // field is missing:
+    send("addDocument", "{fields: {id: 2}}");
+    verifySort("atomMV");
+  }
+
+  public void testMultiValuedAtomMaxSelector() throws Exception {
+    deleteAllDocs();
+    send("addDocument", "{fields: {id: 0, atomMV: b}}");
+    send("addDocument", "{fields: {id: 1, atomMV: [a, c]}}");
+    // field is missing:
+    send("addDocument", "{fields: {id: 2}}");
+    verifySort("atomMV", ", selector: max");
   }
 
   public void testMissingLastInt() throws Exception {
@@ -110,40 +128,82 @@ public class TestSort extends ServerBaseTestCase {
                     "registerFields > fields > bad > sort: cannot sort text fields; use atom instead");
   }
 
+  public void testMultiValuedNumericSortDefaultSelector() throws Exception {
+    deleteAllDocs();
+    send("addDocument", "{fields: {id: 0, intMV: [12, -9]}}");
+    // you can still add a single value if the field is registered as MV:
+    send("addDocument", "{fields: {id: 1, intMV: -7}}");
+    // field is missing:
+    send("addDocument", "{fields: {id: 2}}");
+    verifySort("intMV");
+  }
+
+  public void testMultiValuedNumericSortWithSelector() throws Exception {
+    deleteAllDocs();
+    // you can still add a single value if the field is registered as MV:
+    send("addDocument", "{fields: {id: 0, intMV: -7}}");
+    send("addDocument", "{fields: {id: 1, intMV: [12, -9]}}");
+    // field is missing:
+    send("addDocument", "{fields: {id: 2}}");
+    verifySort("intMV", ", selector: max");
+  }
+
   private void verifySort(String field) throws Exception {
+    verifySort(field, "");
+  }
+  
+  private void verifySort(String field, String sortSpec) throws Exception {
+
+    // missing is (annoyingly) first by default:
+    boolean missingLast = false;
+    
+    int[] expected;
+    if (missingLast) {
+      expected = new int[] {0, 1, 2};
+    } else {
+      expected = new int[] {2, 0, 1};
+    }
 
     long gen = getLong("indexGen");
 
-    // missing is (annoyingly) first by default:
+    // default
     send("search",
-         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + "}]}}");
+         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + sortSpec + "}]}}");
     assertEquals(3, getInt("totalHits"));
-    assertEquals(2, getInt("hits[0].fields.id"));
-    assertEquals(0, getInt("hits[1].fields.id"));
-    assertEquals(1, getInt("hits[2].fields.id"));
+    for(int i=0;i<3;i++) {
+      assertEquals(expected[i], getInt("hits[" + i + "].fields.id"));
+    }
 
-    // reverse, missing is (annoyingly) first by default:
+    // reverse
+    if (missingLast) {
+      expected = new int[] {2, 1, 0};
+    } else {
+      expected = new int[] {1, 0, 2};
+    }
+    
     send("search",
-         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + ", reverse: true}]}}");
+         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + sortSpec + ", reverse: true}]}}");
     assertEquals(3, getInt("totalHits"));
-    assertEquals(1, getInt("hits[0].fields.id"));
-    assertEquals(0, getInt("hits[1].fields.id"));
-    assertEquals(2, getInt("hits[2].fields.id"));
+    for(int i=0;i<3;i++) {
+      assertEquals(expected[i], getInt("hits[" + i + "].fields.id"));
+    }
 
     // missing last:
+    expected = new int[] {0, 1, 2};
     send("search",
-         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + ", missingLast: true}]}}");
+         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + sortSpec + ", missingLast: true}]}}");
     assertEquals(3, getInt("totalHits"));
-    assertEquals(0, getInt("hits[0].fields.id"));
-    assertEquals(1, getInt("hits[1].fields.id"));
-    assertEquals(2, getInt("hits[2].fields.id"));
+    for(int i=0;i<3;i++) {
+      assertEquals(expected[i], getInt("hits[" + i + "].fields.id"));
+    }
 
     // reverse, missing last:
+    expected = new int[] {2, 1, 0};
     send("search",
-         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + ", reverse: true, missingLast: true}]}}");
+         "{query: MatchAllDocsQuery, topHits: 3, retrieveFields: [id], searcher: {indexGen: " + gen + "}, sort: {fields: [{field: " + field + sortSpec + ", reverse: true, missingLast: true}]}}");
     assertEquals(3, getInt("totalHits"));
-    assertEquals(2, getInt("hits[0].fields.id"));
-    assertEquals(1, getInt("hits[1].fields.id"));
-    assertEquals(0, getInt("hits[2].fields.id"));
+    for(int i=0;i<3;i++) {
+      assertEquals(expected[i], getInt("hits[" + i + "].fields.id"));
+    }
   }
 }

@@ -873,6 +873,7 @@ public class IndexState implements Closeable {
   public synchronized void close() throws IOException {
     //System.out.println("IndexState.close name=" + name);
     //System.out.println("INDEX STATE close");
+    
     commit();
 
     List<Closeable> closeables = new ArrayList<Closeable>();
@@ -897,9 +898,9 @@ public class IndexState implements Closeable {
     } else if (writer != null) {
       closeables.add(reopenThread);
       closeables.add(manager);
+      closeables.add(slm);
       closeables.add(writer);
       closeables.add(taxoWriter);
-      closeables.add(slm);
       closeables.add(indexDir);
       closeables.add(taxoDir);
       writer = null;
