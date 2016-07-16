@@ -16,74 +16,18 @@ host2 = '10.17.4.12'
 
 DO_REPLICA = False
 
-class ChunkedSend:
-
+class BinarySend:
   def __init__(self, host, port, command, chunkSize):
-    self.h = http.client.HTTPConnection(host, port)
-    self.h.putrequest('POST', '/%s' % command)
-    self.h.putheader('Transfer-Encoding', 'chunked')
-    self.h.endheaders()
-    self.chunkSize = chunkSize
-    self.pending = []
-    self.pendingBytes = 0
+    self.socket = socket.socket()
+    self.socket.connect((host, port))
+    # BINARY_MAGIC header:
+    self.socket.sendall(struct.pack('i', 0x3414f5c))
+    command = 'bulkCSVAddDocument'.encode('utf-8')
+    self.socket.sendall(struct.pack('i', len(command)))
+    self.socket.sendall(command)
 
-  def add(self, data):
-    self.pending.append(data)
-    self.pendingBytes += len(data)
-    self.sendChunks(False)
-
-  def sendChunks(self, finish):
-    if self.pendingBytes == 0:
-      return
-
-    if finish or self.pendingBytes > self.chunkSize:
-      s = b''.join(self.pending)
-      upto = 0
-      while True:
-        chunk = s[self.chunkSize*upto:self.chunkSize*(1+upto)]
-        if len(chunk) == 0:
-          break
-        if not finish and len(chunk) < self.chunkSize:
-          break
-        m = []
-        m.append(('%s\r\n' % hex(len(chunk))[2:]).encode('utf-8'))
-        m.append(chunk)
-        #print 'send: %s' % chunk                                                                                                                            
-        m.append(b'\r\n')
-        try:
-          self.h.send(b''.join(m))
-        except:
-          # Something went wrong; see if server told us what:                                                                                                
-          r = self.h.getresponse()
-          s = r.read()
-          raise RuntimeError('\n\nServer error:\n%s' % s.decode('utf-8'))
-        upto += 1
-      del self.pending[:]
-      self.pending.append(chunk)
-      self.pendingBytes = len(chunk)
-
-  def finish(self):
-    """                                                                                                                                                      
-    Finishes the request and returns the resonse.                                                                                                            
-    """
-
-    self.sendChunks(True)
-
-    # End chunk marker:                                                                                                                                      
-    self.h.send(b'0\r\n\r\n')
-
-    r = self.h.getresponse()
-    if r.status == 200:
-      size = r.getheader('Content-Length')
-      s = r.read().decode('utf-8')
-      self.h.close()
-      return json.loads(s)
-    elif r.status == http.client.BAD_REQUEST:
-      s = r.read()
-      self.h.close()
-      raise RuntimeError('\n\nServer error:\n%s' % s.decode('utf-8'))
-    else:
-      raise RuntimeError('Server returned HTTP %s, %s' % (r.status, r.reason))
+  def add(self, bytes):
+    self.socket.sendall(bytes)
 
 def launchServer(host, stateDir, port):
   command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx4g -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
@@ -147,7 +91,7 @@ if '-rebuild' in sys.argv:
     if host not in ('10.17.4.12', '127.0.0.1'):
       run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host)
 
-ROOT_DIR = '/l/scratch'
+ROOT_DIR = '/b/taxis'
 
 rmDir(host1, '%s/server1' % ROOT_DIR)
 
@@ -179,24 +123,30 @@ try:
   fields = {'indexName': 'index',
             'fields':
             {
-              'name': {'type': 'text'},
-              'asciiname': {'type': 'text'},
-              'geonameid': {'type': 'long', 'search': True, 'store': True, 'sort': True, 'multiValued': True},
-              'elevation': {'type': 'int', 'search': True, 'sort': True, 'multiValued': True},
-              'feature_class': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'latitude': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
-              'longitude': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
-              'cc2': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'timezone': {'type': 'text'},
-              'dem': {'type': 'text'},
-              'country_code': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'admin1_code': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'admin2_code': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'admin3_code': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'admin4_code': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'feature_code': {'type': 'atom', 'sort': True, 'multiValued': True},
-              'alternatenames': {'type': 'text'},
-              'population': {'type': 'long', 'search': True, 'sort': True, 'multiValued': True}}}
+              'vendor_id': {'type': 'atom'},
+              'vendor_name': {'type': 'text'},
+              'cab_color': {'type': 'atom'},
+              'pick_up_date_time': {'type': 'long', 'search': True},
+              'drop_off_date_time': {'type': 'long', 'search': True},
+              'passenger_count': {'type': 'int', 'search': True},
+              'trip_distance': {'type': 'double', 'search': True},
+              'pick_up_lat': {'type': 'double', 'search': True},
+              'pick_up_lon': {'type': 'double', 'search': True},
+              'drop_off_lat': {'type': 'double', 'search': True},
+              'drop_off_lon': {'type': 'double', 'search': True},
+              'payment_type': {'type': 'atom'},
+              'trip_type': {'type': 'atom'},
+              'rate_code': {'type': 'atom'},
+              'fare_amount': {'type': 'double', 'search': True},
+              'surcharge': {'type': 'double', 'search': True},
+              'mta_tax': {'type': 'double', 'search': True},
+              'extra': {'type': 'double', 'search': True},
+              'ehail_fee': {'type': 'double', 'search': True},
+              'improvement_surcharge': {'type': 'double', 'search': True},
+              'tip_amount': {'type': 'double', 'search': True},
+              'tolls_amount': {'type': 'double', 'search': True},
+              'total_amount': {'type': 'double', 'search': True},
+              'store_and_fwd_flag': {'type': 'atom'}}}
 
   send(host1, port1, 'registerFields', fields)
   if DO_REPLICA:
@@ -208,38 +158,35 @@ try:
   else:
     send(host1, port1, 'startIndex', {'indexName': 'index'})
 
-  b = ChunkedSend(host1, port1, 'bulkAddDocument', 65536)
-  b.add(b'{"indexName": "index", "documents": [')
+  b = BinarySend(host1, port1, 'bulkAddDocument', 65536)
+  b.add('index\n')
 
   id = 0
   tStart = time.time()
   nextPrint = 100000
   replicaStarted = False
-  #with open('/lucenedata/geonames/documents.json', 'r') as f:
-  with open('/l/data/geonames.luceneserver.blocks', 'rb') as f:
-    while True:
-      header = f.readline()
-      if len(header) == 0:
-        break
-      docCount, byteCount = (int(x) for x in header.strip().split())
-      buf = f.read(byteCount)      
+  sys.path.insert(0, '/lucenedata/nyc-taxi-data')
+  import toJSON
 
-      b.add(buf);
-      id += docCount
+  for doc in toJSON.loadDocs():
+    if id > 0:
+      b.add(b',')
+    b.add(doc.encode('utf-8'))
+    id += 1
 
-      if id >= nextPrint:
-        dps = id / (time.time()-tStart)
-        if False and id >= 2000000:
-          if DO_REPLICA:
-            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
-          else:
-            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
-          print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
+    if id >= nextPrint:
+      dps = id / (time.time()-tStart)
+      if False and id >= 2000000:
+        if DO_REPLICA:
+          x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
         else:
-          print('%d docs... %.1f docs/sec' % (id, dps))
+          x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
+        print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
+      else:
+        print('%d docs... %.1f docs/sec' % (id, dps))
 
-        while nextPrint <= id:
-          nextPrint += 100000
+      while nextPrint <= id:
+        nextPrint += 100000
 
   b.add(b']}')
   b.finish();

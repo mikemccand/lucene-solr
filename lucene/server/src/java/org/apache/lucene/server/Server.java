@@ -637,6 +637,10 @@ public class Server {
     // replica only, binary: notifies replica that its primary just created a new NRT point
     globalState.addHandler("newNRTPoint", new NewNRTPointHandler(globalState));
 
+    // TODO: allow CSV update document too:
+    // binary protocol for bulk adding CSV encoded documents
+    globalState.addHandler("bulkCSVAddDocument", new BulkCSVAddDocumentHandler(globalState));
+
     // docs are their own handler:
     httpServer.createContext("/doc", new DocHandler());
 
