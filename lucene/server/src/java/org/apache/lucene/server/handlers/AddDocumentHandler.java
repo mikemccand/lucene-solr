@@ -89,7 +89,7 @@ public class AddDocumentHandler extends Handler {
     return "Adds one document to the index.  Returns the index generation (indexGen) that contains this added document.";
   }
 
-  private static class MyField extends Field {
+  static class MyField extends Field {
     public MyField(String name, FieldType ft, Object value) {
       super(name, ft);
       fieldsData = value;

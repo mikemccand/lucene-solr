@@ -1,3 +1,5 @@
+import socket
+import struct
 import time
 import sys
 import json
@@ -21,13 +23,19 @@ class BinarySend:
     self.socket = socket.socket()
     self.socket.connect((host, port))
     # BINARY_MAGIC header:
-    self.socket.sendall(struct.pack('i', 0x3414f5c))
+    self.socket.sendall(struct.pack('>i', 0x3414f5c))
     command = 'bulkCSVAddDocument'.encode('utf-8')
-    self.socket.sendall(struct.pack('i', len(command)))
+    self.socket.sendall(('%c' % len(command)).encode('utf-8'))
     self.socket.sendall(command)
 
   def add(self, bytes):
     self.socket.sendall(bytes)
+
+  def finish(self):
+    self.socket.shutdown(socket.SHUT_WR)
+
+  def close(self):
+    self.socket.close()
 
 def launchServer(host, stateDir, port):
   command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx4g -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
@@ -158,38 +166,44 @@ try:
   else:
     send(host1, port1, 'startIndex', {'indexName': 'index'})
 
-  b = BinarySend(host1, port1, 'bulkAddDocument', 65536)
-  b.add('index\n')
+  b = BinarySend(host1, binaryPort1, 'bulkCSVAddDocument', 65536)
+  b.add(b'index\n')
 
   id = 0
   tStart = time.time()
   nextPrint = 100000
   replicaStarted = False
-  sys.path.insert(0, '/lucenedata/nyc-taxi-data')
-  import toJSON
 
-  for doc in toJSON.loadDocs():
-    if id > 0:
-      b.add(b',')
-    b.add(doc.encode('utf-8'))
-    id += 1
-
-    if id >= nextPrint:
-      dps = id / (time.time()-tStart)
-      if False and id >= 2000000:
-        if DO_REPLICA:
-          x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
+  with open('/lucenedata/nyc-taxi-data/alltaxis.csv', 'rb') as f:
+    while True:
+      doc = f.readline()
+      if len(doc) == 0:
+        break
+      #b.add(doc + b'\n')
+      b.add(doc)
+      #print('doc: %s' % doc)
+      id += 1
+      if id >= nextPrint:
+        dps = id / (time.time()-tStart)
+        if False and id >= 2000000:
+          if DO_REPLICA:
+            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
+          else:
+            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
+          print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
         else:
-          x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
-        print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
-      else:
-        print('%d docs... %.1f docs/sec' % (id, dps))
+          print('%d docs... %.1f docs/sec' % (id, dps))
 
-      while nextPrint <= id:
-        nextPrint += 100000
+        while nextPrint <= id:
+          nextPrint += 100000
 
   b.add(b']}')
-  b.finish();
+  b.finish()
+  bytes = b.socket.recv(4)
+  len = struct.unpack('>i', bytes)
+  bytes = b.socket.recv(len)
+  print('GOT ANSWER:\n%s' % bytes.decode('utf-8'))
+  b.close()
 
   dps = id / (time.time()-tStart)
   print('Total: %.1f docs/sec' % dps)

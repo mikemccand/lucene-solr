@@ -17,6 +17,7 @@ package org.apache.lucene.server.handlers;
  * limitations under the License.
  */
 
+import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -27,6 +28,8 @@ import org.apache.lucene.server.FinishRequest;
 import org.apache.lucene.server.GlobalState;
 import org.apache.lucene.server.IndexState;
 import org.apache.lucene.server.params.*;
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
@@ -59,7 +62,7 @@ public class BulkCSVAddDocumentHandler extends Handler {
 
   @Override
   public void handleBinary(DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
-    CSVParser parser = new CSVParser(state, in);
+    CSVParser parser = new CSVParser(globalState, in);
     int count = 0;
     IndexState.AddDocumentContext ctx = new IndexState.AddDocumentContext();
     while (true) {
@@ -67,6 +70,7 @@ public class BulkCSVAddDocumentHandler extends Handler {
       if (doc == null) {
         break;
       }
+      //System.out.println("BULK: doc=" + doc);
       globalState.indexService.submit(parser.indexState.getAddDocumentJob(count, null, doc, ctx));
       count++;
     }
@@ -80,7 +84,7 @@ public class BulkCSVAddDocumentHandler extends Handler {
     }
 
     JSONObject o = new JSONObject();
-    o.put("indexGen", state.writer.getMaxCompletedSequenceNumber());
+    o.put("indexGen", parser.indexState.writer.getMaxCompletedSequenceNumber());
     o.put("indexedDocumentCount", count);
     if (!ctx.errors.isEmpty()) {
       JSONArray errors = new JSONArray();
@@ -95,7 +99,7 @@ public class BulkCSVAddDocumentHandler extends Handler {
 
     byte[] bytes = o.toString().getBytes(StandardCharsets.UTF_8);
     out.writeInt(bytes.length);
-    out.writeBytes(bytes);
+    out.writeBytes(bytes, 0, bytes.length);
     streamOut.flush();
   }  
 

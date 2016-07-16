@@ -183,7 +183,7 @@ public class GlobalState implements Closeable {
   }
 
   /** Get the {@link IndexState} by index name. */
-  public IndexState get(String name) throws Exception {
+  public IndexState get(String name) throws IOException {
     synchronized(indices) {
       IndexState state = indices.get(name);
       if (state == null) {

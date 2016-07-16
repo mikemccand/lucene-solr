@@ -17,6 +17,7 @@ package org.apache.lucene.server.handlers;
  * limitations under the License.
  */
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -24,11 +25,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.document.BinaryDocValuesField;
+import org.apache.lucene.document.BinaryPoint;
+import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoubleDocValuesField;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.FloatDocValuesField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
@@ -36,6 +41,9 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.server.FieldDef;
+import org.apache.lucene.server.GlobalState;
+import org.apache.lucene.server.IndexState;
+import org.apache.lucene.store.DataInput;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
@@ -55,7 +63,7 @@ class CSVParser {
   int bufferLimit;
   final FieldDef[] fields;
   private byte[] copyBuffer = new byte[1024];
-  private int lineUpto = 0;
+  private int lineUpto;
   public final IndexState indexState;
 
   public CSVParser(GlobalState state, DataInput in) throws IOException {
@@ -67,10 +75,18 @@ class CSVParser {
     IndexState indexState = null;
     while (true) {
       if (bufferUpto == bufferLimit) {
-        bufferLimit = in.readBytes(buffer, 0, buffer.length);
+        try {
+          in.readBytes(buffer, 0, buffer.length);
+        } catch (EOFException eofe) {
+          // nocommit this is bad!!!!  we will lose the last N docs here!!!
+          break;
+        }
+        /*
         if (bufferLimit == 0) {
           throw new IllegalArgumentException("hit end while parsing header");
         }
+        */
+        bufferLimit = buffer.length;
         bufferUpto = 0;
       }
       byte b = buffer[bufferUpto++];
@@ -83,7 +99,9 @@ class CSVParser {
       } else if (b == NEWLINE) {
         if (indexState == null) {
           String indexName = curField.toString();
+          //System.out.println("INDEX: " + indexName);
           indexState = state.get(indexName);
+          curField.setLength(0);
         } else {
           fieldsList.add(indexState.getField(curField.toString()));
           break;
@@ -102,35 +120,55 @@ class CSVParser {
     Document doc = new Document();
 
     int fieldUpto = 0;
+    int copyBufferUpto = 0;
     
     while (true) {
       if (bufferUpto == bufferLimit) {
-        bufferLimit = in.readBytes(buffer, 0, buffer.length);
+        try {
+          in.readBytes(buffer, 0, buffer.length);
+        } catch (EOFException eofe) {
+          // nocommit this is bad!!!!  we will lose the last N docs here!!!
+          if (copyBufferUpto != 0) {
+            throw new IllegalArgumentException("CSV input must end with a newline");
+          }
+          break;
+        }
+        /*
         if (bufferLimit == 0) {
           if (copyBufferUpto != 0) {
             throw new IllegalArgumentException("CSV input must end with a newline");
           }
           break;
         }
+        */
+        bufferLimit = buffer.length;
         bufferUpto = 0;
       }
       byte b = buffer[bufferUpto++];
       if (b == COMMA) {
+        if (copyBufferUpto == 0) {
+          // empty field
+          fieldUpto++;
+          continue;
+        }
         // nocommit need to handle escaping!
+        FieldDef fd = fields[fieldUpto];
         DocValuesType dvType = fd.fieldType.docValuesType();            
         boolean stored = fd.fieldType.stored();
+
+        String s = new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.US_ASCII);
+        //System.out.println("FIELD " + fd.name + " -> " + s);
         
-        switch(fields[fieldUpto].valueType) {
+        switch(fd.valueType) {
         case "atom":
           {
-            String value = new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.UTF8);
             if (fd.usePoints) {
-              doc.add(new BinaryPoint(fd.name, new BytesRef(Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto))));
+              doc.add(new BinaryPoint(fd.name, Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto)));
             }
             if (stored || fd.fieldType.indexOptions() != IndexOptions.NONE) {
-              doc.add(new MyField(fd.name, fd.fieldTypeNoDV, value));
+              doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
             }
-            if (dvType == DocValuesType.Sorted) {
+            if (dvType == DocValuesType.SORTED) {
               doc.add(new SortedDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto))));
             } else if (dvType == DocValuesType.SORTED_SET) {
               doc.add(new SortedSetDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto))));
@@ -141,14 +179,18 @@ class CSVParser {
           }
         case "text":
           {
-            String value = new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.UTF8);
-            doc.add(new MyField(fd.name, fd.fieldTypeNoDV, value));
+            doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
             break;
           }
         case "int":
           {
             // TODO: bytes -> int directly
-            int value = Integer.parseInt(new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.US_ASCII));
+            int value;
+            try {
+              value = Integer.parseInt(s);
+            } catch (NumberFormatException nfe) {
+              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as an int");
+            }
             if (fd.usePoints) {
               doc.add(new IntPoint(fd.name, value));
             }
@@ -156,7 +198,7 @@ class CSVParser {
               doc.add(new StoredField(fd.name, value));
             }
             if (dvType == DocValuesType.NUMERIC) {
-              doc.add(new IntDocValuesField(fd.name, value));
+              doc.add(new NumericDocValuesField(fd.name, value));
             } else if (dvType == DocValuesType.SORTED_NUMERIC) {
               doc.add(new SortedNumericDocValuesField(fd.name, value));
             }
@@ -165,7 +207,12 @@ class CSVParser {
         case "long":
           {
             // TODO: bytes -> long directly
-            long value = Long.parseLong(new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.US_ASCII));
+            long value;
+            try {
+              value = Long.parseLong(s);
+            } catch (NumberFormatException nfe) {
+              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as a long");
+            }
             if (fd.usePoints) {
               doc.add(new LongPoint(fd.name, value));
             }
@@ -173,7 +220,7 @@ class CSVParser {
               doc.add(new StoredField(fd.name, value));
             }
             if (dvType == DocValuesType.NUMERIC) {
-              doc.add(new LongDocValuesField(fd.name, value));
+              doc.add(new NumericDocValuesField(fd.name, value));
             } else if (dvType == DocValuesType.SORTED_NUMERIC) {
               doc.add(new SortedNumericDocValuesField(fd.name, value));
             }
@@ -182,7 +229,12 @@ class CSVParser {
         case "float":
           {
             // TODO: bytes -> float directly
-            float value = Float.parseFloat(new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.US_ASCII));
+            float value;
+            try {
+              value = Float.parseFloat(s);
+            } catch (NumberFormatException nfe) {
+              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as a float");
+            }
             if (fd.usePoints) {
               doc.add(new FloatPoint(fd.name, value));
             }
@@ -199,7 +251,12 @@ class CSVParser {
         case "double":
           {
             // TODO: bytes -> double directly
-            double value = Double.parseDouble(new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.US_ASCII));
+            double value;
+            try {
+              value = Double.parseDouble(s);
+            } catch (NumberFormatException nfe) {
+              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as a double");
+            }
             if (fd.usePoints) {
               doc.add(new DoublePoint(fd.name, value));
             }
@@ -220,6 +277,9 @@ class CSVParser {
         }
         copyBufferUpto = 0;
       } else if (b == NEWLINE) {
+        if (fieldUpto+1 != fields.length) {
+          throw new IllegalArgumentException("line " + lineUpto + " has " + (fieldUpto+1) + " fields, but expected " + fields.length);
+        }
         lineUpto++;
         return doc;
       } else {
