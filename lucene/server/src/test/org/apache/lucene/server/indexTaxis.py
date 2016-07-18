@@ -11,8 +11,8 @@ import http.client
 # TODO
 #   - index lat/lon as geopoint!
 
-host1 = '10.17.4.12'
-host2 = '10.17.4.92'
+host1 = '10.17.4.92'
+host2 = '10.17.4.12'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
@@ -175,16 +175,18 @@ try:
   replicaStarted = False
 
   totBytes = 0
-  with open('/lucenedata/nyc-taxi-data/alltaxis.csv', 'rb') as f:
+  with open('/lucenedata/nyc-taxi-data/alltaxis.csv.blocks', 'rb') as f:
     while True:
-      doc = f.readline()
-      if len(doc) == 0:
+      header = f.readline()
+      if len(header) == 0:
         break
-      totBytes += len(doc)
+      byteCount, docCount = (int(x) for x in header.strip().split())
+      bytes = f.read(byteCount)
+      totBytes += byteCount
       #b.add(doc + b'\n')
-      b.add(doc)
+      b.add(bytes)
       #print('doc: %s' % doc)
-      id += 1
+      id += docCount
       if id >= nextPrint:
         delay = time.time()-tStart
         dps = id / delay
