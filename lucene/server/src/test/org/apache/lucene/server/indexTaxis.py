@@ -174,17 +174,20 @@ try:
   nextPrint = 100000
   replicaStarted = False
 
+  totBytes = 0
   with open('/lucenedata/nyc-taxi-data/alltaxis.csv', 'rb') as f:
     while True:
       doc = f.readline()
       if len(doc) == 0:
         break
+      totBytes += len(doc)
       #b.add(doc + b'\n')
       b.add(doc)
       #print('doc: %s' % doc)
       id += 1
       if id >= nextPrint:
-        dps = id / (time.time()-tStart)
+        delay = time.time()-tStart
+        dps = id / delay
         if False and id >= 2000000:
           if DO_REPLICA:
             x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
@@ -192,7 +195,7 @@ try:
             x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
           print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
         else:
-          print('%d docs... %.1f docs/sec' % (id, dps))
+          print('%d docs... %.1f docs/sec, %.1f MB/sec' % (id, dps, (totBytes/1024./1024.)/delay))
 
         while nextPrint <= id:
           nextPrint += 100000
