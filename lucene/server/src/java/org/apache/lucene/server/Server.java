@@ -742,7 +742,8 @@ public class Server {
 
     private void _run() throws Exception {
       System.out.println("SVR " + globalState.nodeName + ": handle binary client; receive buffer=" + socket.getReceiveBufferSize());
-      try (InputStream in = socket.getInputStream(); OutputStream out = socket.getOutputStream()) {
+      // nocommit buffer here:
+      try (InputStream in = new BufferedInputStream(socket.getInputStream(), 128 * 1024); OutputStream out = socket.getOutputStream()) {
         DataInput dataIn = new InputStreamDataInput(in);
         int x = dataIn.readInt();
         if (x != BINARY_MAGIC) {
@@ -766,7 +767,7 @@ public class Server {
         // nocommit what buffer size?
         OutputStream bufferedOut = new BufferedOutputStream(out);
 
-        handler.handleBinary(dataIn, new OutputStreamDataOutput(bufferedOut), bufferedOut);
+        handler.handleBinary(in, dataIn, new OutputStreamDataOutput(bufferedOut), bufferedOut);
         bufferedOut.flush();
       }
     }

@@ -113,7 +113,7 @@ public class GlobalState implements Closeable {
 
   private final Map<String,Plugin> plugins = new HashMap<String,Plugin>();
 
-  // Seems to be faster than ArrayBlockingQueue:e
+  // Seems to be substantially faster than ArrayBlockingQueue at high throughput:
   final BlockingQueue<Runnable> docsToIndex = new LinkedBlockingQueue<Runnable>(MAX_BUFFERED_DOCS);
 
   /** Common thread pool to index documents. */
@@ -149,6 +149,7 @@ public class GlobalState implements Closeable {
 
   /** Sole constructor. */
   public GlobalState(String nodeName, Path stateDir) throws IOException {
+    System.out.println("MAX INDEXING THREADS " + MAX_INDEXING_THREADS);
     this.nodeName = nodeName;
     this.stateDir = stateDir;
     if (Files.exists(stateDir) == false) {

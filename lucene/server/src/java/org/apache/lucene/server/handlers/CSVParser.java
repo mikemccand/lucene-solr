@@ -57,236 +57,186 @@ class CSVParser {
   final static byte COMMA = (byte) ',';
   final static byte NEWLINE = (byte) '\n';
   
-  final DataInput in;
-  final byte[] buffer = new byte[1024];
+  final byte[] bytes;
+  final long globalOffset;
   int bufferUpto;
   int bufferLimit;
   final FieldDef[] fields;
-  private byte[] copyBuffer = new byte[1024];
-  private int lineUpto;
   public final IndexState indexState;
+  private int lastDocStart;
+  // nocommit
+  public String verbose;
 
-  public CSVParser(GlobalState state, DataInput in) throws IOException {
-    this.in = in;
-
-    // parse header and lookup fields:
-    List<FieldDef> fieldsList = new ArrayList<>();
-    StringBuilder curField = new StringBuilder();
-    IndexState indexState = null;
-    while (true) {
-      if (bufferUpto == bufferLimit) {
-        try {
-          in.readBytes(buffer, 0, buffer.length);
-        } catch (EOFException eofe) {
-          // nocommit this is bad!!!!  we will lose the last N docs here!!!
-          break;
-        }
-        /*
-        if (bufferLimit == 0) {
-          throw new IllegalArgumentException("hit end while parsing header");
-        }
-        */
-        bufferLimit = buffer.length;
-        bufferUpto = 0;
-      }
-      byte b = buffer[bufferUpto++];
-      if (b == COMMA) {
-        if (indexState == null) {
-          throw new IllegalArgumentException("first line must be the index name");
-        }
-        fieldsList.add(indexState.getField(curField.toString()));
-        curField.setLength(0);
-      } else if (b == NEWLINE) {
-        if (indexState == null) {
-          String indexName = curField.toString();
-          //System.out.println("INDEX: " + indexName);
-          indexState = state.get(indexName);
-          curField.setLength(0);
-        } else {
-          fieldsList.add(indexState.getField(curField.toString()));
-          break;
-        }
-      } else {
-        // index and field names are simple ascii:
-        curField.append((char) b);
-      }
-    }
+  public CSVParser(long globalOffset, FieldDef[] fields, IndexState indexState, byte[] bytes, int startOffset) {
+    this.bytes = bytes;
+    this.fields = fields;
+    bufferUpto = startOffset;
+    this.globalOffset = globalOffset;
     this.indexState = indexState;
-
-    fields = fieldsList.toArray(new FieldDef[fieldsList.size()]);
   }
 
-  public Document nextDoc() throws IOException {
+  public int getLastDocStart() {
+    return lastDocStart;
+  }
+
+  public int getBufferUpto() {
+    return bufferUpto;
+  }
+
+  private void addOneField(FieldDef fd, Document doc, int lastFieldStart) {
+    int len = bufferUpto - lastFieldStart - 1;
+    String s = new String(bytes, lastFieldStart, len, StandardCharsets.US_ASCII);
+    if (verbose != null) {
+      System.out.println(verbose +": FIELD " + fd.name + " -> " + s);
+    }
+    boolean stored = fd.fieldType.stored();
+    DocValuesType dvType = fd.fieldType.docValuesType();
+    
+    // nocommit need to handle escaping!
+    
+    switch(fd.valueType) {
+    case "atom":
+      {
+        if (fd.usePoints) {
+          doc.add(new BinaryPoint(fd.name, Arrays.copyOfRange(bytes, lastFieldStart, len)));
+        }
+        if (stored || fd.fieldType.indexOptions() != IndexOptions.NONE) {
+          doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
+        }
+        if (dvType == DocValuesType.SORTED) {
+          doc.add(new SortedDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, len))));
+        } else if (dvType == DocValuesType.SORTED_SET) {
+          doc.add(new SortedSetDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, len))));
+        } else if (dvType == DocValuesType.BINARY) {
+          doc.add(new BinaryDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, len))));
+        }
+        break;
+      }
+    case "text":
+      {
+        doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
+        break;
+      }
+    case "int":
+      {
+        // TODO: bytes -> int directly
+        int value;
+        try {
+          value = Integer.parseInt(s);
+        } catch (NumberFormatException nfe) {
+          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as an int");
+        }
+        if (fd.usePoints) {
+          doc.add(new IntPoint(fd.name, value));
+        }
+        if (stored) {
+          doc.add(new StoredField(fd.name, value));
+        }
+        if (dvType == DocValuesType.NUMERIC) {
+          doc.add(new NumericDocValuesField(fd.name, value));
+        } else if (dvType == DocValuesType.SORTED_NUMERIC) {
+          doc.add(new SortedNumericDocValuesField(fd.name, value));
+        }
+        break;
+      }
+    case "long":
+      {
+        // TODO: bytes -> long directly
+        long value;
+        try {
+          value = Long.parseLong(s);
+        } catch (NumberFormatException nfe) {
+          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a long");
+        }
+        if (fd.usePoints) {
+          doc.add(new LongPoint(fd.name, value));
+        }
+        if (stored) {
+          doc.add(new StoredField(fd.name, value));
+        }
+        if (dvType == DocValuesType.NUMERIC) {
+          doc.add(new NumericDocValuesField(fd.name, value));
+        } else if (dvType == DocValuesType.SORTED_NUMERIC) {
+          doc.add(new SortedNumericDocValuesField(fd.name, value));
+        }
+        break;
+      }
+    case "float":
+      {
+        // TODO: bytes -> float directly
+        float value;
+        try {
+          value = Float.parseFloat(s);
+        } catch (NumberFormatException nfe) {
+          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a float");
+        }
+        if (fd.usePoints) {
+          doc.add(new FloatPoint(fd.name, value));
+        }
+        if (stored) {
+          doc.add(new StoredField(fd.name, value));
+        }
+        if (dvType == DocValuesType.NUMERIC) {
+          doc.add(new FloatDocValuesField(fd.name, value));
+        } else if (dvType == DocValuesType.SORTED_NUMERIC) {
+          doc.add(new SortedNumericDocValuesField(fd.name, NumericUtils.floatToSortableInt(value)));
+        }
+        break;
+      }
+    case "double":
+      {
+        // TODO: bytes -> double directly
+        double value;
+        try {
+          value = Double.parseDouble(s);
+        } catch (NumberFormatException nfe) {
+          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a double");
+        }
+        if (fd.usePoints) {
+          doc.add(new DoublePoint(fd.name, value));
+        }
+        if (stored) {
+          doc.add(new StoredField(fd.name, value));
+        }
+        if (dvType == DocValuesType.NUMERIC) {
+          doc.add(new DoubleDocValuesField(fd.name, value));
+        } else if (dvType == DocValuesType.SORTED_NUMERIC) {
+          doc.add(new SortedNumericDocValuesField(fd.name, NumericUtils.doubleToSortableLong(value)));
+        }
+        break;
+      }
+    }
+  }
+
+  public Document nextDoc() {
     Document doc = new Document();
 
     int fieldUpto = 0;
-    int copyBufferUpto = 0;
+    int lastFieldStart = bufferUpto;
+    lastDocStart = bufferUpto;
     
-    while (true) {
-      if (bufferUpto == bufferLimit) {
-        try {
-          in.readBytes(buffer, 0, buffer.length);
-        } catch (EOFException eofe) {
-          // nocommit this is bad!!!!  we will lose the last N docs here!!!
-          if (copyBufferUpto != 0) {
-            throw new IllegalArgumentException("CSV input must end with a newline");
-          }
-          break;
-        }
-        /*
-        if (bufferLimit == 0) {
-          if (copyBufferUpto != 0) {
-            throw new IllegalArgumentException("CSV input must end with a newline");
-          }
-          break;
-        }
-        */
-        bufferLimit = buffer.length;
-        bufferUpto = 0;
-      }
-      byte b = buffer[bufferUpto++];
+    while (bufferUpto < bytes.length) {
+      byte b = bytes[bufferUpto++];
       if (b == COMMA) {
-        if (copyBufferUpto == 0) {
-          // empty field
-          fieldUpto++;
-          continue;
+        if (bufferUpto > lastFieldStart+1) {
+          addOneField(fields[fieldUpto], doc, lastFieldStart);
+        } else {
+          // OK: empty field
         }
-        // nocommit need to handle escaping!
-        FieldDef fd = fields[fieldUpto];
-        DocValuesType dvType = fd.fieldType.docValuesType();            
-        boolean stored = fd.fieldType.stored();
-
-        String s = new String(copyBuffer, 0, copyBufferUpto, StandardCharsets.US_ASCII);
-        //System.out.println("FIELD " + fd.name + " -> " + s);
-        
-        switch(fd.valueType) {
-        case "atom":
-          {
-            if (fd.usePoints) {
-              doc.add(new BinaryPoint(fd.name, Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto)));
-            }
-            if (stored || fd.fieldType.indexOptions() != IndexOptions.NONE) {
-              doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
-            }
-            if (dvType == DocValuesType.SORTED) {
-              doc.add(new SortedDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto))));
-            } else if (dvType == DocValuesType.SORTED_SET) {
-              doc.add(new SortedSetDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto))));
-            } else if (dvType == DocValuesType.BINARY) {
-              doc.add(new BinaryDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(copyBuffer, 0, copyBufferUpto))));
-            }
-            break;
-          }
-        case "text":
-          {
-            doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
-            break;
-          }
-        case "int":
-          {
-            // TODO: bytes -> int directly
-            int value;
-            try {
-              value = Integer.parseInt(s);
-            } catch (NumberFormatException nfe) {
-              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as an int");
-            }
-            if (fd.usePoints) {
-              doc.add(new IntPoint(fd.name, value));
-            }
-            if (stored) {
-              doc.add(new StoredField(fd.name, value));
-            }
-            if (dvType == DocValuesType.NUMERIC) {
-              doc.add(new NumericDocValuesField(fd.name, value));
-            } else if (dvType == DocValuesType.SORTED_NUMERIC) {
-              doc.add(new SortedNumericDocValuesField(fd.name, value));
-            }
-            break;
-          }
-        case "long":
-          {
-            // TODO: bytes -> long directly
-            long value;
-            try {
-              value = Long.parseLong(s);
-            } catch (NumberFormatException nfe) {
-              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as a long");
-            }
-            if (fd.usePoints) {
-              doc.add(new LongPoint(fd.name, value));
-            }
-            if (stored) {
-              doc.add(new StoredField(fd.name, value));
-            }
-            if (dvType == DocValuesType.NUMERIC) {
-              doc.add(new NumericDocValuesField(fd.name, value));
-            } else if (dvType == DocValuesType.SORTED_NUMERIC) {
-              doc.add(new SortedNumericDocValuesField(fd.name, value));
-            }
-            break;
-          }
-        case "float":
-          {
-            // TODO: bytes -> float directly
-            float value;
-            try {
-              value = Float.parseFloat(s);
-            } catch (NumberFormatException nfe) {
-              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as a float");
-            }
-            if (fd.usePoints) {
-              doc.add(new FloatPoint(fd.name, value));
-            }
-            if (stored) {
-              doc.add(new StoredField(fd.name, value));
-            }
-            if (dvType == DocValuesType.NUMERIC) {
-              doc.add(new FloatDocValuesField(fd.name, value));
-            } else if (dvType == DocValuesType.SORTED_NUMERIC) {
-              doc.add(new SortedNumericDocValuesField(fd.name, NumericUtils.floatToSortableInt(value)));
-            }
-            break;
-          }
-        case "double":
-          {
-            // TODO: bytes -> double directly
-            double value;
-            try {
-              value = Double.parseDouble(s);
-            } catch (NumberFormatException nfe) {
-              throw new IllegalArgumentException("line " + lineUpto + " field \"" + fd.name + "\": could not parse " + s + " as a double");
-            }
-            if (fd.usePoints) {
-              doc.add(new DoublePoint(fd.name, value));
-            }
-            if (stored) {
-              doc.add(new StoredField(fd.name, value));
-            }
-            if (dvType == DocValuesType.NUMERIC) {
-              doc.add(new DoubleDocValuesField(fd.name, value));
-            } else if (dvType == DocValuesType.SORTED_NUMERIC) {
-              doc.add(new SortedNumericDocValuesField(fd.name, NumericUtils.doubleToSortableLong(value)));
-            }
-            break;
-          }
-        }
+        lastFieldStart = bufferUpto;
         fieldUpto++;
-        if (fieldUpto >= fields.length) {
-          throw new IllegalArgumentException("line " + lineUpto + " has too many fields");
+        if (fieldUpto > fields.length) {
+          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": line has too many fields");
         }
-        copyBufferUpto = 0;
+
       } else if (b == NEWLINE) {
-        if (fieldUpto+1 != fields.length) {
-          throw new IllegalArgumentException("line " + lineUpto + " has " + (fieldUpto+1) + " fields, but expected " + fields.length);
+        // add last field
+        addOneField(fields[fieldUpto], doc, lastFieldStart);
+        fieldUpto++;
+        if (fieldUpto != fields.length) {
+          throw new IllegalArgumentException("doc at offset " + lastDocStart + " has " + fieldUpto + " fields, but expected " + fields.length);
         }
-        lineUpto++;
         return doc;
-      } else {
-        if (copyBufferUpto == copyBuffer.length) {
-          copyBuffer = ArrayUtil.grow(copyBuffer, copyBufferUpto);
-        }
-        copyBuffer[copyBufferUpto++] = b;
       }
     }
 

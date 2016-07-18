@@ -17,12 +17,6 @@ package org.apache.lucene.server.handlers;
  * limitations under the License.
  */
 
-import java.io.OutputStream;
-import java.io.Reader;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import org.apache.lucene.server.FinishRequest;
 import org.apache.lucene.server.GlobalState;
 import org.apache.lucene.server.IndexState;
@@ -30,6 +24,13 @@ import org.apache.lucene.server.PreHandle;
 import org.apache.lucene.server.params.*;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
+
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 // nocommit needs ChannelHandlerContext too?
 
@@ -86,7 +87,7 @@ public abstract class Handler {
   }
 
   /** Invoked for handlers that use binary communication. */
-  public void handleBinary(DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
+  public void handleBinary(InputStream in, DataInput dataIn, DataOutput out, OutputStream streamOut) throws Exception {
     throw new UnsupportedOperationException();
   }
 

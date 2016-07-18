@@ -456,8 +456,13 @@ public class IndexState implements Closeable {
     return nrtPrimaryNode != null;
   }
 
+  // nocommit rename to indexing context
+  
   /** Context to hold state for a single indexing request. */
   public static class AddDocumentContext {
+
+    /** How many chunks are still indexing. */
+    public final AtomicInteger inFlightChunkCount = new AtomicInteger();
 
     /** How many documents were added. */
     public final AtomicInteger addCount = new AtomicInteger();
@@ -465,15 +470,15 @@ public class IndexState implements Closeable {
     /** Any indexing errors that occurred. */
     public final List<String> errors = new ArrayList<String>();
 
-    /** Which document index hit each error. */
-    public final List<Integer> errorIndex = new ArrayList<Integer>();
+    /** Byte offset of the document that hit each error. */
+    public final List<Long> errorIndex = new ArrayList<Long>();
 
     /** Sole constructor. */
     public AddDocumentContext() {
     }
 
     /** Record an exception. */
-    public synchronized void addException(int index, Exception e) {
+    public synchronized void addException(long index, Exception e) {
       StringWriter sw = new StringWriter();
       PrintWriter pw = new PrintWriter(sw);
       e.printStackTrace(pw);
@@ -578,6 +583,27 @@ public class IndexState implements Closeable {
 
     return result;
   }
+
+  public long indexDocument(Document doc) throws IOException {
+    Document idoc = facetsConfig.build(taxoWriter, doc);
+    long gen = writer.addDocument(idoc);
+
+    if (!liveFieldValues.isEmpty()) {
+      // TODO: wasteful!
+      for(IndexableField f : doc.getFields()) {
+        FieldDef fd = getField(f.name());
+        if (fd.liveValuesIDField != null) {
+          // TODO: O(N):
+          String id = doc.get(fd.liveValuesIDField);
+          if (id != null) {
+            liveFieldValues.get(f.name()).add(id, f.stringValue());
+          }
+        }
+      }
+    }
+
+    return gen;
+  }  
 
   public Map<String,FieldDef> getAllFields() {
     return Collections.unmodifiableMap(fields);

@@ -11,8 +11,8 @@ import http.client
 # TODO
 #   - index lat/lon as geopoint!
 
-host1 = '10.17.4.92'
-host2 = '10.17.4.12'
+host1 = '10.17.4.12'
+host2 = '10.17.4.92'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
