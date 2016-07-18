@@ -11,15 +11,15 @@ import http.client
 # TODO
 #   - index lat/lon as geopoint!
 
-host1 = '10.17.4.92'
-host2 = '10.17.4.12'
+host1 = '10.17.4.12'
+host2 = '10.17.4.92'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
 DO_REPLICA = False
 
 class BinarySend:
-  def __init__(self, host, port, command, chunkSize):
+  def __init__(self, host, port, command):
     self.socket = socket.socket()
     self.socket.connect((host, port))
     # BINARY_MAGIC header:
@@ -38,7 +38,7 @@ class BinarySend:
     self.socket.close()
 
 def launchServer(host, stateDir, port):
-  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx4g -verbose:gc -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
+  command = r'ssh mike@%s "cd /l/newluceneserver/lucene; java -Xmx4g -cp build/replicator/lucene-replicator-7.0.0-SNAPSHOT.jar:build/facet/lucene-facet-7.0.0-SNAPSHOT.jar:build/highlighter/lucene-highlighter-7.0.0-SNAPSHOT.jar:build/expressions/lucene-expressions-7.0.0-SNAPSHOT.jar:build/analysis/common/lucene-analyzers-common-7.0.0-SNAPSHOT.jar:build/analysis/icu/lucene-analyzers-icu-7.0.0-SNAPSHOT.jar:build/queries/lucene-queries-7.0.0-SNAPSHOT.jar:build/join/lucene-join-7.0.0-SNAPSHOT.jar:build/queryparser/lucene-queryparser-7.0.0-SNAPSHOT.jar:build/suggest/lucene-suggest-7.0.0-SNAPSHOT.jar:build/core/lucene-core-7.0.0-SNAPSHOT.jar:build/server/lucene-server-7.0.0-SNAPSHOT.jar:server/lib/\* org.apache.lucene.server.Server -port %s -stateDir %s -interface %s"' % (host, port, stateDir, host)
   print('%s: server command %s' % (host, command))
   p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -114,18 +114,20 @@ try:
   send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server1/index' % ROOT_DIR})
   if DO_REPLICA:
     send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server2/index' % ROOT_DIR})
-  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 128., 'maxRefreshSec': 5.0})
+  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 10000.0})
   if DO_REPLICA:
     send(host2, port2, "settings", {'indexName': 'index',
                                     'index.verbose': False,
                                     'directory': 'MMapDirectory',
                                     'nrtCachingDirectory.maxSizeMB': 0.0,
-                                    'index.merge.scheduler.auto_throttle': False})
+                                    #'index.merge.scheduler.auto_throttle': False,
+                                    })
   send(host1, port1, "settings", {'indexName': 'index',
                                   'index.verbose': False,
                                   'directory': 'MMapDirectory',
                                   'nrtCachingDirectory.maxSizeMB': 0.0,
-                                  'index.merge.scheduler.auto_throttle': False})
+                                  #'index.merge.scheduler.auto_throttle': False,
+                                  })
   
 
   fields = {'indexName': 'index',
@@ -166,8 +168,10 @@ try:
   else:
     send(host1, port1, 'startIndex', {'indexName': 'index'})
 
-  b = BinarySend(host1, binaryPort1, 'bulkCSVAddDocument', 65536)
-  b.add(b'index\n')
+  b1 = BinarySend(host1, binaryPort1, 'bulkCSVAddDocument')
+  b1.add(b'index\n')
+  #b2 = BinarySend(host1, binaryPort1, 'bulkCSVAddDocument')
+  #b2.add(b'index\n')
 
   id = 0
   tStart = time.time()
@@ -175,7 +179,9 @@ try:
   replicaStarted = False
 
   totBytes = 0
-  with open('/lucenedata/nyc-taxi-data/alltaxis.csv.blocks', 'rb') as f:
+  chunkCount = 0
+  #with open('/lucenedata/nyc-taxi-data/alltaxis.csv.blocks', 'rb') as f:
+  with open('/b/alltaxis.csv.blocks', 'rb') as f:
     while True:
       header = f.readline()
       if len(header) == 0:
@@ -183,8 +189,16 @@ try:
       byteCount, docCount = (int(x) for x in header.strip().split())
       bytes = f.read(byteCount)
       totBytes += byteCount
-      #b.add(doc + b'\n')
-      b.add(bytes)
+      if True or chunkCount & 1 == 0:
+        b1.add(bytes)
+        if False and chunkCount == 0:
+          # copy the CSV header for b2 as well:
+          s = bytes.decode('utf-8')
+          i = s.find('\n')
+          b2.add(s[:i+1].encode('utf-8'))
+      else:
+        b2.add(bytes)
+      chunkCount += 1
       #print('doc: %s' % doc)
       id += docCount
       if id >= nextPrint:
@@ -195,20 +209,28 @@ try:
             x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
           else:
             x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
-          print('%d docs...%d hits; %.1f docs/sec' % (id, x['totalHits'], dps))
+          print('%6.1f sec: %d docs...%d hits; %.1f docs/sec' % (delay, id, x['totalHits'], dps))
         else:
-          print('%d docs... %.1f docs/sec, %.1f MB/sec' % (id, dps, (totBytes/1024./1024.)/delay))
+          print('%6.1f sec: %d docs... %.1f docs/sec, %.1f MB/sec' % (delay, id, dps, (totBytes/1024./1024.)/delay))
 
         while nextPrint <= id:
           nextPrint += 100000
 
-  b.add(b']}')
-  b.finish()
-  bytes = b.socket.recv(4)
-  len = struct.unpack('>i', bytes)
-  bytes = b.socket.recv(len)
+  b1.finish()
+  #b2.finish()
+  
+  bytes = b1.socket.recv(4)
+  size = struct.unpack('>i', bytes)
+  bytes = b1.socket.recv(size[0])
   print('GOT ANSWER:\n%s' % bytes.decode('utf-8'))
-  b.close()
+  b1.close()
+
+  if False:
+    bytes = b2.socket.recv(4)
+    size = struct.unpack('>i', bytes)
+    bytes = b2.socket.recv(size[0])
+    print('GOT ANSWER:\n%s' % bytes.decode('utf-8'))
+    b2.close()
 
   dps = id / (time.time()-tStart)
   print('Total: %.1f docs/sec' % dps)

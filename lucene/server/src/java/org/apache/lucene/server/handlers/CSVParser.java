@@ -124,7 +124,9 @@ class CSVParser {
         try {
           value = Integer.parseInt(s);
         } catch (NumberFormatException nfe) {
-          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as an int");
+          //throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as an int");
+          System.out.println(("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as an int"));
+          return;
         }
         if (fd.usePoints) {
           doc.add(new IntPoint(fd.name, value));
@@ -146,7 +148,9 @@ class CSVParser {
         try {
           value = Long.parseLong(s);
         } catch (NumberFormatException nfe) {
-          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a long");
+          //throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a long");
+          System.out.println("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a long");
+          return;
         }
         if (fd.usePoints) {
           doc.add(new LongPoint(fd.name, value));
@@ -168,7 +172,9 @@ class CSVParser {
         try {
           value = Float.parseFloat(s);
         } catch (NumberFormatException nfe) {
-          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a float");
+          //throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a float");
+          System.out.println("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a float");
+          return;
         }
         if (fd.usePoints) {
           doc.add(new FloatPoint(fd.name, value));
@@ -190,7 +196,9 @@ class CSVParser {
         try {
           value = Double.parseDouble(s);
         } catch (NumberFormatException nfe) {
-          throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a double");
+          //throw new IllegalArgumentException("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a double");
+          System.out.println("doc at offset " + (globalOffset + lastFieldStart) + ": field \"" + fd.name + "\": could not parse " + s + " as a double");
+          return;
         }
         if (fd.usePoints) {
           doc.add(new DoublePoint(fd.name, value));
