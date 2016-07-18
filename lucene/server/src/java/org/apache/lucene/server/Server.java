@@ -447,7 +447,7 @@ public class Server {
           assert request != null;
           JSONObject fullRequest;
           try {
-            fullRequest = (JSONObject) new JSONParser(JSONParser.MODE_STRICTEST).parse(requestString, ContainerFactory.FACTORY_SIMPLE);          
+            fullRequest = (JSONObject) new JSONParser(JSONParser.MODE_STRICTEST).parse(requestString, ContainerFactory.FACTORY_SIMPLE);
           } catch (ParseException pe) {
             // The request parsed originally...:
             assert false;

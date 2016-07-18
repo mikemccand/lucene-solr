@@ -85,6 +85,7 @@ import org.apache.lucene.search.ReferenceManager.RefreshListener;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherLifetimeManager;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.PerFieldSimilarityWrapper;
 import org.apache.lucene.search.similarities.Similarity;
@@ -161,6 +162,9 @@ public class IndexState implements Closeable {
 
   /** Taxonomy directory */
   Directory taxoDir;
+
+  /** optional index time sorting (write once!) or null if no index time sorting */
+  private Sort indexSort;
 
   public IndexWriter writer;
 
@@ -999,6 +1003,17 @@ public class IndexState implements Closeable {
     this.df = df;
   }
 
+  public void setIndexSort(Sort sort, Object saveState) {
+    if (writer != null) {
+      throw new IllegalStateException("index \"" + name + "\": cannot change index sort when the index is running");
+    }
+    if (this.indexSort != null && this.indexSort.equals(sort) == false) {
+      throw new IllegalStateException("index \"" + name + "\": cannot change index sort");
+    }
+    settingsSaveState.put("indexSort", saveState);
+    this.indexSort = sort;
+  }
+
   public void setNormsFormat(String format, float acceptableOverheadRatio) {
     this.normsFormat = format;
     // nocommit not used anymore?
@@ -1064,11 +1079,29 @@ public class IndexState implements Closeable {
     // method:
 
     try {
+
+      // Do fields first, because indexSort could reference fields:
+      
+      // Field defs:
+      JSONObject fieldsState = (JSONObject) o.get("fields");
+      JSONObject top = new JSONObject();
+      top.put("fields", fieldsState);
+      Request r = new Request(null, null, top, RegisterFieldHandler.TYPE);
+      FinishRequest fr = ((RegisterFieldHandler) globalState.getHandler("registerFields")).handle(this, r, null);
+      assert !Request.anythingLeft(top): top;
+      fr.finish();
+
+      for(FieldDef fd : fields.values()) {
+        if (fd.liveValuesIDField != null) {
+          liveFieldValues.put(fd.name, new StringLiveFieldValues(manager, fd.liveValuesIDField, fd.name));
+        }
+      }
+
       // Global settings:
       JSONObject settingsState = (JSONObject) o.get("settings");
       //System.out.println("load: state=" + o);
-      Request r = new Request(null, null, settingsState, SettingsHandler.TYPE);
-      FinishRequest fr = ((SettingsHandler) globalState.getHandler("settings")).handle(this, r, null);
+      r = new Request(null, null, settingsState, SettingsHandler.TYPE);
+      fr = ((SettingsHandler) globalState.getHandler("settings")).handle(this, r, null);
       fr.finish();
       assert !Request.anythingLeft(settingsState): settingsState.toString();
 
@@ -1078,21 +1111,6 @@ public class IndexState implements Closeable {
       fr = ((LiveSettingsHandler) globalState.getHandler("liveSettings")).handle(this, r, null);
       fr.finish();
       assert !Request.anythingLeft(liveSettingsState): liveSettingsState.toString();
-
-      // Field defs:
-      JSONObject fieldsState = (JSONObject) o.get("fields");
-      JSONObject top = new JSONObject();
-      top.put("fields", fieldsState);
-      r = new Request(null, null, top, RegisterFieldHandler.TYPE);
-      fr = ((RegisterFieldHandler) globalState.getHandler("registerFields")).handle(this, r, null);
-      assert !Request.anythingLeft(top): top;
-      fr.finish();
-
-      for(FieldDef fd : fields.values()) {
-        if (fd.liveValuesIDField != null) {
-          liveFieldValues.put(fd.name, new StringLiveFieldValues(manager, fd.liveValuesIDField, fd.name));
-        }
-      }
 
       // do not init suggesters here: they can take non-trivial heap, and they need Directory to be created
       suggesterSettings = (JSONObject) o.get("suggest");
@@ -1271,6 +1289,10 @@ public class IndexState implements Closeable {
       boolean verbose = getBooleanSetting("index.verbose");
       if (verbose) {
         iwc.setInfoStream(new PrintStreamInfoStream(System.out));
+      }
+
+      if (indexSort != null) {
+        iwc.setIndexSort(indexSort);
       }
 
       iwc.setSimilarity(sim);
@@ -1503,6 +1525,12 @@ public class IndexState implements Closeable {
       IndexWriterConfig iwc = new IndexWriterConfig(indexAnalyzer);
       if (getBooleanSetting("index.verbose")) {
         iwc.setInfoStream(new PrintStreamInfoStream(System.out));
+      }
+
+      System.out.println("IndexState.start sort=" + indexSort);
+
+      if (indexSort != null) {
+        iwc.setIndexSort(indexSort);
       }
 
       iwc.setSimilarity(sim);

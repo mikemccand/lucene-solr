@@ -18,6 +18,7 @@ package org.apache.lucene.server.handlers;
  */
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.util.HashMap;
@@ -78,7 +79,7 @@ public class SendMeFilesHandler extends Handler {
   }
 
   @Override
-  public void handleBinary(DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
+  public void handleBinary(InputStream streamIn, DataInput in, DataOutput out, OutputStream streamOut) throws Exception {
     // which index we will send files from
     String indexName = in.readString();
     IndexState state = globalState.get(indexName);

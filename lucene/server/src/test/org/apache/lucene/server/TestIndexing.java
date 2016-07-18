@@ -305,6 +305,45 @@ public class TestIndexing extends ServerBaseTestCase {
     send("deleteIndex");
   }
 
+  public void testIndexSort() throws Exception {
+    createIndex("sorted");
+    send("registerFields", "{fields: {id: {type: atom, store: true, sort: true}, id2: {type: atom, store: true, sort: true}}}");
+    send("settings", "{indexSort: [{field: id}]}");
+    JSONObject result = send("settings", "{indexName: sorted}");
+    assertEquals("[{\"field\":\"id\"}]", result.get("indexSort").toString());
+    Exception e = expectThrows(IOException.class, () -> {send("settings", "{indexSort: [{field: id2}]}");});
+    assertTrue(e.getMessage().contains("java.lang.IllegalStateException: index \"sorted\": cannot change index sort"));
+    send("startIndex");
+    for(int i=200;i>=0;i--) {
+      send("addDocument", "{fields: {id: \"" + i + "\"}}");
+      refresh();
+      send("search", "{indexName: sorted, queryText: \"*:*\"}");
+      result = send("stats", "{indexName: sorted}");
+      if (result.toString().contains("indexSort=<string: \\\"id\\\">")) {
+        // success
+        break;
+      }
+    }
+
+    // make sure indexSort survives server bounce:
+    bounceServer();
+    send("startIndex", "{indexName: sorted}");
+    send("deleteAllDocuments");
+    System.out.println("TEST: again");
+    for(int i=200;i>=0;i--) {
+      send("addDocument", "{fields: {id: \"" + i + "\"}}");
+      refresh();
+      send("search", "{indexName: sorted, queryText: \"*:*\"}");
+      result = send("stats", "{indexName: sorted}");
+      if (result.toString().contains("indexSort=<string: \\\"id\\\">")) {
+        // success
+        break;
+      }
+    }
+    
+    send("deleteIndex");
+  }
+
   public void testOnlySettings() throws Exception {
     for(int i=0;i<2;i++) {
       server.curIndexName = "settings";

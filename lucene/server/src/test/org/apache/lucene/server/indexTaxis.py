@@ -11,12 +11,13 @@ import http.client
 # TODO
 #   - index lat/lon as geopoint!
 
-host1 = '10.17.4.12'
-host2 = '10.17.4.92'
+host1 = '10.17.4.92'
+host2 = '10.17.4.12'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
 DO_REPLICA = False
+DO_SEARCH = False
 
 class BinarySend:
   def __init__(self, host, port, command):
@@ -96,7 +97,7 @@ if '-rebuild' in sys.argv:
   run('ant clean jar', 'ant.log')
   #run('ssh %s rm -rf /l/newluceneserver' % host2)
   for host in (host1, host2):
-    if host not in ('10.17.4.12', '127.0.0.1'):
+    if host not in ('10.17.4.92', '127.0.0.1'):
       run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host)
 
 ROOT_DIR = '/b/taxis'
@@ -180,8 +181,8 @@ try:
 
   totBytes = 0
   chunkCount = 0
-  #with open('/lucenedata/nyc-taxi-data/alltaxis.csv.blocks', 'rb') as f:
-  with open('/b/alltaxis.csv.blocks', 'rb') as f:
+  with open('/lucenedata/nyc-taxi-data/alltaxis.csv.blocks', 'rb') as f:
+  #with open('/b/alltaxis.csv.blocks', 'rb') as f:
     while True:
       header = f.readline()
       if len(header) == 0:
@@ -204,12 +205,12 @@ try:
       if id >= nextPrint:
         delay = time.time()-tStart
         dps = id / delay
-        if False and id >= 2000000:
+        if DO_SEARCH:
           if DO_REPLICA:
-            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
+            x = json.loads(send(host2, port2, 'search', {'indexName': 'index', 'queryText': '*:*'}));
           else:
-            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*', 'retrieveFields': ['geonameid']}));
-          print('%6.1f sec: %d docs...%d hits; %.1f docs/sec' % (delay, id, x['totalHits'], dps))
+            x = json.loads(send(host1, port1, 'search', {'indexName': 'index', 'queryText': '*:*'}));
+          print('%6.1f sec: %d hits, %d docs... %.1f docs/sec, %.1f MB/sec' % (delay, x['totalHits'], id, dps, (totBytes/1024./1024.)/delay))
         else:
           print('%6.1f sec: %d docs... %.1f docs/sec, %.1f MB/sec' % (delay, id, dps, (totBytes/1024./1024.)/delay))
 

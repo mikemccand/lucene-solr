@@ -163,20 +163,20 @@ public class SearchHandler extends Handler {
    *  count then we don't cache it. */
   private final static int TOP_FACET_CACHE_MAX_FACET_COUNT = 100;
 
-  private final static Type SORT_TYPE = new ListType(
-                                            new StructType(new Param("field", "The field to sort on.  Pass <code>docid</code> for index order and <code>score</code> for relevance sort.", new StringType()),
-                                                           new Param("selector", "For multi valued fields, how to select which value is used for sorting",
-                                                                     new EnumType("min", "Minimum value",
-                                                                                  "max", "Maximum value",
-                                                                                  "middle_min", "Middle value of the set; if there are an even number of values, the lower of the middle two is chosen",
-                                                                                  "middle_max", "Middle value of the set; if there are an even number of values, the upper of the middle two is chosen"),
-                                                                     "min"),
-                                                           new Param("origin", "For distance sort, the point that we measure distance from",
-                                                                     new StructType(
-                                                                                    new Param("latitude", "Latitude of the origin", new FloatType()),
-                                                                                    new Param("longitude", "Longitude of the origin", new FloatType()))),
-                                                           new Param("missingLast", "Whether missing values should sort last instead of first.  Note that this runs \"before\" reverse, so if you sort missing first and reverse=true then missing values will be at the end.", new BooleanType(), false),
-                                                           new Param("reverse", "Sort in reverse of the field's natural order", new BooleanType(), false)));
+  final static Type SORT_TYPE = new ListType(
+                                    new StructType(new Param("field", "The field to sort on.  Pass <code>docid</code> for index order and <code>score</code> for relevance sort.", new StringType()),
+                                                   new Param("selector", "For multi valued fields, how to select which value is used for sorting",
+                                                             new EnumType("min", "Minimum value",
+                                                                          "max", "Maximum value",
+                                                                          "middle_min", "Middle value of the set; if there are an even number of values, the lower of the middle two is chosen",
+                                                                          "middle_max", "Middle value of the set; if there are an even number of values, the upper of the middle two is chosen"),
+                                                             "min"),
+                                                   new Param("origin", "For distance sort, the point that we measure distance from",
+                                                             new StructType(
+                                                                            new Param("latitude", "Latitude of the origin", new FloatType()),
+                                                                            new Param("longitude", "Longitude of the origin", new FloatType()))),
+                                                   new Param("missingLast", "Whether missing values should sort last instead of first.  Note that this runs \"before\" reverse, so if you sort missing first and reverse=true then missing values will be at the end.", new BooleanType(), false),
+                                                   new Param("reverse", "Sort in reverse of the field's natural order", new BooleanType(), false)));
 
   private final static Type BOOLEAN_OCCUR_TYPE = new EnumType("must", "Clause is required.",
                                                               "should", "Clause is optional.",
@@ -702,7 +702,7 @@ public class SearchHandler extends Handler {
   }
 
   /** Decodes a list of Request into the corresponding Sort. */
-  private static Sort parseSort(long timeStamp, IndexState state, List<Object> fields, List<String> sortFieldNames, Map<String,FieldDef> dynamicFields) {
+  static Sort parseSort(long timestampSec, IndexState state, List<Object> fields, List<String> sortFieldNames, Map<String,FieldDef> dynamicFields) {
     List<SortField> sortFields = new ArrayList<SortField>();
     for(Object _sub : fields) {
       Request sub = (Request) _sub;
@@ -717,7 +717,15 @@ public class SearchHandler extends Handler {
       } else if (fieldName.equals("score")) {
         sf = SortField.FIELD_SCORE;
       } else {
-        FieldDef fd = dynamicFields.get(fieldName);
+        FieldDef fd;
+        if (dynamicFields != null) {
+          fd = dynamicFields.get(fieldName);
+        } else {
+          fd = null;
+        }
+        if (fd == null) {
+          fd = state.getField(fieldName);
+        }
         if (fd == null) {
           sub.fail("field", "field \"" + fieldName + "\" was not registered and was not specified as a dynamicField");
           // Dead code but compiler disagrees:
@@ -973,7 +981,7 @@ public class SearchHandler extends Handler {
   }
 
   @SuppressWarnings("unchecked")
-  private static Query parseQuery(long timeStamp, Request topRequest, IndexState state, Request r, String field,
+  private static Query parseQuery(long timestampSec, Request topRequest, IndexState state, Request r, String field,
                                   Map<ToParentBlockJoinQuery,BlockJoinQueryChild> useBlockJoinCollector,
                                   Map<String,FieldDef> dynamicFields) {
     Query q;
@@ -994,7 +1002,7 @@ public class SearchHandler extends Handler {
       for(Object o : r2.getList("subQueries")) {
         Request r3 = (Request) o;
         BooleanClause.Occur occur = parseBooleanOccur(r3.getEnum("occur"));
-        bq.add(parseQuery(timeStamp, topRequest, state, r3.getStruct("query"), field, useBlockJoinCollector, dynamicFields), occur);
+        bq.add(parseQuery(timestampSec, topRequest, state, r3.getStruct("query"), field, useBlockJoinCollector, dynamicFields), occur);
       }
       q = bq.build();
     } else if (pr.name.equals("CommonTermsQuery")) {
@@ -1011,7 +1019,7 @@ public class SearchHandler extends Handler {
       q = ctq;
     } else if (pr.name.equals("ConstantScoreQuery")) {
       if (pr.r.hasParam("query")) {
-        q = new ConstantScoreQuery(parseQuery(timeStamp, topRequest, state, pr.r.getStruct("query"), field, useBlockJoinCollector, dynamicFields));
+        q = new ConstantScoreQuery(parseQuery(timestampSec, topRequest, state, pr.r.getStruct("query"), field, useBlockJoinCollector, dynamicFields));
       } else {
         // nocommit exc here?
         q = null;
@@ -1200,8 +1208,8 @@ public class SearchHandler extends Handler {
       // TODO: LatLonPoint.nearest!
 
     } else if (pr.name.equals("ToParentBlockJoinQuery")) {
-      Query childQuery = parseQuery(timeStamp, topRequest, state, pr.r.getStruct("childQuery"), field, useBlockJoinCollector, dynamicFields);
-      BitSetProducer parentsFilter = new QueryBitSetProducer(parseQuery(timeStamp, topRequest, state, pr.r.getStruct("parentsFilter"), field, useBlockJoinCollector, dynamicFields));
+      Query childQuery = parseQuery(timestampSec, topRequest, state, pr.r.getStruct("childQuery"), field, useBlockJoinCollector, dynamicFields);
+      BitSetProducer parentsFilter = new QueryBitSetProducer(parseQuery(timestampSec, topRequest, state, pr.r.getStruct("parentsFilter"), field, useBlockJoinCollector, dynamicFields));
       String scoreModeString = pr.r.getEnum("scoreMode");
       ScoreMode scoreMode;
       if (scoreModeString.equals("None")) {
@@ -1228,7 +1236,7 @@ public class SearchHandler extends Handler {
         BlockJoinQueryChild child = new BlockJoinQueryChild();
         if (childHits.hasParam("sort")) {
           child.sortFieldNames = new ArrayList<String>();
-          child.sort = parseSort(timeStamp, state, childHits.getList("sort"), child.sortFieldNames, dynamicFields);
+          child.sort = parseSort(timestampSec, state, childHits.getList("sort"), child.sortFieldNames, dynamicFields);
         }
         child.maxChildren = childHits.getInt("maxChildren");
         child.trackScores = childHits.getBoolean("trackScores");
@@ -1239,7 +1247,7 @@ public class SearchHandler extends Handler {
       Request r2 = pr.r;
       List<Query> subQueries = new ArrayList<>();
       for(Object o : r2.getList("subQueries")) {
-        subQueries.add(parseQuery(timeStamp, topRequest, state, (Request) o, field, useBlockJoinCollector, dynamicFields));
+        subQueries.add(parseQuery(timestampSec, topRequest, state, (Request) o, field, useBlockJoinCollector, dynamicFields));
       }
       q = new DisjunctionMaxQuery(subQueries, r2.getFloat("tieBreakMultiplier"));
     } else if (pr.name.equals("text")) {
@@ -1691,7 +1699,7 @@ public class SearchHandler extends Handler {
   }
 
   /** Fold in any drillDowns requests into the query. */
-  private static DrillDownQuery addDrillDowns(long timeStamp, IndexState state, Request r, Query q, Map<String,FieldDef> dynamicFields) {
+  private static DrillDownQuery addDrillDowns(long timestampSec, IndexState state, Request r, Query q, Map<String,FieldDef> dynamicFields) {
     // Always create a DrillDownQuery; if there
     // are no drill-downs it will just rewrite to the
     // original query:
@@ -1712,7 +1720,7 @@ public class SearchHandler extends Handler {
 
           if (fr.hasParam("query")) {
             // Drill down by query:
-            ddq.add(fd.name, parseQuery(timeStamp, null, state, r.getStruct("query"), fd.name, null, dynamicFields));
+            ddq.add(fd.name, parseQuery(timestampSec, null, state, r.getStruct("query"), fd.name, null, dynamicFields));
           } else if (fr.hasParam("numericRange")) {
             Request rr = fr.getStruct("numericRange");
             Range range;
@@ -1777,7 +1785,7 @@ public class SearchHandler extends Handler {
     return ddq;
   }
 
-  private static Query extractQuery(IndexState state, Request r, long timeStamp,
+  private static Query extractQuery(IndexState state, Request r, long timestampSec,
                                     Map<ToParentBlockJoinQuery,BlockJoinQueryChild> useBlockJoinCollector,
                                     Map<String,FieldDef> dynamicFields) throws Exception {
     Query q;
@@ -1798,7 +1806,7 @@ public class SearchHandler extends Handler {
         q = null;
       }
     } else if (r.hasParam("query")) {
-      q = parseQuery(timeStamp, r, state, r.getStruct("query"), null, useBlockJoinCollector, dynamicFields);
+      q = parseQuery(timestampSec, r, state, r.getStruct("query"), null, useBlockJoinCollector, dynamicFields);
     } else {
       q = new MatchAllDocsQuery();
     }
@@ -2119,23 +2127,23 @@ public class SearchHandler extends Handler {
 
     final Map<ToParentBlockJoinQuery,BlockJoinQueryChild> useBlockJoinCollector = new HashMap<ToParentBlockJoinQuery,BlockJoinQueryChild>();
 
-    // App should re-use a previous timestamp if user does a
-    // follow-on action, so that things relying on timestamp
+    // App should re-use a previous timestampSec if user does a
+    // follow-on action, so that things relying on timestampSec
     // (e.g. dynamic range facet counts, recency blended
     // sorting) don't change as the user drills down / next
     // pages / etc.
-    final long timeStamp;
+    final long timestampSec;
     if (r.hasParam("timeStamp")) {
-      timeStamp = r.getLong("timeStamp");
+      timestampSec = r.getLong("timeStamp");
     } else {
-      timeStamp = System.currentTimeMillis()/1000;
+      timestampSec = System.currentTimeMillis()/1000;
     }
 
     JSONObject diagnostics = new JSONObject();
 
     final Map<String,FieldDef> dynamicFields = getDynamicFields(state, r);
 
-    Query q = extractQuery(state, r, timeStamp, useBlockJoinCollector, dynamicFields);
+    Query q = extractQuery(state, r, timestampSec, useBlockJoinCollector, dynamicFields);
 
     final Set<String> fields;
     final Map<String,FieldHighlightConfig> highlightFields;
@@ -2259,7 +2267,7 @@ public class SearchHandler extends Handler {
       // in-order collectors
       //Weight w = s.createNormalizedWeight(q2);
 
-      DrillDownQuery ddq = addDrillDowns(timeStamp, state, r, q, dynamicFields);
+      DrillDownQuery ddq = addDrillDowns(timestampSec, state, r, q, dynamicFields);
 
       diagnostics.put("drillDownQuery", q.toString());
 
@@ -2276,7 +2284,7 @@ public class SearchHandler extends Handler {
       if (r.hasParam("sort")) {
         sortRequest = r.getStruct("sort");
         sortFieldNames = new ArrayList<String>();
-        sort = parseSort(timeStamp, state, sortRequest.getList("fields"), sortFieldNames, dynamicFields);
+        sort = parseSort(timestampSec, state, sortRequest.getList("fields"), sortFieldNames, dynamicFields);
       } else {
         sortRequest = null;
         sort = null;
@@ -2301,7 +2309,7 @@ public class SearchHandler extends Handler {
         }
 
         if (grouping.hasParam("sort")) {
-          groupSort = parseSort(timeStamp, state, grouping.getList("sort"), null, dynamicFields);
+          groupSort = parseSort(timestampSec, state, grouping.getList("sort"), null, dynamicFields);
         } else {
           groupSort = Sort.RELEVANCE;
         }
@@ -2765,7 +2773,7 @@ public class SearchHandler extends Handler {
 
       JSONObject o3 = new JSONObject();
       result.put("searchState", o3);
-      o3.put("timeStamp", timeStamp);
+      o3.put("timeStamp", timestampSec);
 
       // Record searcher version that handled this request:
       o3.put("searcher", ((DirectoryReader) s.searcher.getIndexReader()).getVersion());

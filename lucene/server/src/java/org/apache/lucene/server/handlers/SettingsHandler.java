@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.codecs.NormsFormat;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.server.DirectoryFactory;
 import org.apache.lucene.server.FinishRequest;
 import org.apache.lucene.server.GlobalState;
@@ -30,7 +31,10 @@ import org.apache.lucene.server.params.PolyType.PolyEntry;
 import org.apache.lucene.server.params.Request.PolyResult;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.packed.PackedInts;
+
 import net.minidev.json.JSONValue;
+import net.minidev.json.parser.ContainerFactory;
+import net.minidev.json.parser.JSONParser;
 
 /** For changing index settings that cannot be changed while
  *  the index is running. */
@@ -51,7 +55,7 @@ public class SettingsHandler extends Handler {
         // nocommit make these default to CMS's defaults:
         new Param("concurrentMergeScheduler.maxThreadCount", "How many merge threads to allow at once", new IntType(), 4),
         new Param("concurrentMergeScheduler.maxMergeCount", "Maximum backlog of pending merges before indexing threads are stalled", new IntType(), 9),
-
+        new Param("indexSort", "Index time sorting; can only be written once", SearchHandler.SORT_TYPE),
         new Param("index.verbose", "Turn on IndexWriter's infoStream (to stdout)", new BooleanType(), false),
         new Param("index.merge.scheduler.auto_throttle", "Turn on/off the merge scheduler's auto throttling", new BooleanType(), true),
         // nocommit how to accept any class on the CP that
@@ -81,6 +85,7 @@ public class SettingsHandler extends Handler {
 
   @Override
   public FinishRequest handle(final IndexState state, Request r, Map<String,List<String>> params) throws Exception {
+    System.out.println("SETTINGS: parse " + r);
     // nocommit how to / should we make this truly thread
     // safe?
     final DirectoryFactory df;
@@ -110,6 +115,14 @@ public class SettingsHandler extends Handler {
       // gets angry because it doesn't know what to do w/
       // this parameter:
       r.clearParam("normsFormat");
+    }
+
+    if (r.hasParam("indexSort")) {
+      Object sortJSON = new JSONParser(JSONParser.MODE_STRICTEST).parse(r.getRaw("indexSort").toString(), ContainerFactory.FACTORY_SIMPLE);
+      Sort sort = SearchHandler.parseSort(System.currentTimeMillis()/1000, state, r.getList("indexSort"), null, null);
+      // nocommit do this in finish:
+      state.setIndexSort(sort, sortJSON);
+      r.clearParam("indexSort");
     }
 
     // nocommit these settings take effect even if there is
