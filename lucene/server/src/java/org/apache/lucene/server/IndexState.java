@@ -177,7 +177,7 @@ public class IndexState implements Closeable {
   public NRTReplicaNode nrtReplicaNode;
 
   /** Taxonomy writer */
-  DirectoryTaxonomyWriter taxoWriter;
+  public DirectoryTaxonomyWriter taxoWriter;
 
   /** Internal IndexWriter used by DirectoryTaxonomyWriter;
    *  we pull this out so we can .deleteUnusedFiles after

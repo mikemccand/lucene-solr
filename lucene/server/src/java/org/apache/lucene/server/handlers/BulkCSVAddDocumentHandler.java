@@ -17,6 +17,17 @@ package org.apache.lucene.server.handlers;
  * limitations under the License.
  */
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Semaphore;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.server.FieldDef;
 import org.apache.lucene.server.FinishRequest;
@@ -28,16 +39,6 @@ import org.apache.lucene.store.DataOutput;
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Semaphore;
 
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
@@ -186,6 +187,7 @@ public class BulkCSVAddDocumentHandler extends Handler {
 
         // skip the NEWLINE:
         upto++;
+        
         if (prev != null) {
           prev.setNextStartFragment(bytes, 0, upto);
           //System.out.println("CHUNK @ " + globalOffset + " done setNextStartFragment");
@@ -194,25 +196,62 @@ public class BulkCSVAddDocumentHandler extends Handler {
           prev = null;
         }
 
-        // now parse & index whole documents:
+        final int startUpto = upto;
 
-        // TODO: we could re-use field instances here
-        //System.out.println("CHUNK @ " + globalOffset + ": init csv parser");
-        
-        CSVParser parser = new CSVParser(globalOffset, fields, indexState, bytes, upto);
-        while (true) {
-          //System.out.println("CHUNK @ " + globalOffset + ": parse next doc");
-          Document doc = parser.nextDoc();
-          if (doc == null) {
-            break;
-          }
-          //System.out.println("CHUNK @ " + globalOffset + ": doc");
-          indexDocument(globalOffset + parser.getLastDocStart(), doc);
+        // add all documents in this chunk as a block:
+        final int[] endOffset = new int[1];
+        try {
+          indexState.writer.addDocuments(new Iterable<Document>() {
+              @Override
+              public Iterator<Document> iterator() {
+
+                // now parse & index whole documents:
+
+                final CSVParser parser = new CSVParser(globalOffset, fields, indexState, bytes, startUpto);
+
+                return new Iterator<Document>() {
+                  private Document nextDoc;
+                  private boolean nextSet;
+                
+                  @Override
+                  public boolean hasNext() {
+                    if (nextSet == false) {
+                      nextDoc = parser.nextDoc();
+                      if (nextDoc != null) {
+                        ctx.addCount.incrementAndGet();
+                        try {
+                          nextDoc = indexState.facetsConfig.build(indexState.taxoWriter, nextDoc);
+                        } catch (IOException ioe) {
+                          throw new RuntimeException(ioe);
+                        }
+                        // nocommit: live field values
+                      } else {
+                        endOffset[0] = parser.getLastDocStart();
+                      }
+                      nextSet = true;
+                    }
+                    return nextDoc != null;
+                  }
+
+                  @Override
+                  public Document next() {
+                    assert nextSet;
+                    try {
+                      return nextDoc;
+                    } finally {
+                      nextSet = false;
+                      nextDoc = null;
+                    }
+                  }
+                };
+              }
+            });
+        } catch (Exception e) {
+          ctx.addException(globalOffset, e);
         }
 
-        int offset = parser.getLastDocStart();
         //System.out.println("CHUNK @ " + globalOffset + ": done parsing; end fragment length=" + (bytes.length-offset));
-        setEndFragment(offset);
+        setEndFragment(endOffset[0]);
         
       } else {
         // exotic case: the entire 256 KB chunk is inside one document

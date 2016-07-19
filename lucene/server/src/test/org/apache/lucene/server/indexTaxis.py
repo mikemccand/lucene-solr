@@ -16,8 +16,8 @@ host2 = '10.17.4.12'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
-DO_REPLICA = True
-DO_SEARCH = True
+DO_REPLICA = False
+DO_SEARCH = False
 
 class BinarySend:
   def __init__(self, host, port, command):
