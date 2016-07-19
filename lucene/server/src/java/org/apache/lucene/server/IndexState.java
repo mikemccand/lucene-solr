@@ -1527,7 +1527,7 @@ public class IndexState implements Closeable {
         iwc.setInfoStream(new PrintStreamInfoStream(System.out));
       }
 
-      System.out.println("IndexState.start sort=" + indexSort);
+      //System.out.println("IndexState.start sort=" + indexSort);
 
       if (indexSort != null) {
         iwc.setIndexSort(indexSort);

@@ -85,7 +85,7 @@ public class SettingsHandler extends Handler {
 
   @Override
   public FinishRequest handle(final IndexState state, Request r, Map<String,List<String>> params) throws Exception {
-    System.out.println("SETTINGS: parse " + r);
+    //System.out.println("SETTINGS: parse " + r);
     // nocommit how to / should we make this truly thread
     // safe?
     final DirectoryFactory df;
