@@ -16,8 +16,8 @@ host2 = '10.17.4.12'
 #host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
-DO_REPLICA = False
-DO_SEARCH = False
+DO_REPLICA = True
+DO_SEARCH = True
 
 class BinarySend:
   def __init__(self, host, port, command):
@@ -115,7 +115,7 @@ try:
   send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server1/index' % ROOT_DIR})
   if DO_REPLICA:
     send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server2/index' % ROOT_DIR})
-  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 10000.0})
+  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 5.0})
   if DO_REPLICA:
     send(host2, port2, "settings", {'indexName': 'index',
                                     'index.verbose': False,

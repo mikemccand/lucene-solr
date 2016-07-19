@@ -20,6 +20,7 @@ package org.apache.lucene.server;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.MalformedInputException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
@@ -341,6 +342,20 @@ public class TestIndexing extends ServerBaseTestCase {
       }
     }
     
+    send("deleteIndex");
+  }
+
+  // nocommit test error handling in csv inputs
+  
+  public void testIndexCSVBasic() throws Exception {
+    createIndex("csv");
+    send("registerFields", "{fields: {id: {type: atom, store: true, sort: true}, id2: {type: atom, store: true, sort: true}, body: {type: text, store: true, highlight: true}}}");
+    send("startIndex");
+    byte[] bytes = server.sendBinary("bulkCSVAddDocument",
+                                      "csv\nid,id2,body\n0,1,some text\n1,2,some more text\n".getBytes(StandardCharsets.UTF_8));
+    JSONObject result = parseJSONObject(new String(bytes, StandardCharsets.UTF_8));
+    assertEquals(2, getInt(result, "indexedDocumentCount"));
+    send("stopIndex");
     send("deleteIndex");
   }
 

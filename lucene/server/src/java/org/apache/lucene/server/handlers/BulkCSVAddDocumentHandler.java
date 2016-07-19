@@ -104,23 +104,25 @@ public class BulkCSVAddDocumentHandler extends Handler {
     /** Indexes the one document that spans across the end of our chunk */
     private void indexSplitDoc() {
       int endFragmentLength = bytes.length - endFragmentStartOffset;
-      //System.out.println("CHUNK @ " + globalOffset + " indexSplitDoc: endFragmentLength=" + endFragmentLength + " nextStartFragmentLength=" + nextStartFragmentLength);
-      byte[] allBytes = new byte[endFragmentLength + nextStartFragmentLength];
-      System.arraycopy(bytes, endFragmentStartOffset, allBytes, 0, endFragmentLength);
-      System.arraycopy(nextStartFragment, 0, allBytes, endFragmentLength, nextStartFragmentLength);
-      /*
-      try {
-        System.out.println("CHUNK @ " + globalOffset + " doc: " + new String(allBytes, "UTF-8"));
-      } catch (Exception e) {
-        System.out.println("IGNORE: " +e);
+      System.out.println("CHUNK @ " + globalOffset + " indexSplitDoc: endFragmentLength=" + endFragmentLength + " nextStartFragmentLength=" + nextStartFragmentLength);
+      if (endFragmentLength + nextStartFragmentLength > 0) {
+        byte[] allBytes = new byte[endFragmentLength + nextStartFragmentLength];
+        System.arraycopy(bytes, endFragmentStartOffset, allBytes, 0, endFragmentLength);
+        System.arraycopy(nextStartFragment, 0, allBytes, endFragmentLength, nextStartFragmentLength);
+        /*
+          try {
+          System.out.println("CHUNK @ " + globalOffset + " doc: " + new String(allBytes, "UTF-8"));
+          } catch (Exception e) {
+          System.out.println("IGNORE: " +e);
+          }
+        */
+        CSVParser parser = new CSVParser(globalOffset + endFragmentStartOffset, fields, indexState, allBytes, 0);
+        //parser.verbose = "CHUNK @ " + globalOffset;
+        Document doc = parser.nextDoc();
+        assert doc != null;
+        indexDocument(globalOffset + endFragmentStartOffset, doc);
+        assert parser.getBufferUpto() == allBytes.length;
       }
-      */
-      CSVParser parser = new CSVParser(globalOffset + endFragmentStartOffset, fields, indexState, allBytes, 0);
-      //parser.verbose = "CHUNK @ " + globalOffset;
-      Document doc = parser.nextDoc();
-      assert doc != null;
-      indexDocument(globalOffset + endFragmentStartOffset, doc);
-      assert parser.getBufferUpto() == allBytes.length;
       semaphore.release();
       ctx.inFlightChunkCount.decrementAndGet();
     }
@@ -199,12 +201,12 @@ public class BulkCSVAddDocumentHandler extends Handler {
         
         CSVParser parser = new CSVParser(globalOffset, fields, indexState, bytes, upto);
         while (true) {
-          //System.out.println("CHUNK @ " + globalOffset + ": parse next doc");
+          System.out.println("CHUNK @ " + globalOffset + ": parse next doc");
           Document doc = parser.nextDoc();
           if (doc == null) {
             break;
           }
-          //System.out.println("CHUNK @ " + globalOffset + ": doc");
+          System.out.println("CHUNK @ " + globalOffset + ": doc");
           indexDocument(globalOffset + parser.getLastDocStart(), doc);
         }
 
@@ -254,6 +256,9 @@ public class BulkCSVAddDocumentHandler extends Handler {
         if (indexState == null) {
           String indexName = curField.toString();
           indexState = globalState.get(indexName);
+          if (indexState.isStarted() == false) {
+            throw new IllegalArgumentException("index \"" + indexName + "\" isn't started: cannot index documents");
+          }
           curField.setLength(0);
         } else {
           fieldsList.add(indexState.getField(curField.toString()));
@@ -339,7 +344,7 @@ public class BulkCSVAddDocumentHandler extends Handler {
     
     // nocommit this is ... lameish ... can we just join on these futures?:
     while (true) {
-      if (ctx.inFlightChunkCount.get() > 0) {
+      if (ctx.inFlightChunkCount.get() == 0) {
         break;
       }
       Thread.sleep(1);

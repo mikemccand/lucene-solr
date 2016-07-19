@@ -51,6 +51,7 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.JSONStyle;
 import net.minidev.json.JSONStyleIdent;
 import net.minidev.json.JSONValue;
+import net.minidev.json.parser.ContainerFactory;
 import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 
@@ -108,6 +109,14 @@ public abstract class ServerBaseTestCase extends LuceneTestCase {
   protected long addDocument(String json) throws Exception {
     JSONObject o = send("addDocument", json);
     return ((Number) o.get("indexGen")).longValue();
+  }
+
+  protected JSONObject parseJSONObject(String s) throws Exception {
+    Object o = new JSONParser(JSONParser.MODE_STRICTEST).parse(s, ContainerFactory.FACTORY_SIMPLE);
+    if (o instanceof JSONObject == false) {
+      throw new IllegalArgumentException("string is not a JSON struct { .. }");
+    }
+    return (JSONObject) o;
   }
 
   protected static void installPlugin(Path sourceFile) throws IOException {

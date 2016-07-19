@@ -17,15 +17,26 @@ package org.apache.lucene.server;
  * limitations under the License.
  */
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
+import java.net.Socket;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.store.InputStreamDataInput;
+import org.apache.lucene.store.OutputStreamDataOutput;
 
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONStyle;
@@ -208,6 +219,27 @@ public class RunServer {
       c.disconnect();
       throw new IOException("Server error:\n" + new String(bytes, "UTF-8"));
     }
+  }
+
+  public byte[] sendBinary(String command, byte[] body) throws Exception {
+    Socket s = new Socket("localhost", binaryPort);
+    BufferedInputStream in = new BufferedInputStream(s.getInputStream());
+    BufferedOutputStream out = new BufferedOutputStream(s.getOutputStream());
+    DataInput dataIn = new InputStreamDataInput(in);
+    DataOutput dataOut = new OutputStreamDataOutput(out);
+    dataOut.writeInt(Server.BINARY_MAGIC);
+    byte[] commandBytes = command.getBytes(StandardCharsets.UTF_8);
+    dataOut.writeVInt(commandBytes.length);
+    dataOut.writeBytes(commandBytes, 0, commandBytes.length);
+    dataOut.writeBytes(body, 0, body.length);
+    out.flush();
+    s.shutdownOutput();
+
+    int len = dataIn.readInt();
+    byte[] responseBytes = new byte[len];
+    dataIn.readBytes(responseBytes, 0, len);
+    s.close();
+    return responseBytes;
   }
   
   public String httpLoad(String path) throws Exception {

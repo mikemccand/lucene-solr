@@ -104,11 +104,11 @@ class CSVParser {
           doc.add(new AddDocumentHandler.MyField(fd.name, fd.fieldTypeNoDV, s));
         }
         if (dvType == DocValuesType.SORTED) {
-          doc.add(new SortedDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, len))));
+          doc.add(new SortedDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, lastFieldStart+len))));
         } else if (dvType == DocValuesType.SORTED_SET) {
-          doc.add(new SortedSetDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, len))));
+          doc.add(new SortedSetDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, lastFieldStart+len))));
         } else if (dvType == DocValuesType.BINARY) {
-          doc.add(new BinaryDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, len))));
+          doc.add(new BinaryDocValuesField(fd.name, new BytesRef(Arrays.copyOfRange(bytes, lastFieldStart, lastFieldStart+len))));
         }
         break;
       }
