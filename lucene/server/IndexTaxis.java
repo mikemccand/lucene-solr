@@ -127,7 +127,11 @@ public class IndexTaxis {
     case "tip_amount":
     case "tolls_amount":
     case "total_amount":
-      doc.add(new DoublePoint(fieldName, Double.parseDouble(rawValue)));
+      try {
+        doc.add(new DoublePoint(fieldName, Double.parseDouble(rawValue)));
+      } catch (NumberFormatException nfe) {
+        System.out.println("WARNING: failed to parse \"" + rawValue + "\" as double for field \"" + fieldName + "\"");
+      }
       break;
     default:
       throw new AssertionError("failed to handle field \"" + fieldName + "\"");
@@ -245,6 +249,7 @@ public class IndexTaxis {
     for(int i=0;i<threadCount;i++) {
       threads[i].join();
     }
+    System.out.println("Indexing done; now close");
 
     w.close();
     docs.close();
