@@ -15,19 +15,6 @@
  * limitations under the License.
  */
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DoublePoint;
 import org.apache.lucene.document.Field;
@@ -39,6 +26,20 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 // javac -cp ../build/core/classes/java IndexTaxis.java ; java -cp ../build/core/classes/java:. IndexTaxis /b/taxisjava 6 /lucenedata/nyc-taxi-data/alltaxis.csv.blocks 
 
@@ -146,36 +147,73 @@ public class IndexTaxis {
     if (bytes[bytes.length-1] != NEWLINE) {
       throw new AssertionError();
     }
-    int lastFieldStart = startByte;
-    int lastLineStart = startByte;
-    int fieldUpto = 0;
-    for(int i=startByte;i<bytes.length;i++) {
-      byte b = bytes[i];
-      if (b == NEWLINE || b == COMMA) {
-        if (i > lastFieldStart) {
-          String s = new String(bytes, lastFieldStart, i-lastFieldStart, StandardCharsets.UTF_8);
-          addOneField(doc, fields[fieldUpto], s);
+    w.addDocuments(new Iterable<Document>() {
+        @Override
+        public Iterator<Document> iterator() {
+          return new Iterator<Document>() {
+            private int i = startByte;
+            private Document nextDoc;
+            private boolean nextSet;
+            private int lastLineStart = startByte;
+            private int chunkDocCount;
+
+            @Override
+            public boolean hasNext() {
+              if (nextSet == false) {
+                setNextDoc();
+                nextSet = true;
+              }
+
+              return nextDoc != null;
+            }
+
+            @Override
+            public Document next() {
+              assert nextSet;
+              nextSet = false;
+              Document result = nextDoc;
+              nextDoc = null;
+              return result;
+            }
+
+            private void setNextDoc() {
+              Document doc = new Document();
+              int fieldUpto = 0;
+              int lastFieldStart = i;
+              for(;i<bytes.length;i++) {
+                byte b = bytes[i];
+                if (b == NEWLINE || b == COMMA) {
+                  if (i > lastFieldStart) {
+                    String s = new String(bytes, lastFieldStart, i-lastFieldStart, StandardCharsets.UTF_8);
+                    addOneField(doc, fields[fieldUpto], s);
+                  }
+                  if (b == NEWLINE) {
+                    if (fieldUpto != fields.length-1) {
+                      throw new AssertionError("fieldUpto=" + fieldUpto + " vs fields.length-1=" + (fields.length-1));
+                    }
+                    chunkDocCount++;
+                    this.nextDoc = doc;
+                    int x = docCounter.incrementAndGet();
+                    long y = bytesCounter.addAndGet((i+1) - lastLineStart);
+                    if (x % 100000 == 0) {
+                      double sec = (System.nanoTime() - startNS)/1000000000.0;
+                      System.out.println(String.format(Locale.ROOT, "%.1f sec: %d docs; %.1f docs/sec; %.1f MB/sec", sec, x, x/sec, (y/1024./1024.)/sec));
+                    }
+                    fieldUpto = 0;
+                    i++;
+                    lastLineStart = i;
+                    return;
+                  } else {
+                    fieldUpto++;
+                  }
+                  lastFieldStart = i+1;
+                }
+              }
+              // System.out.println("chunk doc count: " + chunkDocCount);
+            }
+          };
         }
-        if (b == NEWLINE) {
-          if (fieldUpto != fields.length-1) {
-            throw new AssertionError();
-          }
-          w.addDocument(doc);
-          int x = docCounter.incrementAndGet();
-          long y = bytesCounter.addAndGet(i - lastLineStart);
-          if (x % 100000 == 0) {
-            double sec = (System.nanoTime() - startNS)/1000000000.0;
-            System.out.println(String.format(Locale.ROOT, "%.1f sec: %d docs; %.1f docs/sec; %.1f MB/sec", sec, x, x/sec, (y/1024./1024.)/sec));
-          }
-          doc = new Document();
-          fieldUpto = 0;
-          lastLineStart = i+1;
-        } else {
-          fieldUpto++;
-        }
-        lastFieldStart = i+1;
-      }
-    }
+      });
   }
 
   public static void main(String[] args) throws Exception {
@@ -186,6 +224,7 @@ public class IndexTaxis {
 
     IndexWriterConfig iwc = new IndexWriterConfig();
     iwc.setRAMBufferSizeMB(1024.);
+    iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
     final IndexWriter w = new IndexWriter(dir, iwc);
 
