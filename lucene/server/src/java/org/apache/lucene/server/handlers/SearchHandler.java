@@ -199,14 +199,12 @@ public class SearchHandler extends Handler {
                                                                new StructType(
                                                                    new Param("occur", "Occur.", BOOLEAN_OCCUR_TYPE),
                                                                    new Param("query", "Query for this clause", QUERY_TYPE_WRAP)))),
-                                                       new Param("disableCoord", "Disable coord factor.", new BooleanType(), true),
                                                        new Param("minimumNumberShouldMatch", "Minimum number of should clauses for a match.", new IntType(), 0)),
                                          new PolyEntry("CommonTermsQuery", "A query that executes high-frequency terms in a optional sub-query to prevent slow queries due to common terms like stopwords (see @lucene:queries:org.apache.lucene.queries.CommonTermsQuery)",
                                                        new Param("terms", "List of terms", new ListType(new StringType())),
                                                        new Param("lowFreqOccur", "BooleanClause.Occur used for low frequency terms", BOOLEAN_OCCUR_TYPE),
                                                        new Param("highFreqOccur", "BooleanClause.Occur used for high frequency terms", BOOLEAN_OCCUR_TYPE),
-                                                       new Param("maxTermFrequency", "a value from [0.0, 1.0) or an absolutely number >= 1 representing the maximum threshold of a terms document frequency to be considered a low frequency term", new FloatType()),
-                                                       new Param("disableCoord", "True if coord factor should not apply to the low / high frequency clauses", new BooleanType(), false)),
+                                                       new Param("maxTermFrequency", "a value from [0.0, 1.0) or an absolutely number >= 1 representing the maximum threshold of a terms document frequency to be considered a low frequency term", new FloatType())),
                                          new PolyEntry("ConstantScoreQuery", "A query that wraps another query or a filter and simply returns a constant score equal to the query boost for every document that matches the filter or query (see @lucene:core:org.apache.lucene.search.ConstantScoreQuery)",
                                                        new Param("query", "Wrapped query", QUERY_TYPE_WRAP)),
                                          new PolyEntry("FuzzyQuery", "Implements the fuzzy search query (see @lucene:core:org.apache.lucene.search.FuzzyQuery)",
@@ -299,7 +297,6 @@ public class SearchHandler extends Handler {
                       new Param("fuzzyPrefixLength", "Prefix length for fuzzy queries", new IntType(), FuzzyQuery.defaultPrefixLength),
                       new Param("phraseSlop", "Default slop for phrase queries", new IntType(), 0),
                       new Param("enablePositionIncrements", "When set, phrase and multi-phrase queries will be aware of position increments", new BooleanType(), true),
-                      new Param("lowercaseExpandedTerms", "Whether terms of wildcard, prefix, fuzzy and range queries should be automatically lowercased", new BooleanType(), true),
                       new Param("locale", "Locale to be used by date range parsing, lowercasing and other locale-sensitive operations", LOCALE_TYPE),
                       new Param("class", "Which QueryParser to use.",
                                 new PolyType(QueryParser.class,
@@ -997,7 +994,6 @@ public class SearchHandler extends Handler {
     if (pr.name.equals("BooleanQuery")) {
       Request r2 = pr.r;
       BooleanQuery.Builder bq = new BooleanQuery.Builder();
-      bq.setDisableCoord(r2.getBoolean("disableCoord"));
       bq.setMinimumNumberShouldMatch(r2.getInt("minimumNumberShouldMatch"));
       for(Object o : r2.getList("subQueries")) {
         Request r3 = (Request) o;
@@ -1011,8 +1007,7 @@ public class SearchHandler extends Handler {
       }
       CommonTermsQuery ctq = new CommonTermsQuery(parseBooleanOccur(pr.r.getEnum("highFreqOccur")),
                                                   parseBooleanOccur(pr.r.getEnum("lowFreqOccur")),
-                                                  pr.r.getFloat("maxTermFrequency"),
-                                                  pr.r.getBoolean("disableCoord"));
+                                                  pr.r.getFloat("maxTermFrequency"));
       for(Object o : pr.r.getList("terms")) {
         ctq.add(new Term(field, (String) o));
       }
@@ -1438,7 +1433,6 @@ public class SearchHandler extends Handler {
         qpb.setFuzzyMinSim(r.getInt("fuzzyMinSim"));
         qpb.setFuzzyPrefixLength(r.getInt("fuzzyPrefixLength"));
         qpb.setPhraseSlop(r.getInt("phraseSlop"));
-        qpb.setLowercaseExpandedTerms(r.getBoolean("lowercaseExpandedTerms"));
         if (r.hasParam("locale")) {
           qpb.setLocale(getLocale(r.getStruct("locale")));
         }

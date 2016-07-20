@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class HdfsDirectory extends BaseDirectory {
   private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  public static final int DEFAULT_BUFFER_SIZE = 4096;
   
   private static final String LF_EXT = ".lf";
   protected final Path hdfsDirPath;
@@ -53,7 +54,7 @@ public class HdfsDirectory extends BaseDirectory {
   private final int bufferSize;
   
   public HdfsDirectory(Path hdfsDirPath, Configuration configuration) throws IOException {
-    this(hdfsDirPath, HdfsLockFactory.INSTANCE, configuration, 4096);
+    this(hdfsDirPath, HdfsLockFactory.INSTANCE, configuration, DEFAULT_BUFFER_SIZE);
   }
   
   public HdfsDirectory(Path hdfsDirPath, LockFactory lockFactory, Configuration configuration, int bufferSize)
@@ -147,10 +148,15 @@ public class HdfsDirectory extends BaseDirectory {
   }
   
   @Override
-  public void renameFile(String source, String dest) throws IOException {
+  public void rename(String source, String dest) throws IOException {
     Path sourcePath = new Path(hdfsDirPath, source);
     Path destPath = new Path(hdfsDirPath, dest);
     fileContext.rename(sourcePath, destPath);
+  }
+
+  @Override
+  public void syncMetaData() throws IOException {
+    // TODO: how?
   }
 
   @Override
@@ -190,7 +196,7 @@ public class HdfsDirectory extends BaseDirectory {
     return configuration;
   }
   
-  static class HdfsIndexInput extends CustomBufferedIndexInput {
+  public static class HdfsIndexInput extends CustomBufferedIndexInput {
     private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     
     private final Path path;
