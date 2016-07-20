@@ -610,6 +610,7 @@ public class Server {
     globalState.addHandler("registerFields", new RegisterFieldHandler(globalState));
     globalState.addHandler("releaseSnapshot", new ReleaseSnapshotHandler(globalState));
     globalState.addHandler("search", new SearchHandler(globalState));
+    globalState.addHandler("nearestPoints", new NearestPointsHandler(globalState));
     globalState.addHandler("settings", new SettingsHandler(globalState));
     globalState.addHandler("shutdown", new ShutdownHandler(globalState));
     globalState.addHandler("startIndex", new StartIndexHandler(globalState));

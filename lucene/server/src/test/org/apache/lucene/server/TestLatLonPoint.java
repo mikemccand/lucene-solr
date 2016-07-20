@@ -83,4 +83,15 @@ public class TestLatLonPoint extends ServerBaseTestCase {
     assertEquals(1, getInt(result, "hits[0].fields.id"));
     assertEquals(0, getInt(result, "hits[1].fields.id"));
   }
+
+  public void testNearestPoints() throws Exception {
+    deleteAllDocs();
+    send("addDocument", "{fields: {id: 0, spot: [18.313694, -65.227444]}}");
+    send("addDocument", "{fields: {id: 1, spot: [40.5, -110.0]}}");
+    refresh();
+    send("nearestPoints", "{indexName: index, fieldName: spot, latitude: 40.0, longitude: -109.0, count: 2}");
+    assertEquals(2, getInt("hits.length"));
+    assertEquals(1, getInt("hits[0].doc"));
+    assertEquals(0, getInt("hits[1].doc"));
+  }
 }
