@@ -390,6 +390,8 @@ public class TestServer extends ServerBaseTestCase {
       deleteIndex("index");
     }
     createAndStartIndex("index");
+    registerFields();
+    commit();
   }
 
   // nocommit assert that exact field name w/ error is in
