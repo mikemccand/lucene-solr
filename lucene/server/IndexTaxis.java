@@ -15,18 +15,6 @@
  * limitations under the License.
  */
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.DoublePoint;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntPoint;
-import org.apache.lucene.document.LongPoint;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,6 +28,23 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
+import org.apache.lucene.util.PrintStreamInfoStream;
 
 // javac -cp ../build/core/classes/java IndexTaxis.java ; java -cp ../build/core/classes/java:. IndexTaxis /b/taxisjava 6 /lucenedata/nyc-taxi-data/alltaxis.csv.blocks 
 
@@ -103,16 +108,25 @@ public class IndexTaxis {
     case "rate_code":
     case "store_and_fwd_flag":
       doc.add(new StringField(fieldName, rawValue, Field.Store.NO));
+      doc.add(new SortedSetDocValuesField(fieldName, new BytesRef(rawValue)));
       break;
     case "vendor_name":
       doc.add(new TextField(fieldName, rawValue, Field.Store.NO));
       break;
     case "pick_up_date_time":
     case "drop_off_date_time":
-      doc.add(new LongPoint(fieldName, Long.parseLong(rawValue)));
+      {
+        long value = Long.parseLong(rawValue);
+        doc.add(new LongPoint(fieldName, value));
+        doc.add(new SortedNumericDocValuesField(fieldName, value));
+      }
       break;
     case "passenger_count":
-      doc.add(new IntPoint(fieldName, Integer.parseInt(rawValue)));
+      {
+        int value = Integer.parseInt(rawValue);
+        doc.add(new IntPoint(fieldName, value));
+        doc.add(new SortedNumericDocValuesField(fieldName, value));
+      }
       break;
     case "trip_distance":
     case "pick_up_lat":
@@ -128,10 +142,16 @@ public class IndexTaxis {
     case "tip_amount":
     case "tolls_amount":
     case "total_amount":
-      try {
-        doc.add(new DoublePoint(fieldName, Double.parseDouble(rawValue)));
-      } catch (NumberFormatException nfe) {
-        System.out.println("WARNING: failed to parse \"" + rawValue + "\" as double for field \"" + fieldName + "\"");
+      {
+        double value;
+        try {
+          value = Double.parseDouble(rawValue);
+        } catch (NumberFormatException nfe) {
+          System.out.println("WARNING: failed to parse \"" + rawValue + "\" as double for field \"" + fieldName + "\"");
+          return;
+        }
+        doc.add(new DoublePoint(fieldName, value));
+        doc.add(new SortedNumericDocValuesField(fieldName, NumericUtils.doubleToSortableLong(value)));
       }
       break;
     default:
@@ -223,8 +243,11 @@ public class IndexTaxis {
     Path docsPath = Paths.get(args[2]);
 
     IndexWriterConfig iwc = new IndexWriterConfig();
+    //System.out.println("NOW SET INFO STREAM");
     iwc.setRAMBufferSizeMB(1024.);
     iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+    //iwc.setInfoStream(new PrintStreamInfoStream(System.out));
+    //((ConcurrentMergeScheduler) iwc.getMergeScheduler()).disableAutoIOThrottle();
 
     final IndexWriter w = new IndexWriter(dir, iwc);
 

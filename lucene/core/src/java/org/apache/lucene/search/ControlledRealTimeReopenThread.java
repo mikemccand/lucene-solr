@@ -93,7 +93,8 @@ public class ControlledRealTimeReopenThread<T> extends Thread implements Closeab
 
   @Override
   public synchronized void close() {
-
+    //System.out.println("NRT: set finish");
+    
     finish = true;
 
     // So thread wakes up and notices it should finish:

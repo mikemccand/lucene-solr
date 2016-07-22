@@ -11,9 +11,9 @@ import http.client
 # TODO
 #   - index lat/lon as geopoint!
 
-host1 = '10.17.4.92'
+#host1 = '10.17.4.92'
+host1 = '127.0.0.1'
 host2 = '10.17.4.12'
-#host1 = '127.0.0.1'
 #host2 = '127.0.0.1'
 
 DO_REPLICA = False
@@ -100,7 +100,7 @@ if '-rebuild' in sys.argv:
     if host not in ('10.17.4.92', '127.0.0.1'):
       run('rsync -a /l/newluceneserver/ mike@%s:/l/newluceneserver/' % host)
 
-ROOT_DIR = '/b/taxis'
+ROOT_DIR = '/c/taxis'
 
 rmDir(host1, '%s/server1' % ROOT_DIR)
 
@@ -115,7 +115,7 @@ try:
   send(host1, port1, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server1/index' % ROOT_DIR})
   if DO_REPLICA:
     send(host2, port2, 'createIndex', {'indexName': 'index', 'rootDir': '%s/server2/index' % ROOT_DIR})
-  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 5.0})
+  send(host1, port1, "liveSettings", {'indexName': 'index', 'index.ramBufferSizeMB': 1024., 'maxRefreshSec': 100000.0})
   if DO_REPLICA:
     send(host2, port2, "settings", {'indexName': 'index',
                                     'index.verbose': False,
@@ -134,30 +134,30 @@ try:
   fields = {'indexName': 'index',
             'fields':
             {
-              'vendor_id': {'type': 'atom'},
+              'vendor_id': {'type': 'atom', 'sort': True, 'multiValued': True},
               'vendor_name': {'type': 'text'},
-              'cab_color': {'type': 'atom'},
-              'pick_up_date_time': {'type': 'long', 'search': True},
-              'drop_off_date_time': {'type': 'long', 'search': True},
-              'passenger_count': {'type': 'int', 'search': True},
-              'trip_distance': {'type': 'double', 'search': True},
-              'pick_up_lat': {'type': 'double', 'search': True},
-              'pick_up_lon': {'type': 'double', 'search': True},
-              'drop_off_lat': {'type': 'double', 'search': True},
-              'drop_off_lon': {'type': 'double', 'search': True},
-              'payment_type': {'type': 'atom'},
-              'trip_type': {'type': 'atom'},
-              'rate_code': {'type': 'atom'},
-              'fare_amount': {'type': 'double', 'search': True},
-              'surcharge': {'type': 'double', 'search': True},
-              'mta_tax': {'type': 'double', 'search': True},
-              'extra': {'type': 'double', 'search': True},
-              'ehail_fee': {'type': 'double', 'search': True},
-              'improvement_surcharge': {'type': 'double', 'search': True},
-              'tip_amount': {'type': 'double', 'search': True},
-              'tolls_amount': {'type': 'double', 'search': True},
-              'total_amount': {'type': 'double', 'search': True},
-              'store_and_fwd_flag': {'type': 'atom'}}}
+              'cab_color': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'pick_up_date_time': {'type': 'long', 'search': True, 'sort': True, 'multiValued': True},
+              'drop_off_date_time': {'type': 'long', 'search': True, 'sort': True, 'multiValued': True},
+              'passenger_count': {'type': 'int', 'search': True, 'sort': True, 'multiValued': True},
+              'trip_distance': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'pick_up_lat': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'pick_up_lon': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'drop_off_lat': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'drop_off_lon': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'payment_type': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'trip_type': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'rate_code': {'type': 'atom', 'sort': True, 'multiValued': True},
+              'fare_amount': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'surcharge': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'mta_tax': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'extra': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'ehail_fee': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'improvement_surcharge': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'tip_amount': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'tolls_amount': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'total_amount': {'type': 'double', 'search': True, 'sort': True, 'multiValued': True},
+              'store_and_fwd_flag': {'type': 'atom', 'sort': True, 'multiValued': True}}}
 
   send(host1, port1, 'registerFields', fields)
   if DO_REPLICA:
