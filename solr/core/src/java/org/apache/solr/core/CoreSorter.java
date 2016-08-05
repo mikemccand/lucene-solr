@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
+package org.apache.solr.core;
+
 /**
  * This is a utility class that sorts cores in such a way as to minimize other cores
  * waiting for replicas in the current node. This helps in avoiding leaderVote timeouts
  * happening in other nodes of the cluster
  *
  */
-package org.apache.solr.core;
 
 import java.util.Collection;
 import java.util.Comparator;

@@ -20,15 +20,16 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.lang.invoke.MethodHandles;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.ArrayList;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -853,10 +854,11 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class IntValue implements SortValue {
 
-    protected NumericDocValues vals;
+    protected NumericDocValuesIterator vals;
     protected String field;
     protected int currentValue;
     protected IntComp comp;
+    private int lastDocID;
 
     public IntValue copy() {
       return new IntValue(field, comp);
@@ -869,11 +871,23 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumeric(context.reader(), field);
+      this.vals = DocValues.getNumericIterator(context.reader(), field);
     }
 
-    public void setCurrentValue(int docId) {
-      currentValue = (int)vals.get(docId);
+    public void setCurrentValue(int docId) throws IOException {
+      if (docId < lastDocID) {
+        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + docId);
+      }
+      lastDocID = docId;
+      int curDocID = vals.docID();
+      if (docId > curDocID) {
+        curDocID = vals.advance(docId);
+      }
+      if (docId == curDocID) {
+        currentValue = (int) vals.longValue();
+      } else {
+        currentValue = 0;
+      }
     }
 
     public int compareTo(SortValue o) {
@@ -931,10 +945,11 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class LongValue implements SortValue {
 
-    protected NumericDocValues vals;
+    protected NumericDocValuesIterator vals;
     protected String field;
     protected long currentValue;
     protected LongComp comp;
+    private int lastDocID;
 
     public LongValue(String field, LongComp comp) {
       this.field = field;
@@ -947,11 +962,23 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumeric(context.reader(), field);
+      this.vals = DocValues.getNumericIterator(context.reader(), field);
     }
 
-    public void setCurrentValue(int docId) {
-      currentValue = vals.get(docId);
+    public void setCurrentValue(int docId) throws IOException {
+      if (docId < lastDocID) {
+        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + docId);
+      }
+      lastDocID = docId;
+      int curDocID = vals.docID();
+      if (docId > curDocID) {
+        curDocID = vals.advance(docId);
+      }
+      if (docId == curDocID) {
+        currentValue = vals.longValue();
+      } else {
+        currentValue = 0;
+      }
     }
 
     public void setCurrentValue(SortValue sv) {
@@ -1010,10 +1037,11 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class FloatValue implements SortValue {
 
-    protected NumericDocValues vals;
+    protected NumericDocValuesIterator vals;
     protected String field;
     protected float currentValue;
     protected FloatComp comp;
+    private int lastDocID;
 
     public FloatValue(String field, FloatComp comp) {
       this.field = field;
@@ -1026,11 +1054,23 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumeric(context.reader(), field);
+      this.vals = DocValues.getNumericIterator(context.reader(), field);
     }
 
-    public void setCurrentValue(int docId) {
-      currentValue = Float.intBitsToFloat((int)vals.get(docId));
+    public void setCurrentValue(int docId) throws IOException {
+      if (docId < lastDocID) {
+        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + docId);
+      }
+      lastDocID = docId;
+      int curDocID = vals.docID();
+      if (docId > curDocID) {
+        curDocID = vals.advance(docId);
+      }
+      if (docId == curDocID) {
+        currentValue = Float.intBitsToFloat((int)vals.longValue());
+      } else {
+        currentValue = 0f;
+      }
     }
 
     public void setCurrentValue(SortValue sv) {
@@ -1087,10 +1127,11 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class DoubleValue implements SortValue {
 
-    protected NumericDocValues vals;
+    protected NumericDocValuesIterator vals;
     protected String field;
     protected double currentValue;
     protected DoubleComp comp;
+    private int lastDocID;
 
     public DoubleValue(String field, DoubleComp comp) {
       this.field = field;
@@ -1103,11 +1144,23 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumeric(context.reader(), field);
+      this.vals = DocValues.getNumericIterator(context.reader(), field);
     }
 
-    public void setCurrentValue(int docId) {
-      currentValue = Double.longBitsToDouble(vals.get(docId));
+    public void setCurrentValue(int docId) throws IOException {
+      if (docId < lastDocID) {
+        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + docId);
+      }
+      lastDocID = docId;
+      int curDocID = vals.docID();
+      if (docId > curDocID) {
+        curDocID = vals.advance(docId);
+      }
+      if (docId == curDocID) {
+        currentValue = Double.longBitsToDouble(vals.longValue());
+      } else {
+        currentValue = 0f;
+      }
     }
 
     public void setCurrentValue(SortValue sv) {

@@ -38,6 +38,7 @@ import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -117,6 +118,12 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   public NumericDocValues getNumericDocValues(String field) throws IOException {
     ensureOpen();
     return MultiDocValues.getNumericValues(in, field);
+  }
+
+  @Override
+  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    ensureOpen();
+    return MultiDocValues.getNumericValuesIterator(in, field);
   }
 
   @Override

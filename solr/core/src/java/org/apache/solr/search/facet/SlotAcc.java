@@ -264,7 +264,7 @@ class SumSlotAcc extends DoubleFuncSlotAcc {
     super(values, fcontext, numSlots);
   }
 
-  public void collect(int doc, int slotNum) {
+  public void collect(int doc, int slotNum) throws IOException {
     double val = values.doubleVal(doc);  // todo: worth trying to share this value across multiple stats that need it?
     result[slotNum] += val;
   }
@@ -276,7 +276,7 @@ class SumsqSlotAcc extends DoubleFuncSlotAcc {
   }
 
   @Override
-  public void collect(int doc, int slotNum) {
+  public void collect(int doc, int slotNum) throws IOException {
     double val = values.doubleVal(doc);
     val = val * val;
     result[slotNum] += val;
@@ -291,7 +291,7 @@ class MinSlotAcc extends DoubleFuncSlotAcc {
   }
 
   @Override
-  public void collect(int doc, int slotNum) {
+  public void collect(int doc, int slotNum) throws IOException {
     double val = values.doubleVal(doc);
     if (val == 0 && !values.exists(doc)) return;  // depend on fact that non existing values return 0 for func query
 
@@ -308,7 +308,7 @@ class MaxSlotAcc extends DoubleFuncSlotAcc {
   }
 
   @Override
-  public void collect(int doc, int slotNum) {
+  public void collect(int doc, int slotNum) throws IOException {
     double val = values.doubleVal(doc);
     if (val == 0 && !values.exists(doc)) return;  // depend on fact that non existing values return 0 for func query
 
@@ -338,7 +338,7 @@ class AvgSlotAcc extends DoubleFuncSlotAcc {
   }
 
   @Override
-  public void collect(int doc, int slotNum) {
+  public void collect(int doc, int slotNum) throws IOException {
     double val = values.doubleVal(doc);
     if (val != 0 || values.exists(doc)) {
       result[slotNum] += val;

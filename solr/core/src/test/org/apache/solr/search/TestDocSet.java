@@ -31,6 +31,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -419,6 +420,11 @@ public class TestDocSet extends LuceneTestCase {
 
       @Override
       public NumericDocValues getNumericDocValues(String field) {
+        return null;
+      }
+
+      @Override
+      public NumericDocValuesIterator getNumericDocValuesIterator(String field) {
         return null;
       }
 

@@ -35,8 +35,10 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.solr.uninverting.FieldCache.CacheEntry;
 
@@ -288,6 +290,15 @@ public class UninvertingReader extends FilterLeafReader {
       }
     }
     return super.getNumericDocValues(field);
+  }
+
+  @Override
+  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    NumericDocValues values = getNumericDocValues(field);
+    if (values == null) {
+      return null;
+    }
+    return new StupidNumericDocValuesIterator(getDocsWithField(field), values);
   }
 
   @Override

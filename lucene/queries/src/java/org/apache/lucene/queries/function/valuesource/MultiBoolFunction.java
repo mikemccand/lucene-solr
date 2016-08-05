@@ -39,7 +39,7 @@ public abstract class MultiBoolFunction extends BoolFunction {
 
   protected abstract String name();
 
-  protected abstract boolean func(int doc, FunctionValues[] vals);
+  protected abstract boolean func(int doc, FunctionValues[] vals) throws IOException;
 
   @Override
   public BoolDocValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
