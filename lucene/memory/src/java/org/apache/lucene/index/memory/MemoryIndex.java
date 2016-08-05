@@ -1111,6 +1111,11 @@ public class MemoryIndex {
     }
 
     @Override
+    public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+      return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumericDocValues(field));
+    }
+
+    @Override
     public BinaryDocValues getBinaryDocValues(String field) {
       return getSortedDocValues(field, DocValuesType.BINARY);
     }

@@ -283,6 +283,13 @@ public class ParallelLeafReader extends LeafReader {
     LeafReader reader = fieldToReader.get(field);
     return reader == null ? null : reader.getNumericDocValues(field);
   }
+
+  @Override
+  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    ensureOpen();
+    LeafReader reader = fieldToReader.get(field);
+    return reader == null ? null : reader.getNumericDocValuesIterator(field);
+  }
   
   @Override
   public BinaryDocValues getBinaryDocValues(String field) throws IOException {

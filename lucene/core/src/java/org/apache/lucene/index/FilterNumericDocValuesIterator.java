@@ -14,32 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.lucene.queries.function.valuesource;
+
+package org.apache.lucene.index;
 
 import java.io.IOException;
 
-import org.apache.lucene.queries.function.FunctionValues;
-import org.apache.lucene.queries.function.ValueSource;
+import org.apache.lucene.search.DocIdSetIterator;
 
 /**
- * <code>ProductFloatFunction</code> returns the product of its components.
+ * Delegates all methods to a wrapped {@link NumericDocValuesIterator}.
  */
-public class ProductFloatFunction extends MultiFloatFunction {
-  public ProductFloatFunction(ValueSource[] sources) {
-    super(sources);
+public abstract class FilterNumericDocValuesIterator extends NumericDocValuesIterator {
+
+  protected final NumericDocValuesIterator in;
+  
+  /** Sole constructor */
+  protected FilterNumericDocValuesIterator(NumericDocValuesIterator in) {
+    this.in = in;
   }
 
   @Override
-  protected String name() {
-    return "product";
+  public int docID() {
+    return in.docID();
+  }
+  
+  @Override
+  public int nextDoc() throws IOException {
+    return in.nextDoc();
   }
 
   @Override
-  protected float func(int doc, FunctionValues[] valsArr) throws IOException {
-    float val = 1.0f;
-    for (FunctionValues vals : valsArr) {
-      val *= vals.floatVal(doc);
-    }
-    return val;
+  public int advance(int target) throws IOException {
+    return in.advance(target);
+  }
+  
+  @Override
+  public long cost() {
+    return in.cost();
+  }
+
+  @Override
+  public long longValue() {
+    return in.longValue();
   }
 }

@@ -144,12 +144,12 @@ public abstract class ValueSource {
     }
 
     @Override
-    public int compareBottom(int doc) {
+    public int compareBottom(int doc) throws IOException {
       return Double.compare(bottom, docVals.doubleVal(doc));
     }
 
     @Override
-    public void copy(int slot, int doc) {
+    public void copy(int slot, int doc) throws IOException {
       values[slot] = docVals.doubleVal(doc);
     }
 
@@ -174,7 +174,7 @@ public abstract class ValueSource {
     }
 
     @Override
-    public int compareTop(int doc) {
+    public int compareTop(int doc) throws IOException {
       final double docValue = docVals.doubleVal(doc);
       return Double.compare(topValue, docValue);
     }

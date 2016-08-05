@@ -62,12 +62,12 @@ public abstract class ComparisonBoolFunction extends BoolFunction {
       }
 
       @Override
-      public String toString(int doc) {
+      public String toString(int doc) throws IOException {
         return compLabel + "(" + lhsVal.toString(doc) + "," + rhsVal.toString(doc) + ")";
       }
 
       @Override
-      public boolean exists(int doc) {
+      public boolean exists(int doc) throws IOException {
         return lhsVal.exists(doc) && rhsVal.exists(doc);
       }
 

@@ -16,17 +16,23 @@
  */
 package org.apache.lucene.search.join;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSelector;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /** Select a value from a block of documents.
  *  @lucene.internal */
@@ -161,6 +167,25 @@ public class BlockJoinSelector {
     return wrap(values, DocValues.docsWithValue(sortedNumerics, parents.length()), selection, parents, children);
   }
 
+  /** Wraps the provided {@link SortedNumericDocValues} in order to only select
+   *  one value per parent among its {@code children} using the configured
+   *  {@code selection} type. */
+  public static NumericDocValuesIterator wrapToIterator(SortedNumericDocValues sortedNumerics, Type selection, BitSet parents, BitSet children) {
+    NumericDocValues values;
+    switch (selection) {
+      case MIN:
+        values = SortedNumericSelector.wrap(sortedNumerics, SortedNumericSelector.Type.MIN, SortField.Type.LONG);
+        break;
+      case MAX:
+        values = SortedNumericSelector.wrap(sortedNumerics, SortedNumericSelector.Type.MAX, SortField.Type.LONG);
+        break;
+      default:
+        throw new AssertionError();
+    }
+    // nocommit cutover to SortedNumericDocValuesIterator directly:
+    return wrap(new StupidNumericDocValuesIterator(DocValues.docsWithValue(sortedNumerics, parents.length()), values), selection, parents, children);
+  }
+
   /** Wraps the provided {@link NumericDocValues} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
@@ -205,6 +230,91 @@ public class BlockJoinSelector {
         return value;
       }
 
+    };
+  }
+
+  /** Wraps the provided {@link NumericDocValuesIterator}, iterating over only
+   *  child documents, in order to only select one value per parent among
+   *  its {@code children} using the configured {@code selection} type. */
+  public static NumericDocValuesIterator wrap(final NumericDocValuesIterator values, Type selection, BitSet parents, BitSet children) {
+    return new NumericDocValuesIterator() {
+
+      private int parentDocID = -1;
+      private long value;
+
+      @Override
+      public int nextDoc() throws IOException {
+
+        if (parentDocID == -1) {
+          values.nextDoc();
+        }
+
+        int childDocID = values.nextDoc();
+        if (childDocID == NO_MORE_DOCS) {
+          parentDocID = NO_MORE_DOCS;
+          return parentDocID;
+        }
+
+        assert parents.get(childDocID) == false;
+        
+        parentDocID = parents.nextSetBit(childDocID);
+        value = values.longValue();
+
+        while (true) {
+          childDocID = values.nextDoc();
+          assert childDocID != parentDocID;
+          if (childDocID > parentDocID) {
+            break;
+          }
+
+          switch (selection) {
+          case MIN:
+            value = Math.min(value, values.longValue());
+            break;
+          case MAX:
+            value = Math.max(value, values.longValue());
+            break;
+          default:
+            throw new AssertionError();
+          }
+        }
+
+        return parentDocID;
+      }
+
+      @Override
+      public int advance(int targetParentDocID) throws IOException {
+        if (targetParentDocID <= parentDocID) {
+          throw new IllegalArgumentException("target must be after the current document: current=" + parentDocID + " target=" + targetParentDocID);
+        }
+
+        if (targetParentDocID == 0) {
+          return nextDoc();
+        }
+        
+        int firstChild = parents.prevSetBit(targetParentDocID - 1) + 1;
+        if (values.advance(firstChild) == NO_MORE_DOCS) {
+          parentDocID = NO_MORE_DOCS;
+          return parentDocID;
+        } else {
+          return nextDoc();
+        }
+      }
+
+      @Override
+      public long longValue() {
+        return value;
+      }
+      
+      @Override
+      public int docID() {
+        return parentDocID;
+      }      
+
+      @Override
+      public long cost() {
+        return values.cost();
+      }      
     };
   }
 

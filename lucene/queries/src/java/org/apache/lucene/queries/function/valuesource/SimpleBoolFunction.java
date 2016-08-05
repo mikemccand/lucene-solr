@@ -48,11 +48,11 @@ public abstract class SimpleBoolFunction extends BoolFunction {
     final FunctionValues vals =  source.getValues(context, readerContext);
     return new BoolDocValues(this) {
       @Override
-      public boolean boolVal(int doc) {
+      public boolean boolVal(int doc) throws IOException {
         return func(doc, vals);
       }
       @Override
-      public String toString(int doc) {
+      public String toString(int doc) throws IOException {
         return name() + '(' + vals.toString(doc) + ')';
       }
     };

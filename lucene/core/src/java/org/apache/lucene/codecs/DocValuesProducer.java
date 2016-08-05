@@ -23,9 +23,11 @@ import java.io.IOException;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Bits;
 
@@ -44,6 +46,14 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
   public abstract NumericDocValues getNumeric(FieldInfo field) throws IOException;
+
+  /** Returns {@link NumericDocValues} for this field.
+   *  The returned instance need not be thread-safe: it will only be
+   *  used by a single thread. */
+  // nocommit make abstract
+  public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
+    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(field));
+  }
 
   /** Returns {@link BinaryDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be

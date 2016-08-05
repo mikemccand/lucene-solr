@@ -14,32 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.lucene.queries.function.valuesource;
 
-import java.io.IOException;
+package org.apache.lucene.index;
 
-import org.apache.lucene.queries.function.FunctionValues;
-import org.apache.lucene.queries.function.ValueSource;
+import org.apache.lucene.search.DocIdSetIterator;
 
 /**
- * <code>ProductFloatFunction</code> returns the product of its components.
+ * A per-document numeric value.
  */
-public class ProductFloatFunction extends MultiFloatFunction {
-  public ProductFloatFunction(ValueSource[] sources) {
-    super(sources);
-  }
+public abstract class NumericDocValuesIterator extends DocIdSetIterator {
+  
+  /** Sole constructor. (For invocation by subclass 
+   *  constructors, typically implicit.) */
+  protected NumericDocValuesIterator() {}
 
-  @Override
-  protected String name() {
-    return "product";
-  }
-
-  @Override
-  protected float func(int doc, FunctionValues[] valsArr) throws IOException {
-    float val = 1.0f;
-    for (FunctionValues vals : valsArr) {
-      val *= vals.floatVal(doc);
-    }
-    return val;
-  }
+  /**
+   * Returns the numeric value for the current document ID.
+   * @return numeric value
+   */
+  public abstract long longValue();
 }

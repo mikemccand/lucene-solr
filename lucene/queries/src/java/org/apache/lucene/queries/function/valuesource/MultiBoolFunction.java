@@ -51,12 +51,12 @@ public abstract class MultiBoolFunction extends BoolFunction {
 
     return new BoolDocValues(this) {
       @Override
-      public boolean boolVal(int doc) {
+      public boolean boolVal(int doc) throws IOException {
         return func(doc, vals);
       }
 
       @Override
-      public String toString(int doc) {
+      public String toString(int doc) throws IOException {
         StringBuilder sb = new StringBuilder(name());
         sb.append('(');
         boolean first = true;

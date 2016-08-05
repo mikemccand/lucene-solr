@@ -66,6 +66,8 @@ import org.apache.lucene.util.Version;
 import org.apache.lucene.util.automaton.Automata;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+
 /**
  * Basic tool and API to check the health of an index and
  * write a new segments file that removes reference to
@@ -2209,6 +2211,18 @@ public final class CheckIndex implements Closeable {
       }
     }
   }
+
+  private static void checkNumericDocValues(String fieldName, int maxDoc, NumericDocValuesIterator ndv, Bits docsWithField) throws IOException {
+    int doc;
+    if (ndv.docID() != -1) {
+      throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
+    }
+    // TODO: we could add stats to DVs, e.g. total doc count w/ a value for this field
+    // nocommit test advance, cost too
+    while ((doc = ndv.nextDoc()) != NO_MORE_DOCS) {
+      ndv.longValue();
+    }
+  }
   
   private static void checkDocValues(FieldInfo fi, DocValuesProducer dvReader, int maxDoc, PrintStream infoStream, DocValuesStatus status) throws Exception {
     Bits docsWithField = dvReader.getDocsWithField(fi);
@@ -2236,7 +2250,7 @@ public final class CheckIndex implements Closeable {
         break;
       case NUMERIC:
         status.totalNumericFields++;
-        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumeric(fi), docsWithField);
+        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumericIterator(fi), docsWithField);
         break;
       default:
         throw new AssertionError();

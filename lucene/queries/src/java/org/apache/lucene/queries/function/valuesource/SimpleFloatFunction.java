@@ -38,11 +38,11 @@ import java.util.Map;
     final FunctionValues vals =  source.getValues(context, readerContext);
     return new FloatDocValues(this) {
       @Override
-      public float floatVal(int doc) {
+      public float floatVal(int doc) throws IOException {
         return func(doc, vals);
       }
       @Override
-      public String toString(int doc) {
+      public String toString(int doc) throws IOException {
         return name() + '(' + vals.toString(doc) + ')';
       }
     };

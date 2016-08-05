@@ -16,9 +16,13 @@
  */
 package org.apache.lucene.search.join;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.FilterNumericDocValuesIterator;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -27,8 +31,6 @@ import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.NumericUtils;
-
-import java.io.IOException;
 
 /**
  * A special sort field that allows sorting parent docs based on nested / child level fields.
@@ -127,7 +129,7 @@ public class ToParentBlockJoinSortField extends SortField {
   private FieldComparator<?> getIntComparator(int numHits) {
     return new FieldComparator.IntComparator(numHits, getField(), (Integer) missingValue) {
       @Override
-      protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
+      protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
         SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
@@ -135,19 +137,9 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumeric();
+          return DocValues.emptyNumericIterator();
         }
-        return BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
-      }
-      @Override
-      protected Bits getDocsWithValue(LeafReaderContext context, String field) throws IOException {
-        final Bits docsWithValue = DocValues.getDocsWithField(context.reader(), field);
-        final BitSet parents = parentFilter.getBitSet(context);
-        final BitSet children = childFilter.getBitSet(context);
-        if (children == null) {
-          return new Bits.MatchNoBits(context.reader().maxDoc());
-        }
-        return BlockJoinSelector.wrap(docsWithValue, parents, children);
+        return BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children);
       }
     };
   }
@@ -155,7 +147,7 @@ public class ToParentBlockJoinSortField extends SortField {
   private FieldComparator<?> getLongComparator(int numHits) {
     return new FieldComparator.LongComparator(numHits, getField(), (Long) missingValue) {
       @Override
-      protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
+      protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
         SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
@@ -163,19 +155,9 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumeric();
+          return DocValues.emptyNumericIterator();
         }
-        return BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
-      }
-      @Override
-      protected Bits getDocsWithValue(LeafReaderContext context, String field) throws IOException {
-        final Bits docsWithValue = DocValues.getDocsWithField(context.reader(), field);
-        final BitSet parents = parentFilter.getBitSet(context);
-        final BitSet children = childFilter.getBitSet(context);
-        if (children == null) {
-          return new Bits.MatchNoBits(context.reader().maxDoc());
-        }
-        return BlockJoinSelector.wrap(docsWithValue, parents, children);
+        return BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children);
       }
     };
   }
@@ -183,7 +165,7 @@ public class ToParentBlockJoinSortField extends SortField {
   private FieldComparator<?> getFloatComparator(int numHits) {
     return new FieldComparator.FloatComparator(numHits, getField(), (Float) missingValue) {
       @Override
-      protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
+      protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
         SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
@@ -191,14 +173,13 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumeric();
+          return DocValues.emptyNumericIterator();
         }
-        final NumericDocValues view = BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
-        // undo the numericutils sortability
-        return new NumericDocValues() {
+        return new FilterNumericDocValuesIterator(BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children)) {
           @Override
-          public long get(int docID) {
-            return NumericUtils.sortableFloatBits((int) view.get(docID));
+          public long longValue() {
+            // undo the numericutils sortability
+            return NumericUtils.sortableFloatBits((int) super.longValue());
           }
         };
       }
@@ -208,7 +189,7 @@ public class ToParentBlockJoinSortField extends SortField {
   private FieldComparator<?> getDoubleComparator(int numHits) {
     return new FieldComparator.DoubleComparator(numHits, getField(), (Double) missingValue) {
       @Override
-      protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
+      protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
         SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
@@ -216,26 +197,15 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumeric();
+          return DocValues.emptyNumericIterator();
         }
-        final NumericDocValues view = BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
-        // undo the numericutils sortability
-        return new NumericDocValues() {
+        return new FilterNumericDocValuesIterator(BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children)) {
           @Override
-          public long get(int docID) {
-            return NumericUtils.sortableDoubleBits(view.get(docID));
+          public long longValue() {
+            // undo the numericutils sortability
+            return NumericUtils.sortableDoubleBits(super.longValue());
           }
         };
-      }
-      @Override
-      protected Bits getDocsWithValue(LeafReaderContext context, String field) throws IOException {
-        final Bits docsWithValue = DocValues.getDocsWithField(context.reader(), field);
-        final BitSet parents = parentFilter.getBitSet(context);
-        final BitSet children = childFilter.getBitSet(context);
-        if (children == null) {
-          return new Bits.MatchNoBits(context.reader().maxDoc());
-        }
-        return BlockJoinSelector.wrap(docsWithValue, parents, children);
       }
     };
   }

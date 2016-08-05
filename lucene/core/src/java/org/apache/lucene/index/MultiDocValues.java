@@ -143,6 +143,106 @@ public class MultiDocValues {
       };
     }
   }
+
+  /** Returns a NumericDocValuesIterator for a reader's docvalues (potentially merging on-the-fly) 
+   * <p>
+   * This is a slow way to access numeric values. Instead, access them per-segment
+   * with {@link LeafReader#getNumericDocValues(String)}
+   * </p> 
+   * */
+  public static NumericDocValuesIterator getNumericValuesIterator(final IndexReader r, final String field) throws IOException {
+    final List<LeafReaderContext> leaves = r.leaves();
+    final int size = leaves.size();
+    if (size == 0) {
+      return null;
+    } else if (size == 1) {
+      return leaves.get(0).reader().getNumericDocValuesIterator(field);
+    }
+
+    final List<NumericDocValuesIterator> iterators = new ArrayList<>();
+    long totalCost = 0;
+    for(int i=0;i<leaves.size();i++) {
+      LeafReaderContext leaf = leaves.get(i);
+      NumericDocValuesIterator iterator = leaf.reader().getNumericDocValuesIterator(field);
+      totalCost += iterator.cost();
+      iterators.add(iterator);
+    }
+
+    final long finalTotalCost = totalCost;
+
+    return new NumericDocValuesIterator() {
+      private int nextLeaf;
+      private NumericDocValuesIterator currentValues;
+      private LeafReaderContext currentLeaf;
+      private int docID = -1;
+
+      @Override
+      public int nextDoc() throws IOException {
+        while (true) {
+          if (currentValues == null) {
+            if (nextLeaf == leaves.size()) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            currentLeaf = leaves.get(nextLeaf);
+            currentValues = iterators.get(nextLeaf);
+            nextLeaf++;
+          }
+
+          int newDocID = currentValues.nextDoc();
+
+          if (newDocID == NO_MORE_DOCS) {
+            currentValues = null;
+            continue;
+          } else {
+            docID = currentLeaf.docBase + newDocID;
+            return docID;
+          }
+        }
+      }
+        
+      @Override
+      public int docID() {
+        return docID;
+      }
+
+      @Override
+      public int advance(int targetDocID) throws IOException {
+        if (targetDocID <= docID) {
+          throw new IllegalArgumentException("can only advance beyond current document: on docID=" + docID + " but targetDocID=" + targetDocID);
+        }
+        int readerIndex = ReaderUtil.subIndex(targetDocID, leaves);
+        if (readerIndex >= nextLeaf) {
+          if (readerIndex == leaves.size()) {
+            currentValues = null;
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+          currentLeaf = leaves.get(readerIndex);
+          currentValues = iterators.get(readerIndex);
+          nextLeaf = readerIndex+1;
+        }
+        int newDocID = currentValues.advance(targetDocID - currentLeaf.docBase);
+        if (newDocID == NO_MORE_DOCS) {
+          currentValues = null;
+          return nextDoc();
+        } else {
+          docID = currentLeaf.docBase + newDocID;
+          return docID;
+        }
+      }
+
+      @Override
+      public long longValue() {
+        return currentValues.longValue();
+      }
+
+      @Override
+      public long cost() {
+        return finalTotalCost;
+      }
+    };
+  }
   
   /** Returns a Bits for a reader's docsWithField (potentially merging on-the-fly) 
    * <p>

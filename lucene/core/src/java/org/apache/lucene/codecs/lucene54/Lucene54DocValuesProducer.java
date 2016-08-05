@@ -32,16 +32,18 @@ import org.apache.lucene.codecs.lucene54.Lucene54DocValuesConsumer.NumberType;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -453,6 +455,11 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
     return getNumeric(entry);
+  }
+
+  @Override
+  public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
+    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(field));
   }
 
   @Override

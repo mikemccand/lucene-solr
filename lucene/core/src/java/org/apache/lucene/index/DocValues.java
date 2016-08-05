@@ -57,6 +57,46 @@ public final class DocValues {
   }
 
   /** 
+   * An empty NumericDocValues which returns zero for every document 
+   */
+  public static final NumericDocValuesIterator emptyNumericIterator() {
+    return new NumericDocValuesIterator() {
+      private boolean exhausted = false;
+      
+      @Override
+      public int advance(int target) {
+        assert exhausted == false;
+        assert target >= 0;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public int docID() {
+        return exhausted ? NO_MORE_DOCS : -1;
+      }
+      
+      @Override
+      public int nextDoc() {
+        assert exhausted == false;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public long cost() {
+        return 0;
+      }
+
+      @Override
+      public long longValue() {
+        assert false;
+        return 0;
+      }
+    };
+  }
+
+  /** 
    * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document 
    */
   public static final SortedDocValues emptySorted() {
@@ -226,6 +266,23 @@ public final class DocValues {
     if (dv == null) {
       checkField(reader, field, DocValuesType.NUMERIC);
       return emptyNumeric();
+    } else {
+      return dv;
+    }
+  }
+
+  /**
+   * Returns NumericDocValuesIterator for the field, or {@link #emptyNumericIterator()} if it has none. 
+   * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
+   * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
+   * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#NUMERIC}.
+   * @throws IOException if an I/O error occurs.
+   */
+  public static NumericDocValuesIterator getNumericIterator(LeafReader reader, String field) throws IOException {
+    NumericDocValuesIterator dv = reader.getNumericDocValuesIterator(field);
+    if (dv == null) {
+      checkField(reader, field, DocValuesType.NUMERIC);
+      return emptyNumericIterator();
     } else {
       return dv;
     }

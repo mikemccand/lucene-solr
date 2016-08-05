@@ -143,7 +143,11 @@ public class SerializedDVStrategy extends SpatialStrategy {
           return new Bits() {
             @Override
             public boolean get(int index) {
-              return predFuncValues.boolVal(index);
+              try {
+                return predFuncValues.boolVal(index);
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+              }
             }
 
             @Override

@@ -33,6 +33,7 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.SortedDocValues;
@@ -281,6 +282,12 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     public NumericDocValues getNumeric(FieldInfo field) throws IOException {
       DocValuesProducer producer = fields.get(field.name);
       return producer == null ? null : producer.getNumeric(field);
+    }
+
+    @Override
+    public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
+      DocValuesProducer producer = fields.get(field.name);
+      return producer == null ? null : producer.getNumericIterator(field);
     }
 
     @Override
