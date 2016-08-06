@@ -404,6 +404,65 @@ public class AssertingLeafReader extends FilterLeafReader {
       return in.get(docID);
     }    
   }
+
+  /** Wraps a NumericDocValuesIterator but with additional asserts */
+  public static class AssertingNumericDocValuesIterator extends NumericDocValuesIterator {
+    private final Thread creationThread = Thread.currentThread();
+    private final NumericDocValuesIterator in;
+    private final int maxDoc;
+    private int lastDocID = -1;
+    
+    public AssertingNumericDocValuesIterator(NumericDocValuesIterator in, int maxDoc) {
+      this.in = in;
+      this.maxDoc = maxDoc;
+      // should start unpositioned:
+      assert in.docID() == -1;
+    }
+
+    @Override
+    public int docID() {
+      assertThread("Numeric doc values iterator", creationThread);
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      assertThread("Numeric doc values iterator", creationThread);
+      int docID = in.nextDoc();
+      assert docID > lastDocID;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      lastDocID = docID;
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      assertThread("Numeric doc values iterator", creationThread);
+      assert target >= 0;
+      assert target >= in.docID();
+      int docID = in.advance(target);
+      assert docID >= target;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      lastDocID = docID;
+      return docID;
+    }
+
+    @Override
+    public long cost() {
+      assertThread("Numeric doc values iterator", creationThread);
+      long cost = in.cost();
+      assert cost >= 0;
+      return cost;
+    }
+
+    @Override
+    public long longValue() {
+      assertThread("Numeric doc values iterator", creationThread);
+      assert in.docID() != -1;
+      assert in.docID() != NO_MORE_DOCS;
+      return in.longValue();
+    }    
+  }
   
   /** Wraps a BinaryDocValues but with additional asserts */
   public static class AssertingBinaryDocValues extends BinaryDocValues {
@@ -674,6 +733,20 @@ public class AssertingLeafReader extends FilterLeafReader {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.NUMERIC;
       return new AssertingNumericDocValues(dv, maxDoc());
+    } else {
+      assert fi == null || fi.getDocValuesType() != DocValuesType.NUMERIC;
+      return null;
+    }
+  }
+
+  @Override
+  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    NumericDocValuesIterator dv = super.getNumericDocValuesIterator(field);
+    FieldInfo fi = getFieldInfos().fieldInfo(field);
+    if (dv != null) {
+      assert fi != null;
+      assert fi.getDocValuesType() == DocValuesType.NUMERIC;
+      return new AssertingNumericDocValuesIterator(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.NUMERIC;
       return null;

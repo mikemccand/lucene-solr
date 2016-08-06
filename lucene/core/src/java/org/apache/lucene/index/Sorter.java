@@ -17,6 +17,7 @@
 package org.apache.lucene.index;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Comparator;
 
 import org.apache.lucene.search.DocIdSetIterator;
@@ -28,6 +29,8 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.TimSorter;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * Sorts documents of a given index by returning a permutation on the document
@@ -245,21 +248,17 @@ final class Sorter {
     case LONG:
       {
         long[] values = new long[maxDoc];
-        Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
-        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
+        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
-        long missingValue;
         if (sortField.getMissingValue() != null) {
-          missingValue = (Long) sortField.getMissingValue();
-        } else {
-          missingValue = 0;
+          Arrays.fill(values, (Long) sortField.getMissingValue());
         }
-        for(int docID=0;docID<maxDoc;docID++) {
-          if (docsWithField.get(docID)) {
-            values[docID] = dvs.get(docID);
-          } else {
-            values[docID] = missingValue;
+        while (true) {
+          int docID = dvs.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
           }
+          values[docID] = dvs.longValue();
         }
 
         final int reverseMul;
@@ -281,20 +280,18 @@ final class Sorter {
       {
         int[] values = new int[maxDoc];
         Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
-        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
+        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
-        int missingValue;
         if (sortField.getMissingValue() != null) {
-          missingValue = (Integer) sortField.getMissingValue();
-        } else {
-          missingValue = 0;
+          Arrays.fill(values, (Integer) sortField.getMissingValue());
         }
-        for(int docID=0;docID<maxDoc;docID++) {
-          if (docsWithField.get(docID)) {
-            values[docID] = (int) dvs.get(docID);
-          } else {
-            values[docID] = missingValue;
+        
+        while (true) {
+          int docID = dvs.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
           }
+          values[docID] = (int) dvs.longValue();
         }
 
         final int reverseMul;
@@ -316,22 +313,19 @@ final class Sorter {
       {
         double[] values = new double[maxDoc];
         Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
-        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
+        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
-        double missingValue;
         if (sortField.getMissingValue() != null) {
-          missingValue = (Double) sortField.getMissingValue();
-        } else {
-          missingValue = 0;
+          Arrays.fill(values, (Double) sortField.getMissingValue());
         }
-        for(int docID=0;docID<maxDoc;docID++) {
-          if (docsWithField.get(docID)) {
-            values[docID] = Double.longBitsToDouble(dvs.get(docID));
-          } else {
-            values[docID] = missingValue;
+        while (true) {
+          int docID = dvs.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
           }
+          values[docID] = Double.longBitsToDouble(dvs.longValue());
         }
-
+        
         final int reverseMul;
         if (sortField.getReverse()) {
           reverseMul = -1;
@@ -351,20 +345,17 @@ final class Sorter {
       {
         float[] values = new float[maxDoc];
         Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
-        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
+        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
-        float missingValue;
         if (sortField.getMissingValue() != null) {
-          missingValue = (Float) sortField.getMissingValue();
-        } else {
-          missingValue = 0;
+          Arrays.fill(values, (Float) sortField.getMissingValue());
         }
-        for(int docID=0;docID<maxDoc;docID++) {
-          if (docsWithField.get(docID)) {
-            values[docID] = Float.intBitsToFloat((int) dvs.get(docID));
-          } else {
-            values[docID] = missingValue;
+        while (true) {
+          int docID = dvs.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
           }
+          values[docID] = Float.intBitsToFloat((int) dvs.longValue());
         }
 
         final int reverseMul;

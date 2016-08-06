@@ -121,8 +121,10 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       Document hitDoc = isearcher.doc(hits.scoreDocs[i].doc);
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
-      NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
-      assertEquals(5, dv.get(hits.scoreDocs[i].doc));
+      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValuesIterator("dv");
+      int docID = hits.scoreDocs[i].doc;
+      assertEquals(docID, dv.advance(docID));
+      assertEquals(5, dv.longValue());
     }
 
     ireader.close();

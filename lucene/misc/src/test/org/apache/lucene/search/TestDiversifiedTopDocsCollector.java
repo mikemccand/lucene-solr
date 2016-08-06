@@ -33,6 +33,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.Term;
@@ -428,13 +429,19 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     public SimScorer simScorer(SimWeight stats, LeafReaderContext context)
         throws IOException {
       final SimScorer sub = sim.simScorer(stats, context);
-      final NumericDocValues values = DocValues.getNumeric(context.reader(),
-          scoreValueField);
+      final NumericDocValuesIterator values = DocValues.getNumericIterator(context.reader(), scoreValueField);
 
       return new SimScorer() {
         @Override
-        public float score(int doc, float freq) {
-          return Float.intBitsToFloat((int) values.get(doc));
+        public float score(int doc, float freq) throws IOException {
+          if (doc != values.docID()) {
+            values.advance(doc);
+          }
+          if (doc == values.docID()) {
+            return Float.intBitsToFloat((int) values.longValue());
+          } else {
+            return 0f;
+          }
         }
 
         @Override
@@ -449,12 +456,10 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
         }
 
         @Override
-        public Explanation explain(int doc, Explanation freq) {
-          return Explanation.match(Float.intBitsToFloat((int) values.get(doc)),
-              "indexDocValue(" + scoreValueField + ")");
+        public Explanation explain(int doc, Explanation freq) throws IOException {
+          return Explanation.match(score(doc, 0f), "indexDocValue(" + scoreValueField + ")");
         }
       };
     }
   }
-
 }

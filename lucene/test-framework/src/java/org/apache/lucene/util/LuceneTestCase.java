@@ -144,6 +144,7 @@ import junit.framework.AssertionFailedError;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.systemPropertyAsBoolean;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.systemPropertyAsInt;
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * Base class for all Lucene unit tests, Junit3 or Junit4 variant.
@@ -2435,8 +2436,8 @@ public abstract class LuceneTestCase extends Assert {
     for (String field : leftFields) {
       // TODO: clean this up... very messy
       {
-        NumericDocValues leftValues = MultiDocValues.getNumericValues(leftReader, field);
-        NumericDocValues rightValues = MultiDocValues.getNumericValues(rightReader, field);
+        NumericDocValuesIterator leftValues = MultiDocValues.getNumericValuesIterator(leftReader, field);
+        NumericDocValuesIterator rightValues = MultiDocValues.getNumericValuesIterator(rightReader, field);
         if (leftValues != null && rightValues != null) {
           assertDocValuesEquals(info, leftReader.maxDoc(), leftValues, rightValues);
         } else {
@@ -2556,6 +2557,20 @@ public abstract class LuceneTestCase extends Assert {
     for(int docID=0;docID<num;docID++) {
       assertEquals(leftDocValues.get(docID),
                    rightDocValues.get(docID));
+    }
+  }
+
+  public void assertDocValuesEquals(String info, int num, NumericDocValuesIterator leftDocValues, NumericDocValuesIterator rightDocValues) throws IOException {
+    assertNotNull(info, leftDocValues);
+    assertNotNull(info, rightDocValues);
+    while (true) {
+      int leftDocID = leftDocValues.nextDoc();
+      int rightDocID = rightDocValues.nextDoc();
+      assertEquals(leftDocID, rightDocID);
+      if (leftDocID == NO_MORE_DOCS) {
+        return;
+      }
+      assertEquals(leftDocValues.longValue(), rightDocValues.longValue());
     }
   }
   

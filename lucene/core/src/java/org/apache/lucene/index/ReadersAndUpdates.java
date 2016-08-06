@@ -326,12 +326,16 @@ class ReadersAndUpdates {
       try (final DocValuesConsumer fieldsConsumer = dvFormat.fieldsConsumer(state)) {
         // write the numeric updates to a new gen'd docvalues file
         fieldsConsumer.addNumericField(fieldInfo, new Iterable<Number>() {
-          final NumericDocValues currentValues = reader.getNumericDocValues(field);
-          final Bits docsWithField = reader.getDocsWithField(field);
           final int maxDoc = reader.maxDoc();
           final NumericDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
           @Override
           public Iterator<Number> iterator() {
+            final NumericDocValuesIterator currentValues;
+            try {
+              currentValues = reader.getNumericDocValuesIterator(field);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
             updatesIter.reset();
             return new Iterator<Number>() {
 
@@ -355,9 +359,20 @@ class ReadersAndUpdates {
                 } else {
                   // no update for this document
                   assert curDoc < updateDoc;
-                  if (currentValues != null && docsWithField.get(curDoc)) {
+                  if (currentValues != null) {
+                    if (currentValues.docID() < curDoc) {
+                      try {
+                        currentValues.advance(curDoc);
+                      } catch (IOException ioe) {
+                        throw new RuntimeException(ioe);
+                      }
+                    }
                     // only read the current value if the document had a value before
-                    return currentValues.get(curDoc);
+                    if (currentValues.docID() == curDoc) {
+                      return currentValues.longValue();
+                    } else {
+                      return null;
+                    }
                   } else {
                     return null;
                   }

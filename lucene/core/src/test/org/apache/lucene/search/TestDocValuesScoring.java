@@ -154,7 +154,7 @@ public class TestDocValuesScoring extends LuceneTestCase {
       
       return new SimScorer() {
         @Override
-        public float score(int doc, float freq) {
+        public float score(int doc, float freq) throws IOException {
           return Float.intBitsToFloat((int)values.get(doc)) * sub.score(doc, freq);
         }
         
@@ -169,7 +169,7 @@ public class TestDocValuesScoring extends LuceneTestCase {
         }
 
         @Override
-        public Explanation explain(int doc, Explanation freq) {
+        public Explanation explain(int doc, Explanation freq) throws IOException {
           Explanation boostExplanation = Explanation.match(Float.intBitsToFloat((int)values.get(doc)), "indexDocValue(" + boostField + ")");
           Explanation simExplanation = sub.explain(doc, freq);
           return Explanation.match(

@@ -23,13 +23,14 @@ import java.util.Iterator;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.AssertingLeafReader;
 import org.apache.lucene.index.AssertingLeafReader.AssertingRandomAccessOrds;
 import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValues;
+import org.apache.lucene.index.AssertingLeafReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
@@ -231,6 +232,14 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
       NumericDocValues values = in.getNumeric(field);
       assert values != null;
       return new AssertingLeafReader.AssertingNumericDocValues(values, maxDoc);
+    }
+
+    @Override
+    public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
+      assert field.getDocValuesType() == DocValuesType.NUMERIC;
+      NumericDocValuesIterator values = in.getNumericIterator(field);
+      assert values != null;
+      return new AssertingLeafReader.AssertingNumericDocValuesIterator(values, maxDoc);
     }
 
     @Override

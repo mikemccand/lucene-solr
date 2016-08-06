@@ -74,6 +74,8 @@ public abstract class DocValuesConsumer implements Closeable {
    *  constructors, typically implicit.) */
   protected DocValuesConsumer() {}
 
+  // nocommit cutover to iterators:
+
   /**
    * Writes numeric docvalues for a field.
    * @param field field information

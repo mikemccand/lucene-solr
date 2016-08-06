@@ -121,7 +121,7 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
         for (int field = 0; field < fieldValues.length; field++) {
           String f = "f" + field;
           BinaryDocValues bdv = r.getBinaryDocValues(f);
-          NumericDocValues ndv = r.getNumericDocValues(f);
+          NumericDocValuesIterator ndv = r.getNumericDocValuesIterator(f);
           Bits docsWithField = r.getDocsWithField(f);
           if (field < numNDVFields) {
             assertNotNull(ndv);
@@ -136,7 +136,8 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
 //              System.out.println("doc=" + (doc + context.docBase) + " f='" + f + "' vslue=" + getValue(bdv, doc, scratch));
               assertTrue(docsWithField.get(doc));
               if (field < numNDVFields) {
-                assertEquals("invalid numeric value for doc=" + doc + ", field=" + f + ", reader=" + r, fieldValues[field], ndv.get(doc));
+                assertEquals(doc, ndv.advance(doc));
+                assertEquals("invalid numeric value for doc=" + doc + ", field=" + f + ", reader=" + r, fieldValues[field], ndv.longValue());
               } else {
                 assertEquals("invalid binary value for doc=" + doc + ", field=" + f + ", reader=" + r, fieldValues[field], TestBinaryDocValuesUpdates.getValue(bdv, doc));
               }
@@ -263,15 +264,14 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
       LeafReader r = context.reader();
       for (int i = 0; i < numFields; i++) {
         BinaryDocValues bdv = r.getBinaryDocValues("f" + i);
-        NumericDocValues control = r.getNumericDocValues("cf" + i);
+        NumericDocValuesIterator control = r.getNumericDocValuesIterator("cf" + i);
         Bits docsWithBdv = r.getDocsWithField("f" + i);
-        Bits docsWithControl = r.getDocsWithField("cf" + i);
         Bits liveDocs = r.getLiveDocs();
         for (int j = 0; j < r.maxDoc(); j++) {
           if (liveDocs == null || liveDocs.get(j)) {
             assertTrue(docsWithBdv.get(j));
-            assertTrue(docsWithControl.get(j));
-            long ctrlValue = control.get(j);
+            assertEquals(j, control.advance(j));
+            long ctrlValue = control.longValue();
             long bdvValue = TestBinaryDocValuesUpdates.getValue(bdv, j) * 2;
 //              if (ctrlValue != bdvValue) {
 //                System.out.println("seg=" + r + ", f=f" + i + ", doc=" + j + ", group=" + r.document(j).get("updKey") + ", ctrlValue=" + ctrlValue + ", bdvBytes=" + scratch);
@@ -313,9 +313,10 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
       for (LeafReaderContext context : reader.leaves()) {
         LeafReader r = context.reader();
         BinaryDocValues fbdv = r.getBinaryDocValues("f");
-        NumericDocValues cfndv = r.getNumericDocValues("cf");
+        NumericDocValuesIterator cfndv = r.getNumericDocValuesIterator("cf");
         for (int j = 0; j < r.maxDoc(); j++) {
-          assertEquals(cfndv.get(j), TestBinaryDocValuesUpdates.getValue(fbdv, j) * 2);
+          assertEquals(j, cfndv.nextDoc());
+          assertEquals(cfndv.longValue(), TestBinaryDocValuesUpdates.getValue(fbdv, j) * 2);
         }
       }
       reader.close();
@@ -382,9 +383,10 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
       for (int i = 0; i < numBinaryFields; i++) {
         LeafReader r = context.reader();
         BinaryDocValues f = r.getBinaryDocValues("f" + i);
-        NumericDocValues cf = r.getNumericDocValues("cf" + i);
+        NumericDocValuesIterator cf = r.getNumericDocValuesIterator("cf" + i);
         for (int j = 0; j < r.maxDoc(); j++) {
-          assertEquals("reader=" + r + ", field=f" + i + ", doc=" + j, cf.get(j), TestBinaryDocValuesUpdates.getValue(f, j) * 2);
+          assertEquals(j, cf.nextDoc());
+          assertEquals("reader=" + r + ", field=f" + i + ", doc=" + j, cf.longValue(), TestBinaryDocValuesUpdates.getValue(f, j) * 2);
         }
       }
     }

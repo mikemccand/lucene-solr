@@ -37,9 +37,9 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.geo.GeoUtils;
 import org.apache.lucene.geo.Polygon;
+import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -47,7 +47,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
@@ -792,7 +792,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
     int iters = atLeast(25);
 
-    NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
+    NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
 
     Bits liveDocs = MultiFields.getLiveDocs(s.getIndexReader());
     int maxDoc = s.getIndexReader().maxDoc();
@@ -834,7 +834,8 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
       boolean fail = false;
       for(int docID=0;docID<maxDoc;docID++) {
-        int id = (int) docIDToID.get(docID);
+        assertEquals(docID, docIDToID.nextDoc());
+        int id = (int) docIDToID.longValue();
         boolean expected;
         if (liveDocs != null && liveDocs.get(docID) == false) {
           // document is deleted
@@ -920,7 +921,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
     int iters = atLeast(25);
 
-    NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
+    NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
 
     Bits liveDocs = MultiFields.getLiveDocs(s.getIndexReader());
     int maxDoc = s.getIndexReader().maxDoc();
@@ -972,7 +973,8 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
       boolean fail = false;
       for(int docID=0;docID<maxDoc;docID++) {
-        int id = (int) docIDToID.get(docID);
+        assertEquals(docID, docIDToID.nextDoc());
+        int id = (int) docIDToID.longValue();
         boolean expected;
         if (liveDocs != null && liveDocs.get(docID) == false) {
           // document is deleted
@@ -1062,7 +1064,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
     final int iters = atLeast(75);
 
-    NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
+    NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
 
     Bits liveDocs = MultiFields.getLiveDocs(s.getIndexReader());
     int maxDoc = s.getIndexReader().maxDoc();
@@ -1104,7 +1106,8 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
       boolean fail = false;
       for(int docID=0;docID<maxDoc;docID++) {
-        int id = (int) docIDToID.get(docID);
+        assertEquals(docID, docIDToID.nextDoc());
+        int id = (int) docIDToID.longValue();
         boolean expected;
         if (liveDocs != null && liveDocs.get(docID) == false) {
           // document is deleted

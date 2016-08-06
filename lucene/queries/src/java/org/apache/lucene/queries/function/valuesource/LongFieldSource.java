@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.docvalues.LongDocValues;
 import org.apache.lucene.search.SortField;
@@ -31,7 +31,7 @@ import org.apache.lucene.util.mutable.MutableValue;
 import org.apache.lucene.util.mutable.MutableValueLong;
 
 /**
- * Obtains long field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValues} and makes those
+ * Obtains long field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator} and makes those
  * values available as other numeric types, casting as needed.
  */
 public class LongFieldSource extends FieldCacheSource {
@@ -64,28 +64,56 @@ public class LongFieldSource extends FieldCacheSource {
   
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-    final NumericDocValues arr = DocValues.getNumeric(readerContext.reader(), field);
-    final Bits valid = DocValues.getDocsWithField(readerContext.reader(), field);
+    final NumericDocValuesIterator arr = DocValues.getNumericIterator(readerContext.reader(), field);
     
     return new LongDocValues(this) {
+      int lastDocID;
+
+      private long getValueForDoc(int doc) throws IOException {
+        if (doc < lastDocID) {
+          throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
+        }
+        lastDocID = doc;
+        int curDocID = arr.docID();
+        if (doc > curDocID) {
+          curDocID = arr.advance(doc);
+        }
+        if (doc == curDocID) {
+          return arr.longValue();
+        } else {
+          return 0;
+        }
+      }
+      
       @Override
-      public long longVal(int doc) {
-        return arr.get(doc);
+      public long longVal(int doc) throws IOException {
+        return getValueForDoc(doc);
       }
 
       @Override
-      public boolean exists(int doc) {
-        return arr.get(doc) != 0 || valid.get(doc);
+      public boolean exists(int doc) throws IOException {
+        getValueForDoc(doc);
+        return arr.docID() == doc;
       }
 
       @Override
-      public Object objectVal(int doc) {
-        return valid.get(doc) ? longToObject(arr.get(doc)) : null;
+      public Object objectVal(int doc) throws IOException {
+        long value = getValueForDoc(doc);
+        if (arr.docID() == doc) {
+          return longToObject(value);
+        } else {
+          return null;
+        }
       }
 
       @Override
-      public String strVal(int doc) {
-        return valid.get(doc) ? longToString(arr.get(doc)) : null;
+      public String strVal(int doc) throws IOException {
+        long value = getValueForDoc(doc);
+        if (arr.docID() == doc) {
+          return longToString(value);
+        } else {
+          return null;
+        }
       }
 
       @Override
@@ -104,9 +132,9 @@ public class LongFieldSource extends FieldCacheSource {
           }
 
           @Override
-          public void fillValue(int doc) {
-            mval.value = arr.get(doc);
-            mval.exists = mval.value != 0 || valid.get(doc);
+          public void fillValue(int doc) throws IOException {
+            mval.value = getValueForDoc(doc);
+            mval.exists = arr.docID() == doc;
           }
         };
       }

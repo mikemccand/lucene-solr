@@ -57,6 +57,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SegmentReadState;
@@ -513,7 +514,7 @@ public class TestPointQueries extends LuceneTestCase {
           private void _run() throws Exception {
             startingGun.await();
 
-            NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
+            NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
             for (int iter=0;iter<iters && failed.get() == false;iter++) {
               Long lower = randomValue();
               Long upper = randomValue();
@@ -579,7 +580,8 @@ public class TestPointQueries extends LuceneTestCase {
               }
       
               for(int docID=0;docID<r.maxDoc();docID++) {
-                int id = (int) docIDToID.get(docID);
+                assertEquals(docID, docIDToID.nextDoc());
+                int id = (int) docIDToID.longValue();
                 boolean expected = missing.get(id) == false && deleted.get(id) == false && values[id] >= lower && values[id] <= upper;
                 if (hits.get(docID) != expected) {
                   // We do exact quantized comparison so the bbox query should never disagree:
@@ -768,7 +770,7 @@ public class TestPointQueries extends LuceneTestCase {
           private void _run() throws Exception {
             startingGun.await();
 
-            NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
+            NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
 
             for (int iter=0;iter<iters && failed.get() == false;iter++) {
 
@@ -839,7 +841,8 @@ public class TestPointQueries extends LuceneTestCase {
 
               int failCount = 0;
               for(int docID=0;docID<r.maxDoc();docID++) {
-                int id = (int) docIDToID.get(docID);
+                assertEquals(docID, docIDToID.nextDoc());
+                int id = (int) docIDToID.longValue();
                 if (hits.get(docID) != expected.get(id)) {
                   System.out.println("FAIL: iter=" + iter + " id=" + id + " docID=" + docID + " expected=" + expected.get(id) + " but got " + hits.get(docID) + " deleted?=" + deleted.get(id) + " missing?=" + missing.get(id));
                   for(int dim=0;dim<numDims;dim++) {

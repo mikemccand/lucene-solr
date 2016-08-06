@@ -27,6 +27,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.spell.Dictionary;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -114,7 +115,7 @@ public class DocumentDictionary implements Dictionary {
     private long currentWeight = 0;
     private BytesRef currentPayload = null;
     private Set<BytesRef> currentContexts;
-    private final NumericDocValues weightValues;
+    private final NumericDocValuesIterator weightValues;
     IndexableField[] currentDocFields = new IndexableField[0];
     int nextFieldsPosition = 0;
 
@@ -127,7 +128,7 @@ public class DocumentDictionary implements Dictionary {
       this.hasPayloads = hasPayloads;
       this.hasContexts = hasContexts;
       docCount = reader.maxDoc() - 1;
-      weightValues = (weightField != null) ? MultiDocValues.getNumericValues(reader, weightField) : null;
+      weightValues = (weightField != null) ? MultiDocValues.getNumericValuesIterator(reader, weightField) : null;
       liveDocs = (reader.leaves().size() > 0) ? MultiFields.getLiveDocs(reader) : null;
       relevantFields = getRelevantFields(new String [] {field, weightField, payloadField, contextsField});
     }
@@ -244,7 +245,16 @@ public class DocumentDictionary implements Dictionary {
       if (weight != null) { // found weight as stored
         return (weight.numericValue() != null) ? weight.numericValue().longValue() : 0;
       } else if (weightValues != null) {  // found weight as NumericDocValue
-        return weightValues.get(docId);
+        assert weightValues.docID() <= docId;
+        if (weightValues.docID() < docId) {
+          weightValues.advance(docId);
+        }
+        if (weightValues.docID() == docId) {
+          return weightValues.longValue();
+        } else {
+          // missing
+          return 0;
+        }
       } else { // fall back
         return 0;
       }

@@ -35,6 +35,8 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.TestUtil;
 
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+
 /**
  * Abstract class to do basic tests for a norms format.
  * NOTE: This test focuses on the norms impl, nothing else.
@@ -276,11 +278,13 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
     DirectoryReader ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValues expected = r.getNumericDocValues("dv");
+      NumericDocValuesIterator expected = r.getNumericDocValuesIterator("dv");
       NumericDocValues actual = r.getNormValues("indexed");
       for (int i = 0; i < r.maxDoc(); i++) {
-        assertEquals("doc " + i, expected.get(i), actual.get(i));
+        assertEquals(i, expected.nextDoc());
+        assertEquals("doc " + i, expected.longValue(), actual.get(i));
       }
+      assertEquals(NO_MORE_DOCS, expected.nextDoc());
     }
     ir.close();
     
