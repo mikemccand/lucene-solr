@@ -66,6 +66,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -446,7 +447,7 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     mindex.addField("field", "the quick brown fox", mockAnalyzer);
     LeafReader reader = (LeafReader) mindex.createSearcher().getIndexReader();
     TestUtil.checkReader(reader);
-    assertNull(reader.getNumericDocValues("not-in-index"));
+    assertNull(reader.getNumericDocValuesIterator("not-in-index"));
     assertNull(reader.getNormValues("not-in-index"));
     assertNull(reader.postings(new Term("not-in-index", "foo")));
     assertNull(reader.postings(new Term("not-in-index", "foo"), PostingsEnum.ALL));
@@ -508,9 +509,11 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     IndexReader controlIndexReader = DirectoryReader.open(dir);
     LeafReader controlLeafReader =  controlIndexReader.leaves().get(0).reader();
 
-    NumericDocValues numericDocValues = leafReader.getNumericDocValues("numeric");
-    NumericDocValues controlNumericDocValues = controlLeafReader.getNumericDocValues("numeric");
-    assertEquals(controlNumericDocValues.get(0), numericDocValues.get(0));
+    NumericDocValuesIterator numericDocValues = leafReader.getNumericDocValuesIterator("numeric");
+    NumericDocValuesIterator controlNumericDocValues = controlLeafReader.getNumericDocValuesIterator("numeric");
+    assertEquals(0, numericDocValues.nextDoc());
+    assertEquals(0, controlNumericDocValues.nextDoc());
+    assertEquals(controlNumericDocValues.longValue(), numericDocValues.longValue());
 
     SortedNumericDocValues sortedNumericDocValues = leafReader.getSortedNumericDocValues("sorted_numeric");
     sortedNumericDocValues.setDocument(0);

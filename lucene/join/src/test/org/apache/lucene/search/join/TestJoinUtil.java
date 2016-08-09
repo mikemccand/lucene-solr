@@ -57,11 +57,12 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
+import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
@@ -483,11 +484,12 @@ public class TestJoinUtil extends LuceneTestCase {
             if (fieldScorer == null) {
               return null;
             }
-            NumericDocValues price = context.reader().getNumericDocValues(priceField);
+            NumericDocValuesIterator price = context.reader().getNumericDocValuesIterator(priceField);
             return new FilterScorer(fieldScorer, this) {
               @Override
               public float score() throws IOException {
-                return (float) price.get(in.docID());
+                assertEquals(in.docID(), price.nextDoc());
+                return (float) price.longValue();
               }
             };
           }

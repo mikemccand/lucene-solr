@@ -105,11 +105,6 @@ public class TermVectorLeafReader extends LeafReader {
   }
 
   @Override
-  public NumericDocValues getNumericDocValues(String field) throws IOException {
-    return null;
-  }
-
-  @Override
   public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
     return null;
   }

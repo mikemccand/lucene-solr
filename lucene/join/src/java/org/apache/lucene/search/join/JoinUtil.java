@@ -38,6 +38,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -275,12 +276,31 @@ public final class JoinUtil {
     } else {
       collector = new SimpleCollector() {
 
-        NumericDocValues numericDocValues;
+        NumericDocValuesIterator numericDocValues;
         Scorer scorer;
+        private int lastDocID = -1;
+
+        private boolean docsInOrder(int docID) {
+          if (docID < lastDocID) {
+            throw new AssertionError("docs out of order: lastDocID=" + lastDocID + " vs docID=" + docID);
+          }
+          lastDocID = docID;
+          return true;
+        }
 
         @Override
         public void collect(int doc) throws IOException {
-          long value = numericDocValues.get(doc);
+          assert docsInOrder(doc);
+          int dvDocID = numericDocValues.docID();
+          if (dvDocID < doc) {
+            dvDocID = numericDocValues.advance(doc);
+          }
+          long value;
+          if (dvDocID == doc) {
+            value = numericDocValues.longValue();
+          } else {
+            value = 0;
+          }
           joinValues.add(value);
           if (needsScore) {
             scoreAggregator.accept(value, scorer.score());
@@ -289,7 +309,7 @@ public final class JoinUtil {
 
         @Override
         protected void doSetNextReader(LeafReaderContext context) throws IOException {
-          numericDocValues = DocValues.getNumeric(context.reader(), fromField);
+          numericDocValues = DocValues.getNumericIterator(context.reader(), fromField);
         }
 
         @Override

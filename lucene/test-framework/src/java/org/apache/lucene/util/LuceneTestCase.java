@@ -2441,8 +2441,8 @@ public abstract class LuceneTestCase extends Assert {
         if (leftValues != null && rightValues != null) {
           assertDocValuesEquals(info, leftReader.maxDoc(), leftValues, rightValues);
         } else {
-          assertNull(info, leftValues);
-          assertNull(info, rightValues);
+          assertNull(info + ": left numeric doc values for field=\"" + field + "\" are not null", leftValues);
+          assertNull(info + ": right numeric doc values for field=\"" + field + "\" are not null", rightValues);
         }
       }
 

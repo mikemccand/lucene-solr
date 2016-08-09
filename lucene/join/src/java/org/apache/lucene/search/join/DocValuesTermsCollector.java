@@ -19,13 +19,14 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 import java.util.function.LongConsumer;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FieldType.LegacyNumericType;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.SimpleCollector;
@@ -61,15 +62,39 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   
   static Function<BinaryDocValues> numericAsBinaryDocValues(String field, LegacyNumericType numTyp) {
     return (ctx) -> {
-      final NumericDocValues numeric = DocValues.getNumeric(ctx, field);
+      final NumericDocValuesIterator numeric = DocValues.getNumericIterator(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);
       
       return new BinaryDocValues() {
+        private int lastDocID = -1;
+
+        private boolean docsInOrder(int docID) {
+          if (docID < lastDocID) {
+            throw new AssertionError("docs out of order: lastDocID=" + lastDocID + " vs docID=" + docID);
+          }
+          lastDocID = docID;
+          return true;
+        }
+        
         @Override
         public BytesRef get(int docID) {
-          final long lVal = numeric.get(docID);
+          assert docsInOrder(docID);
+          int dvDocID = numeric.docID();
+          final long lVal;
+          try {
+            if (dvDocID < docID) {
+              dvDocID = numeric.advance(docID);
+            }
+            if (dvDocID == docID) {
+              lVal = numeric.longValue();
+            } else {
+              lVal = 0;
+            }
+          } catch(IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
           coder.accept(lVal);
           return bytes.get();
         }

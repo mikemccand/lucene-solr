@@ -1101,18 +1101,12 @@ public class MemoryIndex {
     }
 
     @Override
-    public NumericDocValues getNumericDocValues(String field) {
+    public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.NUMERIC);
-      if (info != null) {
-        return info.numericProducer.numericDocValues;
-      } else {
+      if (info == null) {
         return null;
       }
-    }
-
-    @Override
-    public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
-      return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumericDocValues(field));
+      return new StupidNumericDocValuesIterator(getDocsWithField(field), info.numericProducer.numericDocValues);
     }
 
     @Override

@@ -39,6 +39,7 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.ValueSource;
@@ -283,10 +284,13 @@ public class AllGroupHeadsCollectorTest extends LuceneTestCase {
       final DirectoryReader r = w.getReader();
       w.close();
 
-      final NumericDocValues docIdToFieldId = MultiDocValues.getNumericValues(r, "id");
+      NumericDocValuesIterator values = MultiDocValues.getNumericValuesIterator(r, "id");
+      final int[] docIDToFieldId = new int[numDocs];
       final int[] fieldIdToDocID = new int[numDocs];
       for (int i = 0; i < numDocs; i++) {
-        int fieldId = (int) docIdToFieldId.get(i);
+        assertEquals(i, values.nextDoc());
+        int fieldId = (int) values.longValue();
+        docIDToFieldId[i] = fieldId;
         fieldIdToDocID[fieldId] = i;
       }
 
@@ -296,7 +300,7 @@ public class AllGroupHeadsCollectorTest extends LuceneTestCase {
       for (int contentID = 0; contentID < 3; contentID++) {
         final ScoreDoc[] hits = s.search(new TermQuery(new Term("content", "real" + contentID)), numDocs).scoreDocs;
         for (ScoreDoc hit : hits) {
-          int idValue = (int) docIdToFieldId.get(hit.doc);
+          int idValue = docIDToFieldId[hit.doc];
           final GroupDoc gd = groupDocs[idValue];
           assertEquals(gd.id, idValue);
           seenIDs.add(idValue);
@@ -329,7 +333,7 @@ public class AllGroupHeadsCollectorTest extends LuceneTestCase {
         int[] actualGroupHeads = allGroupHeadsCollector.retrieveGroupHeads();
         // The actual group heads contains Lucene ids. Need to change them into our id value.
         for (int i = 0; i < actualGroupHeads.length; i++) {
-          actualGroupHeads[i] = (int) docIdToFieldId.get(actualGroupHeads[i]);
+          actualGroupHeads[i] = docIDToFieldId[actualGroupHeads[i]];
         }
         // Allows us the easily iterate and assert the actual and expected results.
         Arrays.sort(expectedGroupHeads);

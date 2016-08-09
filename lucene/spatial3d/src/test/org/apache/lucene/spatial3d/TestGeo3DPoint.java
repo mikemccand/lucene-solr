@@ -47,6 +47,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PointValues.IntersectVisitor;
 import org.apache.lucene.index.PointValues.Relation;
 import org.apache.lucene.index.ReaderUtil;
@@ -791,8 +792,6 @@ public class TestGeo3DPoint extends LuceneTestCase {
 
     final int iters = atLeast(100);
 
-    NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
-
     for (int iter=0;iter<iters;iter++) {
 
       /*
@@ -835,8 +834,11 @@ public class TestGeo3DPoint extends LuceneTestCase {
         System.err.println("  hitCount: " + hits.cardinality());
       }
       
+      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+
       for(int docID=0;docID<r.maxDoc();docID++) {
-        int id = (int) docIDToID.get(docID);
+        assertEquals(docID, docIDToID.nextDoc());
+        int id = (int) docIDToID.longValue();
         GeoPoint point = points[id];
         GeoPoint unquantizedPoint = unquantizedPoints[id];
         if (point != null && unquantizedPoint != null) {

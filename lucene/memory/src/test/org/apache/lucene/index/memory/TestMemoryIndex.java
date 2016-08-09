@@ -49,6 +49,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -234,8 +235,9 @@ public class TestMemoryIndex extends LuceneTestCase {
 
     MemoryIndex mi = MemoryIndex.fromDocument(doc, analyzer);
     LeafReader leafReader = mi.createSearcher().getIndexReader().leaves().get(0).reader();
-    NumericDocValues numericDocValues = leafReader.getNumericDocValues("numeric");
-    assertEquals(29L, numericDocValues.get(0));
+    NumericDocValuesIterator numericDocValues = leafReader.getNumericDocValuesIterator("numeric");
+    assertEquals(0, numericDocValues.nextDoc());
+    assertEquals(29L, numericDocValues.longValue());
     SortedNumericDocValues sortedNumericDocValues = leafReader.getSortedNumericDocValues("sorted_numeric");
     sortedNumericDocValues.setDocument(0);
     assertEquals(5, sortedNumericDocValues.count());
