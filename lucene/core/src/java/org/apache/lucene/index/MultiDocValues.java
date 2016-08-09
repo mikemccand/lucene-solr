@@ -117,11 +117,19 @@ public class MultiDocValues {
 
     final List<NumericDocValuesIterator> iterators = new ArrayList<>();
     long totalCost = 0;
+    boolean any = false;
     for(int i=0;i<leaves.size();i++) {
       LeafReaderContext leaf = leaves.get(i);
       NumericDocValuesIterator iterator = leaf.reader().getNumericDocValuesIterator(field);
-      totalCost += iterator.cost();
+      if (iterator != null) {
+        totalCost += iterator.cost();
+        any = true;
+      }
       iterators.add(iterator);
+    }
+
+    if (any == false) {
+      return null;
     }
 
     final long finalTotalCost = totalCost;

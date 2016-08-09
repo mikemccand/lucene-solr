@@ -761,6 +761,7 @@ public class TestIndexSorting extends LuceneTestCase {
 
     final int numDocs = atLeast(100);
     Thread[] threads = new Thread[2];
+    
     final AtomicInteger updateCount = new AtomicInteger(atLeast(1000));
     final CountDownLatch latch = new CountDownLatch(1);
     for (int i = 0; i < threads.length; ++i) {
@@ -784,7 +785,8 @@ public class TestIndexSorting extends LuceneTestCase {
       } else {
         assertEquals(1, topDocs.totalHits);
         NumericDocValuesIterator dvs = MultiDocValues.getNumericValuesIterator(reader, "foo");
-        assertEquals(i, dvs.advance(i));
+        int docID = topDocs.scoreDocs[0].doc;
+        assertEquals(docID, dvs.advance(docID));
         assertEquals(values.get(i).longValue(), dvs.longValue());
       }
     }

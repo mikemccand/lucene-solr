@@ -514,7 +514,6 @@ public class TestPointQueries extends LuceneTestCase {
           private void _run() throws Exception {
             startingGun.await();
 
-            NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
             for (int iter=0;iter<iters && failed.get() == false;iter++) {
               Long lower = randomValue();
               Long upper = randomValue();
@@ -579,6 +578,8 @@ public class TestPointQueries extends LuceneTestCase {
                 System.out.println(Thread.currentThread().getName() + ":  hitCount: " + hits.cardinality());
               }
       
+              NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+              
               for(int docID=0;docID<r.maxDoc();docID++) {
                 assertEquals(docID, docIDToID.nextDoc());
                 int id = (int) docIDToID.longValue();
@@ -770,8 +771,6 @@ public class TestPointQueries extends LuceneTestCase {
           private void _run() throws Exception {
             startingGun.await();
 
-            NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
-
             for (int iter=0;iter<iters && failed.get() == false;iter++) {
 
               byte[][] lower = new byte[numDims][];
@@ -838,6 +837,8 @@ public class TestPointQueries extends LuceneTestCase {
                   expected.set(id);
                 }
               }
+
+              NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
 
               int failCount = 0;
               for(int docID=0;docID<r.maxDoc();docID++) {
