@@ -32,6 +32,7 @@ import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.MergeState;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentWriteState; // javadocs
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
@@ -144,27 +145,7 @@ public abstract class DocValuesConsumer implements Closeable {
       DocValuesType type = mergeFieldInfo.getDocValuesType();
       if (type != DocValuesType.NONE) {
         if (type == DocValuesType.NUMERIC) {
-          List<NumericDocValues> toMerge = new ArrayList<>();
-          List<Bits> docsWithField = new ArrayList<>();
-          for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-            NumericDocValues values = null;
-            Bits bits = null;
-            DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-            if (docValuesProducer != null) {
-              FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-              if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.NUMERIC) {
-                values = docValuesProducer.getNumeric(fieldInfo);
-                bits = docValuesProducer.getDocsWithField(fieldInfo);
-              }
-            }
-            if (values == null) {
-              values = DocValues.emptyNumeric();
-              bits = new Bits.MatchNoBits(mergeState.maxDocs[i]);
-            }
-            toMerge.add(values);
-            docsWithField.add(bits);
-          }
-          mergeNumericField(mergeFieldInfo, mergeState, toMerge, docsWithField);
+          mergeNumericField(mergeFieldInfo, mergeState);
         } else if (type == DocValuesType.BINARY) {
           List<BinaryDocValues> toMerge = new ArrayList<>();
           List<Bits> docsWithField = new ArrayList<>();
@@ -248,26 +229,34 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one numeric sub-reader that we are merging */
   private static class NumericDocValuesSub extends DocIDMerger.Sub {
 
-    private final NumericDocValues values;
-    private final Bits docsWithField;
-    private int docID = -1;
+    private final NumericDocValuesIterator values;
     private final int maxDoc;
+    private int docID = -1;
+    Long value;
 
-    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValues values, Bits docsWithField, int maxDoc) {
+    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValuesIterator values, int maxDoc) {
       super(docMap);
       this.values = values;
-      this.docsWithField = docsWithField;
       this.maxDoc = maxDoc;
+      assert values.docID() == -1;
     }
 
     @Override
-    public int nextDoc() {
+    public int nextDoc() throws IOException {
+      if (docID == values.docID()) {
+        values.nextDoc();
+      }
       docID++;
       if (docID == maxDoc) {
         return NO_MORE_DOCS;
-      } else {
-        return docID;
       }
+      if (docID == values.docID()) {
+        value = values.longValue();
+      } else {
+        // fill in holes with null
+        value = null;
+      }
+      return docID;
     }
   }
   
@@ -277,24 +266,50 @@ public abstract class DocValuesConsumer implements Closeable {
    * The default implementation calls {@link #addNumericField}, passing
    * an Iterable that merges and filters deleted documents on the fly.
    */
-  public void mergeNumericField(final FieldInfo fieldInfo, final MergeState mergeState, final List<NumericDocValues> toMerge, final List<Bits> docsWithField) throws IOException {
-    addNumericField(fieldInfo,
+  public void mergeNumericField(final FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
+    addNumericField(mergeFieldInfo,
                     new Iterable<Number>() {
                       @Override
                       public Iterator<Number> iterator() {
 
+                        List<NumericDocValuesIterator> toMerge = new ArrayList<>();
+                        for (int i=0;i<mergeState.docValuesProducers.length;i++) {
+                          NumericDocValuesIterator values = null;
+                          DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
+                          if (docValuesProducer != null) {
+                            FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                            if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.NUMERIC) {
+                              try {
+                                values = docValuesProducer.getNumericIterator(fieldInfo);
+                              } catch (IOException ioe) {
+                                throw new RuntimeException(ioe);
+                              }
+                            }
+                          }
+                          if (values == null) {
+                            values = DocValues.emptyNumericIterator();
+                          }
+                          toMerge.add(values);
+                        }
+
+                        // nocommit merge these two loops:
+                        
                         // We must make a new DocIDMerger for each iterator:
                         List<NumericDocValuesSub> subs = new ArrayList<>();
                         assert mergeState.docMaps.length == toMerge.size();
                         for(int i=0;i<toMerge.size();i++) {
-                          subs.add(new NumericDocValuesSub(mergeState.docMaps[i], toMerge.get(i), docsWithField.get(i), mergeState.maxDocs[i]));
+                          subs.add(new NumericDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
                         }
 
-                        final DocIDMerger<NumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                        final DocIDMerger<NumericDocValuesSub> docIDMerger;
+                        try {
+                          docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                        } catch (IOException ioe) {
+                          throw new RuntimeException(ioe);
+                        }
 
                         return new Iterator<Number>() {
-                          long nextValue;
-                          boolean nextHasValue;
+                          Long nextValue;
                           boolean nextIsSet;
 
                           @Override
@@ -314,17 +329,21 @@ public abstract class DocValuesConsumer implements Closeable {
                             }
                             assert nextIsSet;
                             nextIsSet = false;
-                            return nextHasValue ? nextValue : null;
+                            return nextValue;
                           }
 
                           private boolean setNext() {
-                            NumericDocValuesSub sub = docIDMerger.next();
+                            NumericDocValuesSub sub;
+                            try {
+                              sub = docIDMerger.next();
+                            } catch (IOException ioe) {
+                              throw new RuntimeException(ioe);
+                            }
                             if (sub == null) {
                               return false;
                             }
                             nextIsSet = true;
-                            nextValue = sub.values.get(sub.docID);
-                            nextHasValue = nextValue != 0 || sub.docsWithField.get(sub.docID);
+                            nextValue = sub.value;
                             return true;
                           }
                         };
@@ -377,7 +396,12 @@ public abstract class DocValuesConsumer implements Closeable {
                          subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], toMerge.get(i), docsWithField.get(i), mergeState.maxDocs[i]));
                        }
 
-                       final DocIDMerger<BinaryDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                       final DocIDMerger<BinaryDocValuesSub> docIDMerger;
+                       try {
+                         docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                       } catch (IOException ioe) {
+                         throw new RuntimeException(ioe);
+                       }
 
                        return new Iterator<BytesRef>() {
                          BytesRef nextValue;
@@ -406,19 +430,24 @@ public abstract class DocValuesConsumer implements Closeable {
 
                          private boolean setNext() {
                            while (true) {
-                              BinaryDocValuesSub sub = docIDMerger.next();
-                              if (sub == null) {
-                                return false;
-                              }
-                              nextIsSet = true;
-                              if (sub.docsWithField.get(sub.docID)) {
-                                nextPointer = nextValue = sub.values.get(sub.docID);
-                              } else {
-                                nextPointer = null;
-                              }
-                              return true;
+                             BinaryDocValuesSub sub;
+                             try {
+                               sub = docIDMerger.next();
+                             } catch (IOException ioe) {
+                               throw new RuntimeException(ioe);
                              }
+                             if (sub == null) {
+                                 return false;
+                             }
+                             nextIsSet = true;
+                             if (sub.docsWithField.get(sub.docID)) {
+                               nextPointer = nextValue = sub.values.get(sub.docID);
+                             } else {
+                               nextPointer = null;
+                             }
+                             return true;
                            }
+                         }
                        };
                      }
                    });
@@ -470,7 +499,12 @@ public abstract class DocValuesConsumer implements Closeable {
               subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
             }
 
-            final DocIDMerger<SortedNumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            final DocIDMerger<SortedNumericDocValuesSub> docIDMerger;
+            try {
+              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
 
             return new Iterator<Number>() {
               int nextValue;
@@ -498,7 +532,12 @@ public abstract class DocValuesConsumer implements Closeable {
 
               private boolean setNext() {
                 while (true) {
-                  SortedNumericDocValuesSub sub = docIDMerger.next();
+                  SortedNumericDocValuesSub sub;
+                  try {
+                    sub = docIDMerger.next();
+                  } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                  }
                   if (sub == null) {
                     return false;
                   }
@@ -521,7 +560,12 @@ public abstract class DocValuesConsumer implements Closeable {
               subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
             }
 
-            final DocIDMerger<SortedNumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            final DocIDMerger<SortedNumericDocValuesSub> docIDMerger;
+            try {
+              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
 
             return new Iterator<Number>() {
               long nextValue;
@@ -560,7 +604,12 @@ public abstract class DocValuesConsumer implements Closeable {
                     return true;
                   }
 
-                  current = docIDMerger.next();
+                  try {
+                    current = docIDMerger.next();
+                  } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                  }
+                  
                   if (current == null) {
                     return false;
                   }
@@ -683,7 +732,12 @@ public abstract class DocValuesConsumer implements Closeable {
               subs.add(new SortedDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i], map.getGlobalOrds(i)));
             }
 
-            final DocIDMerger<SortedDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            final DocIDMerger<SortedDocValuesSub> docIDMerger;
+            try {
+              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
 
             return new Iterator<Number>() {
               int nextValue;
@@ -712,7 +766,12 @@ public abstract class DocValuesConsumer implements Closeable {
 
               private boolean setNext() {
                 while (true) {
-                  SortedDocValuesSub sub = docIDMerger.next();
+                  SortedDocValuesSub sub;
+                  try {
+                    sub = docIDMerger.next();
+                  } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                  }
                   if (sub == null) {
                     return false;
                   }
@@ -842,7 +901,12 @@ public abstract class DocValuesConsumer implements Closeable {
               subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i], map.getGlobalOrds(i)));
             }
 
-            final DocIDMerger<SortedSetDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            final DocIDMerger<SortedSetDocValuesSub> docIDMerger;
+            try {
+              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
 
             return new Iterator<Number>() {
               int nextValue;
@@ -871,7 +935,12 @@ public abstract class DocValuesConsumer implements Closeable {
 
               private boolean setNext() {
                 while (true) {
-                  SortedSetDocValuesSub sub = docIDMerger.next();
+                  SortedSetDocValuesSub sub;
+                  try {
+                    sub = docIDMerger.next();
+                  } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                  }
                   if (sub == null) {
                     return false;
                   }
@@ -900,7 +969,12 @@ public abstract class DocValuesConsumer implements Closeable {
               subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i], map.getGlobalOrds(i)));
             }
 
-            final DocIDMerger<SortedSetDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            final DocIDMerger<SortedSetDocValuesSub> docIDMerger;
+            try {
+              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
 
             return new Iterator<Number>() {
               long nextValue;
@@ -939,7 +1013,12 @@ public abstract class DocValuesConsumer implements Closeable {
                     return true;
                   }
 
-                  SortedSetDocValuesSub sub = docIDMerger.next();
+                  SortedSetDocValuesSub sub;
+                  try {
+                    sub = docIDMerger.next();
+                  } catch (IOException ioe) {
+                    throw new RuntimeException(ioe);
+                  }
                   if (sub == null) {
                     return false;
                   }

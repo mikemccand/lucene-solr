@@ -114,13 +114,6 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
     return (f == null) ? null : new FieldFilterFields(f);
   }
   
-  
-
-  @Override
-  public NumericDocValues getNumericDocValues(String field) throws IOException {
-    return hasField(field) ? super.getNumericDocValues(field) : null;
-  }
-
   @Override
   public BinaryDocValues getBinaryDocValues(String field) throws IOException {
     return hasField(field) ? super.getBinaryDocValues(field) : null;

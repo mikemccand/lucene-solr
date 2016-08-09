@@ -19,6 +19,8 @@ package org.apache.lucene.index;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.lucene.index.Sorter.DocMap;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -29,10 +31,14 @@ import org.apache.lucene.store.RAMFile;
 import org.apache.lucene.store.RAMInputStream;
 import org.apache.lucene.store.RAMOutputStream;
 import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.TimSorter;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * An {@link org.apache.lucene.index.LeafReader} which supports sorting documents by a given
@@ -177,6 +183,61 @@ class SortingLeafReader extends FilterLeafReader {
     @Override
     public long get(int docID) {
       return in.get(docMap.newToOld(docID));
+    }
+  }
+
+  private final Map<String,CachedNumericDVs> cachedNumericDVs = new HashMap<>();
+
+  // nocommit horrible!
+  private static class CachedNumericDVs {
+    private final long[] values;
+    private final BitSet docsWithField;
+
+    public CachedNumericDVs(long[] values, BitSet docsWithField) {
+      this.values = values;
+      this.docsWithField = docsWithField;
+    }
+  }
+
+  private static class SortingNumericDocValuesIterator extends NumericDocValuesIterator {
+
+    private final CachedNumericDVs dvs;
+    private int docID = -1;
+
+    public SortingNumericDocValuesIterator(CachedNumericDVs dvs) {
+      this.dvs = dvs;
+    }
+
+    @Override
+    public int nextDoc() {
+      if (docID+1 == dvs.docsWithField.length()) {
+        docID = NO_MORE_DOCS;
+      } else {
+        docID = dvs.docsWithField.nextSetBit(docID+1);
+      }
+
+      return docID;
+    }
+
+    @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) {
+      docID = dvs.docsWithField.nextSetBit(target);
+      return docID;
+    }
+
+    @Override
+    public long longValue() {
+      return dvs.values[docID];
+    }
+
+    @Override
+    public long cost() {
+      return dvs.docsWithField.cardinality();
     }
   }
 
@@ -855,10 +916,30 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValues getNumericDocValues(String field) throws IOException {
-    final NumericDocValues oldDocValues = in.getNumericDocValues(field);
+  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    final NumericDocValuesIterator oldDocValues = in.getNumericDocValuesIterator(field);
     if (oldDocValues == null) return null;
-    return new SortingNumericDocValues(oldDocValues, docMap);
+    // nocommit this is horrible!!
+    CachedNumericDVs dvs;
+    synchronized (cachedNumericDVs) {
+      dvs = cachedNumericDVs.get(field);
+      if (dvs == null) {
+        FixedBitSet docsWithField = new FixedBitSet(maxDoc());
+        long[] values = new long[maxDoc()];
+        while (true) {
+          int docID = oldDocValues.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
+          }
+          int newDocID = docMap.oldToNew(docID);
+          docsWithField.set(newDocID);
+          values[newDocID] = oldDocValues.longValue();
+        }
+        dvs = new CachedNumericDVs(values, docsWithField);
+        cachedNumericDVs.put(field, dvs);
+      }
+    }
+    return new SortingNumericDocValuesIterator(dvs);
   }
 
   @Override

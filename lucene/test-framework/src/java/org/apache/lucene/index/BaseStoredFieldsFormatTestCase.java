@@ -287,12 +287,13 @@ public abstract class BaseStoredFieldsFormatTestCase extends BaseIndexFileFormat
 
     for(LeafReaderContext ctx : r.leaves()) {
       final LeafReader sub = ctx.reader();
-      final NumericDocValues ids = DocValues.getNumeric(sub, "id");
+      final NumericDocValuesIterator ids = DocValues.getNumericIterator(sub, "id");
       for(int docID=0;docID<sub.numDocs();docID++) {
         final Document doc = sub.document(docID);
         final Field f = (Field) doc.getField("nf");
         assertTrue("got f=" + f, f instanceof StoredField);
-        assertEquals(answers[(int) ids.get(docID)], f.numericValue());
+        assertEquals(docID, ids.nextDoc());
+        assertEquals(answers[(int) ids.longValue()], f.numericValue());
       }
     }
     r.close();

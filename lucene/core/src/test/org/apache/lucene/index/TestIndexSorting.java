@@ -627,6 +627,8 @@ public class TestIndexSorting extends LuceneTestCase {
     boolean withDeletes = random().nextBoolean();
     Directory dir = newDirectory();
     IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
+    // nocommit
+    iwc.setMergeScheduler(new SerialMergeScheduler());
     Sort indexSort = new Sort(new SortField("foo", SortField.Type.LONG));
     iwc.setIndexSort(indexSort);
     IndexWriter w = new IndexWriter(dir, iwc);
@@ -781,7 +783,9 @@ public class TestIndexSorting extends LuceneTestCase {
         assertEquals(0, topDocs.totalHits);
       } else {
         assertEquals(1, topDocs.totalHits);
-        assertEquals(values.get(i).longValue(), MultiDocValues.getNumericValues(reader, "foo").get(topDocs.scoreDocs[0].doc));
+        NumericDocValuesIterator dvs = MultiDocValues.getNumericValuesIterator(reader, "foo");
+        assertEquals(i, dvs.advance(i));
+        assertEquals(values.get(i).longValue(), dvs.longValue());
       }
     }
     reader.close();
@@ -875,7 +879,10 @@ public class TestIndexSorting extends LuceneTestCase {
     for (int i = 0; i < numDocs; ++i) {
       final TopDocs topDocs = searcher.search(new TermQuery(new Term("id", Integer.toString(i))), 1);
       assertEquals(1, topDocs.totalHits);
-      assertEquals(values.get(i).longValue(), MultiDocValues.getNumericValues(reader, "foo").get(topDocs.scoreDocs[0].doc));
+      NumericDocValuesIterator dvs = MultiDocValues.getNumericValuesIterator(reader, "foo");
+      int hitDoc = topDocs.scoreDocs[0].doc;
+      assertEquals(hitDoc, dvs.advance(hitDoc));
+      assertEquals(values.get(i).longValue(), dvs.longValue());
     }
     reader.close();
     w.close();
@@ -931,9 +938,15 @@ public class TestIndexSorting extends LuceneTestCase {
       final TopDocs topDocs2 = searcher2.search(query, 1);
       assertEquals(topDocs.totalHits, topDocs2.totalHits);
       if (topDocs.totalHits == 1) {
-        assertEquals(
-            MultiDocValues.getNumericValues(reader, "foo").get(topDocs.scoreDocs[0].doc),
-            MultiDocValues.getNumericValues(reader2, "foo").get(topDocs2.scoreDocs[0].doc));
+        NumericDocValuesIterator dvs1 = MultiDocValues.getNumericValuesIterator(reader, "foo");
+        int hitDoc1 = topDocs.scoreDocs[0].doc;
+        assertEquals(hitDoc1, dvs1.advance(hitDoc1));
+        long value1 = dvs1.longValue();
+        NumericDocValuesIterator dvs2 = MultiDocValues.getNumericValuesIterator(reader2, "foo");
+        int hitDoc2 = topDocs2.scoreDocs[0].doc;
+        assertEquals(hitDoc2, dvs2.advance(hitDoc2));
+        long value2 = dvs2.longValue();
+        assertEquals(value1, value2);
       }
     }
 

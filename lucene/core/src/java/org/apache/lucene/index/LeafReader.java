@@ -240,12 +240,6 @@ public abstract class LeafReader extends IndexReader {
     return postings(term, PostingsEnum.FREQS);
   }
 
-  /** Returns {@link NumericDocValues} for this field, or
-   *  null if no {@link NumericDocValues} were indexed for
-   *  this field.  The returned instance should only be
-   *  used by a single thread. */
-  public abstract NumericDocValues getNumericDocValues(String field) throws IOException;
-
   /** Returns {@link NumericDocValuesIterator} for this field, or
    *  null if no {@link NumericDocValues} were indexed for
    *  this field.  The returned instance should only be

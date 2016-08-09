@@ -236,6 +236,6 @@
  *     </ul>
  * <p>
  * Additional user-supplied statistics can be added to the document as DocValues fields and
- * accessed via {@link org.apache.lucene.index.LeafReader#getNumericDocValues}.
+ * accessed via {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator}.
  */
 package org.apache.lucene.index;

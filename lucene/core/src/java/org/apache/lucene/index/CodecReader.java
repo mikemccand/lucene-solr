@@ -145,25 +145,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
   
   @Override
-  public final NumericDocValues getNumericDocValues(String field) throws IOException {
-    ensureOpen();
-    Map<String,Object> dvFields = docValuesLocal.get();
-
-    Object previous = dvFields.get(field);
-    if (previous != null && previous instanceof NumericDocValues) {
-      return (NumericDocValues) previous;
-    } else {
-      FieldInfo fi = getDVField(field, DocValuesType.NUMERIC);
-      if (fi == null) {
-        return null;
-      }
-      NumericDocValues dv = getDocValuesReader().getNumeric(fi);
-      dvFields.put(field, dv);
-      return dv;
-    }
-  }
-
-  @Override
   public final NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getDVField(field, DocValuesType.NUMERIC);

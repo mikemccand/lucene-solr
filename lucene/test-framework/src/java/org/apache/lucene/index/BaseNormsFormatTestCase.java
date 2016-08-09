@@ -294,10 +294,11 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
     ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValues expected = r.getNumericDocValues("dv");
+      NumericDocValuesIterator expected = r.getNumericDocValuesIterator("dv");
       NumericDocValues actual = r.getNormValues("indexed");
       for (int i = 0; i < r.maxDoc(); i++) {
-        assertEquals("doc " + i, expected.get(i), actual.get(i));
+        assertEquals(i, expected.nextDoc());
+        assertEquals("doc " + i, expected.longValue(), actual.get(i));
       }
     }
     

@@ -387,6 +387,7 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   /** Wraps a NumericDocValues but with additional asserts */
+  // nocommit remove me
   public static class AssertingNumericDocValues extends NumericDocValues {
     private final Thread creationThread = Thread.currentThread();
     private final NumericDocValues in;
@@ -725,20 +726,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
   }
   
-  @Override
-  public NumericDocValues getNumericDocValues(String field) throws IOException {
-    NumericDocValues dv = super.getNumericDocValues(field);
-    FieldInfo fi = getFieldInfos().fieldInfo(field);
-    if (dv != null) {
-      assert fi != null;
-      assert fi.getDocValuesType() == DocValuesType.NUMERIC;
-      return new AssertingNumericDocValues(dv, maxDoc());
-    } else {
-      assert fi == null || fi.getDocValuesType() != DocValuesType.NUMERIC;
-      return null;
-    }
-  }
-
   @Override
   public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
     NumericDocValuesIterator dv = super.getNumericDocValuesIterator(field);

@@ -57,7 +57,7 @@ public class SimpleMergedSegmentWarmer extends IndexReaderWarmer {
       if (info.getDocValuesType() != DocValuesType.NONE) {
         switch(info.getDocValuesType()) {
           case NUMERIC:
-            reader.getNumericDocValues(info.name);
+            reader.getNumericDocValuesIterator(info.name);
             break;
           case BINARY:
             reader.getBinaryDocValues(info.name);

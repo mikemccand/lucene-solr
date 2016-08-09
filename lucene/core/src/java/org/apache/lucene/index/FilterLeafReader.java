@@ -431,12 +431,6 @@ public abstract class FilterLeafReader extends LeafReader {
   }
 
   @Override
-  public NumericDocValues getNumericDocValues(String field) throws IOException {
-    ensureOpen();
-    return in.getNumericDocValues(field);
-  }
-
-  @Override
   public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
     ensureOpen();
     return in.getNumericDocValuesIterator(field);

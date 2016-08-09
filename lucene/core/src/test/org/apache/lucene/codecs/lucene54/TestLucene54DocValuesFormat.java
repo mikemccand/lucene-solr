@@ -53,6 +53,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValues;
@@ -205,8 +206,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
     for (LeafReaderContext context : indexReader.leaves()) {
       final LeafReader reader = context.reader();
-      final NumericDocValues numeric = DocValues.getNumeric(reader, "numeric");
-      final Bits numericBits = DocValues.getDocsWithField(reader, "numeric");
+      final NumericDocValuesIterator numeric = DocValues.getNumericIterator(reader, "numeric");
 
       final SortedDocValues sorted = DocValues.getSorted(reader, "sorted");
       final Bits sortedBits = DocValues.getDocsWithField(reader, "sorted");
@@ -225,21 +225,24 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
         final IndexableField valueField = doc.getField("value");
         final Long value = valueField == null ? null : valueField.numericValue().longValue();
 
+        if (numeric.docID() < i) {
+          numeric.advance(i);
+        }
+
         if (value == null) {
-          assertEquals(0, numeric.get(i));
+          assertTrue(numeric.docID() > i);
           assertEquals(-1, sorted.getOrd(i));
           assertEquals(new BytesRef(), binary.get(i));
 
-          assertFalse(numericBits.get(i));
           assertFalse(sortedBits.get(i));
           assertFalse(binaryBits.get(i));
         } else {
-          assertEquals(value.longValue(), numeric.get(i));
+          assertEquals(i, numeric.docID());
+          assertEquals(value.longValue(), numeric.longValue());
           assertTrue(sorted.getOrd(i) >= 0);
           assertEquals(new BytesRef(Long.toString(value)), sorted.lookupOrd(sorted.getOrd(i)));
           assertEquals(new BytesRef(Long.toString(value)), binary.get(i));
 
-          assertTrue(numericBits.get(i));
           assertTrue(sortedBits.get(i));
           assertTrue(binaryBits.get(i));
         }

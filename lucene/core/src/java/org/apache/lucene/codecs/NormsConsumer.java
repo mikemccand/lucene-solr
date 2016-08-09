@@ -28,7 +28,10 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.MergeState;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentWriteState;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
+
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /** 
@@ -78,22 +81,7 @@ public abstract class NormsConsumer implements Closeable {
     }
     for (FieldInfo mergeFieldInfo : mergeState.mergeFieldInfos) {
       if (mergeFieldInfo.hasNorms()) {
-        List<NumericDocValues> toMerge = new ArrayList<>();
-        for (int i=0;i<mergeState.normsProducers.length;i++) {
-          NormsProducer normsProducer = mergeState.normsProducers[i];
-          NumericDocValues norms = null;
-          if (normsProducer != null) {
-            FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-            if (fieldInfo != null && fieldInfo.hasNorms()) {
-              norms = normsProducer.getNorms(fieldInfo);
-            }
-          }
-          if (norms == null) {
-            norms = DocValues.emptyNumeric();
-          }
-          toMerge.add(norms);
-        }
-        mergeNormsField(mergeFieldInfo, mergeState, toMerge);
+        mergeNormsField(mergeFieldInfo, mergeState);
       }
     }
   }
@@ -101,24 +89,30 @@ public abstract class NormsConsumer implements Closeable {
   /** Tracks state of one numeric sub-reader that we are merging */
   private static class NumericDocValuesSub extends DocIDMerger.Sub {
 
-    private final NumericDocValues values;
-    private int docID = -1;
+    private final NumericDocValuesIterator values;
     private final int maxDoc;
-
-    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValues values, int maxDoc) {
+    private int docID = -1;
+    Long value;
+    
+    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValuesIterator values, int maxDoc) {
       super(docMap);
       this.values = values;
       this.maxDoc = maxDoc;
+      assert values.docID() == -1;
     }
 
     @Override
-    public int nextDoc() {
+    public int nextDoc() throws IOException {
+      assert docID == values.docID();
+      values.nextDoc();
       docID++;
       if (docID == maxDoc) {
+        assert values.docID() == NO_MORE_DOCS;
         return NO_MORE_DOCS;
-      } else {
-        return docID;
       }
+      assert docID == values.docID(): "docID=" + docID + " vs values.docID()=" + values.docID();
+      value = values.longValue();
+      return docID;
     }
   }
 
@@ -128,14 +122,40 @@ public abstract class NormsConsumer implements Closeable {
    * The default implementation calls {@link #addNormsField}, passing
    * an Iterable that merges and filters deleted documents on the fly.
    */
-  public void mergeNormsField(final FieldInfo fieldInfo, final MergeState mergeState, final List<NumericDocValues> toMerge) throws IOException {
+  public void mergeNormsField(final FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
 
     // TODO: try to share code with default merge of DVConsumer by passing MatchAllBits ?
-    addNormsField(fieldInfo,
+    addNormsField(mergeFieldInfo,
                     new Iterable<Number>() {
                       @Override
                       public Iterator<Number> iterator() {
 
+                        List<NumericDocValuesIterator> toMerge = new ArrayList<>();
+                        for (int i=0;i<mergeState.normsProducers.length;i++) {
+                          NormsProducer normsProducer = mergeState.normsProducers[i];
+                          NumericDocValuesIterator norms = null;
+                          if (normsProducer != null) {
+                            FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                            if (fieldInfo != null && fieldInfo.hasNorms()) {
+                              NumericDocValues values;
+                              try {
+                                values = normsProducer.getNorms(fieldInfo);
+                              } catch (IOException ioe) {
+                                throw new RuntimeException(ioe);
+                              }
+                              if (values != null) {
+                                norms = new StupidNumericDocValuesIterator(mergeState.maxDocs[i], values);
+                              }
+                            }
+                          }
+                          if (norms == null) {
+                            norms = DocValues.allZerosNumericIterator(mergeState.maxDocs[i]);
+                          }
+                          toMerge.add(norms);
+                        }
+
+                        // nocommit merge these two loops:
+                        
                         // We must make a new DocIDMerger for each iterator:
                         List<NumericDocValuesSub> subs = new ArrayList<>();
                         assert mergeState.docMaps.length == toMerge.size();
@@ -143,10 +163,16 @@ public abstract class NormsConsumer implements Closeable {
                           subs.add(new NumericDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
                         }
 
-                        final DocIDMerger<NumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                        final DocIDMerger<NumericDocValuesSub> docIDMerger;
+                        try {
+                          docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                        } catch (IOException ioe) {
+                          throw new RuntimeException(ioe);
+                        }
+                          
 
                         return new Iterator<Number>() {
-                          long nextValue;
+                          Long nextValue;
                           boolean nextIsSet;
 
                           @Override
@@ -170,12 +196,17 @@ public abstract class NormsConsumer implements Closeable {
                           }
 
                           private boolean setNext() {
-                            NumericDocValuesSub sub = docIDMerger.next();
+                            NumericDocValuesSub sub;
+                            try {
+                              sub = docIDMerger.next();
+                            } catch (IOException ioe) {
+                              throw new RuntimeException(ioe);
+                            }
                             if (sub == null) {
                               return false;
                             }
                             nextIsSet = true;
-                            nextValue = sub.values.get(sub.docID);
+                            nextValue = sub.value;
                             return true;
                           }
                         };

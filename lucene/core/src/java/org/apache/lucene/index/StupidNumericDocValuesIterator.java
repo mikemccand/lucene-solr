@@ -20,7 +20,7 @@ package org.apache.lucene.index;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 
-// nocommit remove this!!! fix codec to implement it properly instead of a dumb linear scan!
+// nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
  * A dumb iterator implementation that does a linear scan of the wrapped {@link NumericDocValues}
@@ -31,11 +31,14 @@ public final class StupidNumericDocValuesIterator extends NumericDocValuesIterat
   private final int maxDoc;
   private int docID = -1;
   
-  /** Sole constructor */
   public StupidNumericDocValuesIterator(Bits docsWithField, NumericDocValues values) {
     this.docsWithField = docsWithField;
     this.values = values;
     this.maxDoc = docsWithField.length();
+  }
+
+  public StupidNumericDocValuesIterator(int maxDoc, NumericDocValues values) {
+    this(new Bits.MatchAllBits(maxDoc), values);
   }
 
   @Override

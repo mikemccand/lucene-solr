@@ -57,7 +57,7 @@ public final class DocValues {
   }
 
   /** 
-   * An empty NumericDocValues which returns zero for every document 
+   * An empty NumericDocValuesIterator which returns no documents
    */
   public static final NumericDocValuesIterator emptyNumericIterator() {
     return new NumericDocValuesIterator() {
@@ -91,6 +91,51 @@ public final class DocValues {
       @Override
       public long longValue() {
         assert false;
+        return 0;
+      }
+    };
+  }
+
+  /** 
+   * A NumericDocValuesIterator which returns alldocuments with value 0
+   */
+  // nocommit move this horrible thing to be private to NormsConsumer?
+  public static final NumericDocValuesIterator allZerosNumericIterator(final int maxDoc) {
+    return new NumericDocValuesIterator() {
+      int docID = -1;
+      
+      @Override
+      public int advance(int target) {
+        assert target >= docID;
+        if (target >= maxDoc) {
+          docID = NO_MORE_DOCS;
+        } else {
+          docID = target;
+        }
+        return docID;
+      }
+      
+      @Override
+      public int docID() {
+        return docID;
+      }
+      
+      @Override
+      public int nextDoc() {
+        docID++;
+        if (docID == maxDoc) {
+          docID = NO_MORE_DOCS;
+        }
+        return docID;
+      }
+      
+      @Override
+      public long cost() {
+        return maxDoc;
+      }
+
+      @Override
+      public long longValue() {
         return 0;
       }
     };
@@ -255,23 +300,6 @@ public final class DocValues {
   }
   
   /**
-   * Returns NumericDocValues for the field, or {@link #emptyNumeric()} if it has none. 
-   * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
-   * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
-   * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#NUMERIC}.
-   * @throws IOException if an I/O error occurs.
-   */
-  public static NumericDocValues getNumeric(LeafReader reader, String field) throws IOException {
-    NumericDocValues dv = reader.getNumericDocValues(field);
-    if (dv == null) {
-      checkField(reader, field, DocValuesType.NUMERIC);
-      return emptyNumeric();
-    } else {
-      return dv;
-    }
-  }
-
-  /**
    * Returns NumericDocValuesIterator for the field, or {@link #emptyNumericIterator()} if it has none. 
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
@@ -336,13 +364,13 @@ public final class DocValues {
   public static SortedNumericDocValues getSortedNumeric(LeafReader reader, String field) throws IOException {
     SortedNumericDocValues dv = reader.getSortedNumericDocValues(field);
     if (dv == null) {
-      NumericDocValues single = reader.getNumericDocValues(field);
+      NumericDocValuesIterator single = reader.getNumericDocValuesIterator(field);
       if (single == null) {
         checkField(reader, field, DocValuesType.SORTED_NUMERIC, DocValuesType.NUMERIC);
         return emptySortedNumeric(reader.maxDoc());
       }
       Bits bits = reader.getDocsWithField(field);
-      return singleton(single, bits);
+      return singleton(new StupidNumericDocValues(reader.maxDoc(), single), bits);
     }
     return dv;
   }

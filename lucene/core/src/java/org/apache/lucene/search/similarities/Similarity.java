@@ -66,7 +66,7 @@ import java.util.Collections;
  * <p>
  * Additional scoring factors can be stored in named
  * <code>NumericDocValuesField</code>s and accessed
- * at query-time with {@link org.apache.lucene.index.LeafReader#getNumericDocValues(String)}.
+ * at query-time with {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator(String)}.
  * <p>
  * Finally, using index-time boosts (either via folding into the normalization byte or
  * via DocValues), is an inefficient way to boost the scores of different fields if the

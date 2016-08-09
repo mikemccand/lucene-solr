@@ -372,7 +372,7 @@ public final class TestUtil {
       switch(info.getDocValuesType()) {
         case NONE:
           if (reader.getBinaryDocValues(info.name) != null ||
-              reader.getNumericDocValues(info.name) != null ||
+              reader.getNumericDocValuesIterator(info.name) != null ||
               reader.getSortedDocValues(info.name) != null || 
               reader.getSortedSetDocValues(info.name) != null || 
               reader.getDocsWithField(info.name) != null) {
@@ -381,7 +381,7 @@ public final class TestUtil {
           break;
         case SORTED:
           if (reader.getBinaryDocValues(info.name) != null ||
-              reader.getNumericDocValues(info.name) != null ||
+              reader.getNumericDocValuesIterator(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null) {
             throw new RuntimeException(info.name + " returns multiple docvalues types!");
@@ -389,7 +389,7 @@ public final class TestUtil {
           break;
         case SORTED_NUMERIC:
           if (reader.getBinaryDocValues(info.name) != null ||
-              reader.getNumericDocValues(info.name) != null ||
+              reader.getNumericDocValuesIterator(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null) {
             throw new RuntimeException(info.name + " returns multiple docvalues types!");
@@ -397,14 +397,14 @@ public final class TestUtil {
           break;
         case SORTED_SET:
           if (reader.getBinaryDocValues(info.name) != null ||
-              reader.getNumericDocValues(info.name) != null ||
+              reader.getNumericDocValuesIterator(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null) {
             throw new RuntimeException(info.name + " returns multiple docvalues types!");
           }
           break;
         case BINARY:
-          if (reader.getNumericDocValues(info.name) != null ||
+          if (reader.getNumericDocValuesIterator(info.name) != null ||
               reader.getSortedDocValues(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null) {

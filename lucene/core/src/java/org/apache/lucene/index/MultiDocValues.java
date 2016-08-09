@@ -100,54 +100,10 @@ public class MultiDocValues {
     };
   }
 
-  /** Returns a NumericDocValues for a reader's docvalues (potentially merging on-the-fly) 
-   * <p>
-   * This is a slow way to access numeric values. Instead, access them per-segment
-   * with {@link LeafReader#getNumericDocValues(String)}
-   * </p> 
-   * */
-  public static NumericDocValues getNumericValues(final IndexReader r, final String field) throws IOException {
-    final List<LeafReaderContext> leaves = r.leaves();
-    final int size = leaves.size();
-    if (size == 0) {
-      return null;
-    } else if (size == 1) {
-      return leaves.get(0).reader().getNumericDocValues(field);
-    }
-
-    boolean anyReal = false;
-    final NumericDocValues[] values = new NumericDocValues[size];
-    final int[] starts = new int[size+1];
-    for (int i = 0; i < size; i++) {
-      LeafReaderContext context = leaves.get(i);
-      NumericDocValues v = context.reader().getNumericDocValues(field);
-      if (v == null) {
-        v = DocValues.emptyNumeric();
-      } else {
-        anyReal = true;
-      }
-      values[i] = v;
-      starts[i] = context.docBase;
-    }
-    starts[size] = r.maxDoc();
-
-    if (!anyReal) {
-      return null;
-    } else {
-      return new NumericDocValues() {
-        @Override
-        public long get(int docID) {
-          int subIndex = ReaderUtil.subIndex(docID, starts);
-          return values[subIndex].get(docID - starts[subIndex]);
-        }
-      };
-    }
-  }
-
   /** Returns a NumericDocValuesIterator for a reader's docvalues (potentially merging on-the-fly) 
    * <p>
    * This is a slow way to access numeric values. Instead, access them per-segment
-   * with {@link LeafReader#getNumericDocValues(String)}
+   * with {@link LeafReader#getNumericDocValuesIterator(String)}
    * </p> 
    * */
   public static NumericDocValuesIterator getNumericValuesIterator(final IndexReader r, final String field) throws IOException {

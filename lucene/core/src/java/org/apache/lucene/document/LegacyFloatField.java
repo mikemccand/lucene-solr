@@ -53,7 +53,7 @@ import org.apache.lucene.util.LegacyNumericUtils;
  * To sort according to a
  * <code>LegacyFloatField</code>, use the normal numeric sort types, eg
  * {@link org.apache.lucene.search.SortField.Type#FLOAT}. <code>LegacyFloatField</code>
- * values can also be loaded directly from {@link org.apache.lucene.index.LeafReader#getNumericDocValues}.</p>
+ * values can also be loaded directly from {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator}.</p>
  *
  * <p>You may add the same field name as an <code>LegacyFloatField</code> to
  * the same document more than once.  Range querying and

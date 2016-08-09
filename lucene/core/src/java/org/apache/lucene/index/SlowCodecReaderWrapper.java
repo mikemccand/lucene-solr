@@ -224,8 +224,8 @@ public final class SlowCodecReaderWrapper {
     return new DocValuesProducer() {
 
       @Override
-      public NumericDocValues getNumeric(FieldInfo field) throws IOException {  
-        return reader.getNumericDocValues(field.name);
+      public NumericDocValues getNumeric(FieldInfo field) throws IOException {
+        throw new UnsupportedOperationException();
       }
 
       @Override

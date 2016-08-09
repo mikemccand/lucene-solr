@@ -59,10 +59,12 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    NumericDocValues multi = MultiDocValues.getNumericValues(ir, "numbers");
-    NumericDocValues single = merged.getNumericDocValues("numbers");
+    NumericDocValuesIterator multi = MultiDocValues.getNumericValuesIterator(ir, "numbers");
+    NumericDocValuesIterator single = merged.getNumericDocValuesIterator("numbers");
     for (int i = 0; i < numDocs; i++) {
-      assertEquals(single.get(i), multi.get(i));
+      assertEquals(i, multi.nextDoc());
+      assertEquals(i, single.nextDoc());
+      assertEquals(single.longValue(), multi.longValue());
     }
     ir.close();
     ir2.close();

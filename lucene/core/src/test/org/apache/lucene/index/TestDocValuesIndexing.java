@@ -83,7 +83,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     w.close();
     LeafReader sr = getOnlyLeafReader(r3);
     assertEquals(2, sr.numDocs());
-    NumericDocValues docValues = sr.getNumericDocValues("dv");
+    NumericDocValuesIterator docValues = sr.getNumericDocValuesIterator("dv");
     assertNotNull(docValues);
     r3.close();
     d3.close();
@@ -109,7 +109,9 @@ public class TestDocValuesIndexing extends LuceneTestCase {
 
     DirectoryReader r = w.getReader();
     w.close();
-    assertEquals(17, DocValues.getNumeric(getOnlyLeafReader(r), "field").get(0));
+    NumericDocValuesIterator values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    assertEquals(0, values.nextDoc());
+    assertEquals(17, values.longValue());
     r.close();
     d.close();
   }
@@ -130,7 +132,9 @@ public class TestDocValuesIndexing extends LuceneTestCase {
 
     DirectoryReader r = w.getReader();
     w.close();
-    assertEquals(17, DocValues.getNumeric(getOnlyLeafReader(r), "field").get(0));
+    NumericDocValuesIterator values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    assertEquals(0, values.nextDoc());
+    assertEquals(17, values.longValue());
     r.close();
     d.close();
   }
@@ -150,7 +154,9 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     });
 
     DirectoryReader r = w.getReader();
-    assertEquals(17, getOnlyLeafReader(r).getNumericDocValues("field").get(0));
+    NumericDocValuesIterator values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    assertEquals(0, values.nextDoc());
+    assertEquals(17, values.longValue());
     r.close();
     w.close();
     d.close();
@@ -202,9 +208,10 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     FieldInfos fi = MultiFields.getMergedFieldInfos(r);
     FieldInfo dvInfo = fi.fieldInfo("dv");
     assertTrue(dvInfo.getDocValuesType() != DocValuesType.NONE);
-    NumericDocValues dv = MultiDocValues.getNumericValues(r, "dv");
+    NumericDocValuesIterator dv = MultiDocValues.getNumericValuesIterator(r, "dv");
     for (int i = 0; i < 50; i++) {
-      assertEquals(i, dv.get(i));
+      assertEquals(i, dv.nextDoc());
+      assertEquals(i, dv.longValue());
       Document d = r.document(i);
       // cannot use d.get("dv") due to another bug!
       assertNull(d.getField("dv"));
