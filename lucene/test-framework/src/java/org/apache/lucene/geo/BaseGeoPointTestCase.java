@@ -792,8 +792,6 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
     int iters = atLeast(25);
 
-    NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
-
     Bits liveDocs = MultiFields.getLiveDocs(s.getIndexReader());
     int maxDoc = s.getIndexReader().maxDoc();
 
@@ -833,6 +831,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
+      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();
@@ -921,8 +920,6 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
     int iters = atLeast(25);
 
-    NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
-
     Bits liveDocs = MultiFields.getLiveDocs(s.getIndexReader());
     int maxDoc = s.getIndexReader().maxDoc();
 
@@ -972,6 +969,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
+      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();
@@ -1064,8 +1062,6 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
 
     final int iters = atLeast(75);
 
-    NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
-
     Bits liveDocs = MultiFields.getLiveDocs(s.getIndexReader());
     int maxDoc = s.getIndexReader().maxDoc();
 
@@ -1105,6 +1101,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
+      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();

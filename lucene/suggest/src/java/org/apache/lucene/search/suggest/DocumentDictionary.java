@@ -245,7 +245,6 @@ public class DocumentDictionary implements Dictionary {
       if (weight != null) { // found weight as stored
         return (weight.numericValue() != null) ? weight.numericValue().longValue() : 0;
       } else if (weightValues != null) {  // found weight as NumericDocValue
-        assert weightValues.docID() <= docId;
         if (weightValues.docID() < docId) {
           weightValues.advance(docId);
         }

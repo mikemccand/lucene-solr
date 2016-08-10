@@ -38,7 +38,9 @@ public abstract class ValueSource {
 
   /**
    * Gets the values for this reader and the context that was previously
-   * passed to createWeight()
+   * passed to createWeight().  The values must be consumed in a forward
+   * docID manner, and you must call this method again to iterate through
+   * the values again.
    */
   public abstract FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException;
 
