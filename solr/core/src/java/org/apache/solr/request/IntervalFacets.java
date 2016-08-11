@@ -26,9 +26,11 @@ import java.util.List;
 import java.util.Locale;
 
 import org.apache.lucene.document.FieldType.LegacyNumericType;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.FilterNumericDocValuesIterator;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.DocIdSet;
@@ -181,8 +183,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
 
     final Iterator<LeafReaderContext> ctxIt = leaves.iterator();
     LeafReaderContext ctx = null;
-    NumericDocValues longs = null;
-    Bits docsWithField = null;
+    NumericDocValuesIterator longs = null;
     for (DocIterator docsIt = docs.iterator(); docsIt.hasNext(); ) {
       final int doc = docsIt.nextDoc();
       if (ctx == null || doc >= ctx.docBase + ctx.reader().maxDoc()) {
@@ -192,30 +193,28 @@ public class IntervalFacets implements Iterable<FacetInterval> {
         assert doc >= ctx.docBase;
         switch (numericType) {
           case LONG:
-            longs = DocValues.getNumeric(ctx.reader(), fieldName);
+            longs = DocValues.getNumericIterator(ctx.reader(), fieldName);
             break;
           case INT:
-            longs = DocValues.getNumeric(ctx.reader(), fieldName);
+            longs = DocValues.getNumericIterator(ctx.reader(), fieldName);
             break;
           case FLOAT:
-            final NumericDocValues floats = DocValues.getNumeric(ctx.reader(), fieldName);
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new NumericDocValues() {
+            longs = new FilterNumericDocValuesIterator(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
               @Override
-              public long get(int docID) {
-                long bits = floats.get(docID);
+              public long longValue() {
+                long bits = super.longValue();
                 if (bits < 0) bits ^= 0x7fffffffffffffffL;
                 return bits;
               }
             };
             break;
           case DOUBLE:
-            final NumericDocValues doubles = DocValues.getNumeric(ctx.reader(), fieldName);
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new NumericDocValues() {
+            longs = new FilterNumericDocValuesIterator(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
               @Override
-              public long get(int docID) {
-                long bits = doubles.get(docID);
+              public long longValue() {
+                long bits = super.longValue();
                 if (bits < 0) bits ^= 0x7fffffffffffffffL;
                 return bits;
               }
@@ -224,11 +223,13 @@ public class IntervalFacets implements Iterable<FacetInterval> {
           default:
             throw new AssertionError();
         }
-        docsWithField = DocValues.getDocsWithField(ctx.reader(), schemaField.getName());
       }
-      long v = longs.get(doc - ctx.docBase);
-      if (v != 0 || docsWithField.get(doc - ctx.docBase)) {
-        accumIntervalWithValue(v);
+      int valuesDocID = longs.docID();
+      if (valuesDocID < doc - ctx.docBase) {
+        valuesDocID = longs.advance(doc - ctx.docBase);
+      }
+      if (valuesDocID == doc - ctx.docBase) {
+        accumIntervalWithValue(longs.longValue());
       }
     }
   }
@@ -743,7 +744,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
      * and/or non-numeric field make sure you call {@link #updateContext(SortedDocValues)}
      * or {@link #updateContext(SortedSetDocValues)} (depending on the DV type). It
      * is OK to call this method without other previous calls on numeric fields
-     * (with {@link NumericDocValues})
+     * (with {@link NumericDocValuesIterator})
      *
      * @param value For numeric single value fields, this {@code value}
      *              should be the {@code long} representation of the value of the document

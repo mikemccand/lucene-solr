@@ -24,7 +24,7 @@ import java.util.TreeSet;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -95,7 +95,7 @@ public class IGainTermsQParserPlugin extends QParserPlugin {
     private int numTerms;
     private int count;
 
-    private NumericDocValues leafOutcomeValue;
+    private NumericDocValuesIterator leafOutcomeValue;
     private SparseFixedBitSet positiveSet;
     private SparseFixedBitSet negativeSet;
 
@@ -119,14 +119,25 @@ public class IGainTermsQParserPlugin extends QParserPlugin {
     protected void doSetNextReader(LeafReaderContext context) throws IOException {
       super.doSetNextReader(context);
       LeafReader reader = context.reader();
-      leafOutcomeValue = reader.getNumericDocValues(outcome);
+      leafOutcomeValue = reader.getNumericDocValuesIterator(outcome);
     }
 
     @Override
     public void collect(int doc) throws IOException {
       super.collect(doc);
       ++count;
-      if (leafOutcomeValue.get(doc) == positiveLabel) {
+      int valuesDocID = leafOutcomeValue.docID();
+      if (valuesDocID < doc) {
+        valuesDocID = leafOutcomeValue.advance(doc);
+      }
+      int value;
+      if (valuesDocID == doc) {
+        value = (int) leafOutcomeValue.longValue();
+      } else {
+        value = 0;
+      }
+      
+      if (value == positiveLabel) {
         positiveSet.set(context.docBase + doc);
         numPositiveDocs++;
       } else {

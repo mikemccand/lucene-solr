@@ -31,6 +31,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FieldComparator;
@@ -685,7 +686,7 @@ public class TestRankQueryPlugin extends QParserPlugin {
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
       final int base = context.docBase;
-      final NumericDocValues values = DocValues.getNumeric(context.reader(), "sort_i");
+      final NumericDocValuesIterator values = DocValues.getNumericIterator(context.reader(), "sort_i");
       return new LeafCollector() {
         
         @Override
@@ -695,8 +696,18 @@ public class TestRankQueryPlugin extends QParserPlugin {
           return false;
         }
 
-        public void collect(int doc) {
-          list.add(new ScoreDoc(doc+base, (float)values.get(doc)));
+        public void collect(int doc) throws IOException {
+          int valuesDocID = values.docID();
+          if (valuesDocID < doc) {
+            valuesDocID = values.advance(doc);
+          }
+          long value;
+          if (valuesDocID == doc) {
+            value = values.longValue();
+          } else {
+            value = 0;
+          }
+          list.add(new ScoreDoc(doc+base, (float) value));
         }
       };
     }

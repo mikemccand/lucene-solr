@@ -28,6 +28,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -126,7 +127,7 @@ public class TextLogisticRegressionQParserPlugin extends QParserPlugin {
     private double[] weights;
 
     private ResponseBuilder rbsp;
-    private NumericDocValues leafOutcomeValue;
+    private NumericDocValuesIterator leafOutcomeValue;
     private double totalError;
     private SparseFixedBitSet positiveDocsSet;
     private SparseFixedBitSet docsSet;
@@ -147,12 +148,21 @@ public class TextLogisticRegressionQParserPlugin extends QParserPlugin {
     public void doSetNextReader(LeafReaderContext context) throws IOException {
       super.doSetNextReader(context);
       leafReader = context.reader();
-      leafOutcomeValue = leafReader.getNumericDocValues(trainingParams.outcome);
+      leafOutcomeValue = leafReader.getNumericDocValuesIterator(trainingParams.outcome);
     }
 
     public void collect(int doc) throws IOException{
+      int valuesDocID = leafOutcomeValue.docID();
+      if (valuesDocID < doc) {
+        valuesDocID = leafOutcomeValue.advance(valuesDocID);
+      }
+      int outcome;
+      if (valuesDocID == doc) {
+        outcome = (int) leafOutcomeValue.longValue();
+      } else {
+        outcome = 0;
+      }
 
-      int outcome = (int) leafOutcomeValue.get(doc);
       outcome = trainingParams.positiveLabel == outcome? 1 : 0;
       if (outcome == 1) {
         positiveDocsSet.set(context.docBase + doc);

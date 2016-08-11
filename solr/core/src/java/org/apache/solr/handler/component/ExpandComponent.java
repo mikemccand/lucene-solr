@@ -34,7 +34,7 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -329,7 +329,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
       }
     } else {
       groupSet = new LongHashSet(docList.size());
-      NumericDocValues collapseValues = contexts.get(currentContext).reader().getNumericDocValues(field);
+      NumericDocValuesIterator collapseValues = contexts.get(currentContext).reader().getNumericDocValuesIterator(field);
       int count = 0;
       for(int i=0; i<globalDocs.length; i++) {
         int globalDoc = globalDocs[i];
@@ -337,10 +337,19 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
           currentContext++;
           currentDocBase = contexts.get(currentContext).docBase;
           nextDocBase = currentContext+1 < contexts.size() ? contexts.get(currentContext+1).docBase : Integer.MAX_VALUE;
-          collapseValues = contexts.get(currentContext).reader().getNumericDocValues(field);
+          collapseValues = contexts.get(currentContext).reader().getNumericDocValuesIterator(field);
         }
         int contextDoc = globalDoc - currentDocBase;
-        long value = collapseValues.get(contextDoc);
+        int valueDocID = collapseValues.docID();
+        if (valueDocID < contextDoc) {
+          valueDocID = collapseValues.advance(contextDoc);
+        }
+        long value;
+        if (valueDocID == contextDoc) {
+          value = collapseValues.longValue();
+        } else {
+          value = 0;
+        }
         if(value != nullValue) {
           ++count;
           groupSet.add(value);
@@ -575,7 +584,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
   }
 
   private class NumericGroupExpandCollector implements Collector, GroupCollector {
-    private NumericDocValues docValues;
+    private NumericDocValuesIterator docValues;
 
     private String field;
     private LongObjectHashMap<Collector> groups;
@@ -605,7 +614,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
 
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
       final int docBase = context.docBase;
-      this.docValues = context.reader().getNumericDocValues(this.field);
+      this.docValues = context.reader().getNumericDocValuesIterator(this.field);
 
       final LongObjectHashMap<LeafCollector> leafCollectors = new LongObjectHashMap<>();
 
@@ -624,7 +633,16 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
 
         @Override
         public void collect(int docId) throws IOException {
-          long value = docValues.get(docId);
+          int valuesDocID = docValues.docID();
+          if (valuesDocID < docId) {
+            valuesDocID = docValues.advance(docId);
+          }
+          long value;
+          if (valuesDocID == docId) {
+            value = docValues.longValue();
+          } else {
+            value = 0;
+          }
           final int index;
           if (value != nullValue && 
               (index = leafCollectors.indexOf(value)) >= 0 && 

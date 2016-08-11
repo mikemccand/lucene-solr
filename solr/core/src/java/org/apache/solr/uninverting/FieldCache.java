@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.IndexReader; // javadocs
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
@@ -264,7 +264,7 @@ interface FieldCache {
   public Bits getDocsWithField(LeafReader reader, String field, Parser parser) throws IOException;
 
   /**
-   * Returns a {@link NumericDocValues} over the values found in documents in the given
+   * Returns a {@link NumericDocValuesIterator} over the values found in documents in the given
    * field. If the field was indexed as {@link NumericDocValuesField}, it simply
    * uses {@link org.apache.lucene.index.LeafReader#getNumericDocValues(String)} to read the values.
    * Otherwise, it checks the internal cache for an appropriate entry, and if
@@ -280,14 +280,11 @@ interface FieldCache {
    *          Computes long for string values. May be {@code null} if the
    *          requested field was indexed as {@link NumericDocValuesField} or
    *          {@link org.apache.lucene.document.LegacyLongField}.
-   * @param setDocsWithField
-   *          If true then {@link #getDocsWithField} will also be computed and
-   *          stored in the FieldCache.
    * @return The values in the given field for each document.
    * @throws IOException
    *           If any error occurs.
    */
-  public NumericDocValues getNumerics(LeafReader reader, String field, Parser parser, boolean setDocsWithField) throws IOException;
+  public NumericDocValuesIterator getNumerics(LeafReader reader, String field, Parser parser) throws IOException;
   
   /** Checks the internal cache for an appropriate entry, and if none
    * is found, reads the term values in <code>field</code>
@@ -295,19 +292,17 @@ interface FieldCache {
    * method to retrieve the term (as a BytesRef) per document.
    * @param reader  Used to get field values.
    * @param field   Which field contains the strings.
-   * @param setDocsWithField  If true then {@link #getDocsWithField} will
-   *        also be computed and stored in the FieldCache.
    * @return The values in the given field for each document.
    * @throws IOException  If any error occurs.
    */
-  public BinaryDocValues getTerms(LeafReader reader, String field, boolean setDocsWithField) throws IOException;
+  public BinaryDocValues getTerms(LeafReader reader, String field) throws IOException;
 
   /** Expert: just like {@link #getTerms(org.apache.lucene.index.LeafReader,String,boolean)},
    *  but you can specify whether more RAM should be consumed in exchange for
    *  faster lookups (default is "true").  Note that the
    *  first call for a given reader and field "wins",
    *  subsequent calls will share the same cache entry. */
-  public BinaryDocValues getTerms(LeafReader reader, String field, boolean setDocsWithField, float acceptableOverheadRatio) throws IOException;
+  public BinaryDocValues getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException;
 
   /** Checks the internal cache for an appropriate entry, and if none
    * is found, reads the term values in <code>field</code>

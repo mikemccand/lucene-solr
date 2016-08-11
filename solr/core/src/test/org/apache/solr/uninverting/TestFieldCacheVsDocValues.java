@@ -200,7 +200,7 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     LeafReader ar = SlowCompositeReaderWrapper.wrap(r);
     TestUtil.checkReader(ar);
 
-    BinaryDocValues s = FieldCache.DEFAULT.getTerms(ar, "field", false);
+    BinaryDocValues s = FieldCache.DEFAULT.getTerms(ar, "field");
     for(int docID=0;docID<docBytes.size();docID++) {
       Document doc = ar.document(docID);
       BytesRef bytes = s.get(docID);
@@ -275,7 +275,7 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     TestUtil.checkReader(ar
                          );
 
-    BinaryDocValues s = FieldCache.DEFAULT.getTerms(ar, "field", false);
+    BinaryDocValues s = FieldCache.DEFAULT.getTerms(ar, "field");
     for(int docID=0;docID<docBytes.size();docID++) {
       Document doc = ar.document(docID);
       BytesRef bytes = s.get(docID);

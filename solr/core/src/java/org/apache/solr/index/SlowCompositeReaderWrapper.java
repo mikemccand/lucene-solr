@@ -115,12 +115,6 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public NumericDocValues getNumericDocValues(String field) throws IOException {
-    ensureOpen();
-    return MultiDocValues.getNumericValues(in, field);
-  }
-
-  @Override
   public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
     ensureOpen();
     return MultiDocValues.getNumericValuesIterator(in, field);

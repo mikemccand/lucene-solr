@@ -66,7 +66,7 @@ public class AnalyticsParsers {
   }
   
   /**
-   * Converts the long returned by NumericDocValues into the
+   * Converts the long returned by NumericDocValuesIterator into the
    * correct number and return it as a string.
    */
   public static interface NumericParser extends Parser {

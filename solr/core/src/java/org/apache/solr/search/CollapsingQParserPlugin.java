@@ -35,6 +35,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.queries.function.FunctionQuery;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -675,7 +676,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
 
     private LeafReaderContext[] contexts;
     private FixedBitSet collapsedSet;
-    private NumericDocValues collapseValues;
+    private NumericDocValuesIterator collapseValues;
     private IntLongHashMap cmap;
     private int maxDoc;
     private int nullPolicy;
@@ -730,13 +731,23 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     protected void doSetNextReader(LeafReaderContext context) throws IOException {
       this.contexts[context.ord] = context;
       this.docBase = context.docBase;
-      this.collapseValues = DocValues.getNumeric(context.reader(), this.field);
+      this.collapseValues = DocValues.getNumericIterator(context.reader(), this.field);
     }
 
     @Override
     public void collect(int contextDoc) throws IOException {
 
-      int collapseValue = (int)this.collapseValues.get(contextDoc);
+      int collapseDocID = collapseValues.docID();
+      if (collapseDocID < contextDoc) {
+        collapseDocID = collapseValues.advance(contextDoc);
+      }
+
+      int collapseValue;
+      if (collapseDocID == contextDoc) {
+        collapseValue = (int) collapseValues.longValue();
+      } else {
+        collapseValue = 0;
+      }
       int globalDoc = docBase+contextDoc;
 
       // Check to see of we have documents boosted by the QueryElevationComponent
@@ -808,7 +819,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
       int currentContext = 0;
       int currentDocBase = 0;
 
-      collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.field);
+      collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.field);
       int nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
       leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
       DummyScorer dummy = new DummyScorer();
@@ -824,12 +835,21 @@ public class CollapsingQParserPlugin extends QParserPlugin {
           nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
           leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
           leafDelegate.setScorer(dummy);
-          collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.field);
+          collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.field);
         }
 
         int contextDoc = globalDoc-currentDocBase;
+        int valuesDocID = collapseValues.docID();
+        if (valuesDocID < contextDoc) {
+          valuesDocID = collapseValues.advance(contextDoc);
+        }
+        int collapseValue;
+        if (valuesDocID == contextDoc) {
+          collapseValue = (int) collapseValues.longValue();
+        } else {
+          collapseValue = 0;
+        }
 
-        int collapseValue = (int)collapseValues.get(contextDoc);
         if(collapseValue != nullValue) {
           long scoreDoc = cmap.get(collapseValue);
           dummy.score = Float.intBitsToFloat((int)(scoreDoc>>32));
@@ -1028,7 +1048,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
    */
   private static class IntFieldValueCollector extends DelegatingCollector {
     private LeafReaderContext[] contexts;
-    private NumericDocValues collapseValues;
+    private NumericDocValuesIterator collapseValues;
     private int maxDoc;
     private int nullValue;
     private int nullPolicy;
@@ -1087,12 +1107,23 @@ public class CollapsingQParserPlugin extends QParserPlugin {
       this.contexts[context.ord] = context;
       this.docBase = context.docBase;
       this.collapseStrategy.setNextReader(context);
-      this.collapseValues = DocValues.getNumeric(context.reader(), this.collapseField);
+      this.collapseValues = DocValues.getNumericIterator(context.reader(), this.collapseField);
     }
 
     public void collect(int contextDoc) throws IOException {
+      int collapseDocID = collapseValues.docID();
+      if (collapseDocID < contextDoc) {
+        collapseDocID = collapseValues.advance(contextDoc);
+      }
+
+      int collapseKey;
+      if (collapseDocID == contextDoc) {
+        collapseKey = (int) collapseValues.longValue();
+      } else {
+        collapseKey = 0;
+      }
+      
       int globalDoc = contextDoc+this.docBase;
-      int collapseKey = (int)this.collapseValues.get(contextDoc);
       collapseStrategy.collapse(collapseKey, contextDoc, globalDoc);
     }
 
@@ -1103,7 +1134,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
 
       int currentContext = 0;
       int currentDocBase = 0;
-      this.collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.collapseField);
+      this.collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.collapseField);
       int nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
       leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
       DummyScorer dummy = new DummyScorer();
@@ -1126,13 +1157,24 @@ public class CollapsingQParserPlugin extends QParserPlugin {
           nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
           leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
           leafDelegate.setScorer(dummy);
-          this.collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.collapseField);
+          this.collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.collapseField);
         }
 
         int contextDoc = globalDoc-currentDocBase;
 
         if(this.needsScores){
-          int collapseValue = (int)collapseValues.get(contextDoc);
+          int collapseDocID = collapseValues.docID();
+          if (collapseDocID < contextDoc) {
+            collapseDocID = collapseValues.advance(contextDoc);
+          }
+
+          int collapseValue;
+          if (collapseDocID == contextDoc) {
+            collapseValue = (int) collapseValues.longValue();
+          } else {
+            collapseValue = 0;
+          }
+          
           if(collapseValue != nullValue) {
             int pointer = cmap.get(collapseValue);
             dummy.score = scores[pointer];
@@ -1446,7 +1488,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class OrdIntStrategy extends OrdFieldValueStrategy {
 
     private final String field;
-    private NumericDocValues minMaxValues;
+    private NumericDocValuesIterator minMaxValues;
     private IntCompare comp;
     private int nullVal;
     private int[] ordVals;
@@ -1482,7 +1524,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxValues = DocValues.getNumeric(context.reader(), this.field);
+      this.minMaxValues = DocValues.getNumericIterator(context.reader(), this.field);
     }
 
     public void collapse(int ord, int contextDoc, int globalDoc) throws IOException {
@@ -1493,8 +1535,18 @@ public class CollapsingQParserPlugin extends QParserPlugin {
         return;
       }
 
-      int currentVal = (int) minMaxValues.get(contextDoc);
+      int valuesDocID = minMaxValues.docID();
+      if (valuesDocID < contextDoc) {
+        valuesDocID = minMaxValues.advance(contextDoc);
+      }
 
+      int currentVal;
+      if (valuesDocID == contextDoc) {
+        currentVal = (int) minMaxValues.longValue();
+      } else {
+        currentVal = 0;
+      }
+      
       if(ord > -1) {
         if(comp.test(currentVal, ordVals[ord])) {
           ords[ord] = globalDoc;
@@ -1527,7 +1579,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class OrdFloatStrategy extends OrdFieldValueStrategy {
 
     private final String field;
-    private NumericDocValues minMaxValues;
+    private NumericDocValuesIterator minMaxValues;
     private FloatCompare comp;
     private float nullVal;
     private float[] ordVals;
@@ -1564,7 +1616,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxValues = DocValues.getNumeric(context.reader(), this.field);
+      this.minMaxValues = DocValues.getNumericIterator(context.reader(), this.field);
     }
 
     public void collapse(int ord, int contextDoc, int globalDoc) throws IOException {
@@ -1575,7 +1627,18 @@ public class CollapsingQParserPlugin extends QParserPlugin {
         return;
       }
 
-      int currentMinMax = (int) minMaxValues.get(contextDoc);
+      int valuesDocID = minMaxValues.docID();
+      if (valuesDocID < contextDoc) {
+        valuesDocID = minMaxValues.advance(contextDoc);
+      }
+
+      int currentMinMax;
+      if (valuesDocID == contextDoc) {
+        currentMinMax = (int) minMaxValues.longValue();
+      } else {
+        currentMinMax = 0;
+      }
+
       float currentVal = Float.intBitsToFloat(currentMinMax);
 
       if(ord > -1) {
@@ -1611,7 +1674,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class OrdLongStrategy extends OrdFieldValueStrategy {
 
     private final String field;
-    private NumericDocValues minMaxVals;
+    private NumericDocValuesIterator minMaxVals;
     private LongCompare comp;
     private long nullVal;
     private long[] ordVals;
@@ -1646,7 +1709,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxVals = DocValues.getNumeric(context.reader(), this.field);
+      this.minMaxVals = DocValues.getNumericIterator(context.reader(), this.field);
     }
 
     public void collapse(int ord, int contextDoc, int globalDoc) throws IOException {
@@ -1657,7 +1720,18 @@ public class CollapsingQParserPlugin extends QParserPlugin {
         return;
       }
 
-      long currentVal = minMaxVals.get(contextDoc);
+      int valuesDocID = minMaxVals.docID();
+      if (valuesDocID < contextDoc) {
+        valuesDocID = minMaxVals.advance(contextDoc);
+      }
+
+      long currentVal;
+      if (valuesDocID == contextDoc) {
+        currentVal = minMaxVals.longValue();
+      } else {
+        currentVal = 0;
+      }
+
       if(ord > -1) {
         if(comp.test(currentVal, ordVals[ord])) {
           ords[ord] = globalDoc;
@@ -2003,7 +2077,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class IntIntStrategy extends IntFieldValueStrategy {
 
     private final String field;
-    private NumericDocValues minMaxVals;
+    private NumericDocValuesIterator minMaxVals;
     private int[] testValues;
     private IntCompare comp;
     private int nullCompVal;
@@ -2042,7 +2116,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxVals = DocValues.getNumeric(context.reader(), this.field);
+      this.minMaxVals = DocValues.getNumericIterator(context.reader(), this.field);
     }
 
     public void collapse(int collapseKey, int contextDoc, int globalDoc) throws IOException {
@@ -2054,7 +2128,17 @@ public class CollapsingQParserPlugin extends QParserPlugin {
         return;
       }
 
-      int currentVal = (int) minMaxVals.get(contextDoc);
+      int valuesDocID = minMaxVals.docID();
+      if (valuesDocID < contextDoc) {
+        valuesDocID = minMaxVals.advance(contextDoc);
+      }
+
+      int currentVal;
+      if (valuesDocID == contextDoc) {
+        currentVal = (int) minMaxVals.longValue();
+      } else {
+        currentVal = 0;
+      }
 
       if(collapseKey != nullValue) {
         final int idx;
@@ -2105,7 +2189,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class IntFloatStrategy extends IntFieldValueStrategy {
 
     private final String field;
-    private NumericDocValues minMaxVals;
+    private NumericDocValuesIterator minMaxVals;
     private float[] testValues;
     private FloatCompare comp;
     private float nullCompVal;
@@ -2144,7 +2228,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxVals = DocValues.getNumeric(context.reader(), this.field);
+      this.minMaxVals = DocValues.getNumericIterator(context.reader(), this.field);
     }
 
     public void collapse(int collapseKey, int contextDoc, int globalDoc) throws IOException {
@@ -2156,7 +2240,18 @@ public class CollapsingQParserPlugin extends QParserPlugin {
         return;
       }
 
-      int minMaxVal = (int) minMaxVals.get(contextDoc);
+      int valuesDocID = minMaxVals.docID();
+      if (valuesDocID < contextDoc) {
+        valuesDocID = minMaxVals.advance(contextDoc);
+      }
+
+      int minMaxVal;
+      if (valuesDocID == contextDoc) {
+        minMaxVal = (int) minMaxVals.longValue();
+      } else {
+        minMaxVal = 0;
+      }
+
       float currentVal = Float.intBitsToFloat(minMaxVal);
 
       if(collapseKey != nullValue) {

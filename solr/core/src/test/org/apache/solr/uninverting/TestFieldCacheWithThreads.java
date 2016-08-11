@@ -36,6 +36,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.store.Directory;
@@ -85,9 +86,9 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           public void run() {
             try {
               //NumericDocValues ndv = ar.getNumericDocValues("number");
-              NumericDocValues ndv = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER, false);
+              NumericDocValuesIterator ndv = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER);
               //BinaryDocValues bdv = ar.getBinaryDocValues("bytes");
-              BinaryDocValues bdv = FieldCache.DEFAULT.getTerms(ar, "bytes", false);
+              BinaryDocValues bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
               SortedDocValues sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
               startingGun.await();
               int iters = atLeast(1000);
@@ -95,16 +96,32 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
                 int docID = threadRandom.nextInt(numDocs);
                 switch(threadRandom.nextInt(4)) {
                 case 0:
-                  assertEquals(numbers.get(docID).longValue(), FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.INT_POINT_PARSER, false).get(docID));
+                  {
+                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.INT_POINT_PARSER);
+                    assertEquals(docID, values.advance(docID));
+                    assertEquals(numbers.get(docID).longValue(), values.longValue());
+                  }
                   break;
                 case 1:
-                  assertEquals(numbers.get(docID).longValue(), FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER, false).get(docID));
+                  {
+                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER);
+                    assertEquals(docID, values.advance(docID));
+                    assertEquals(numbers.get(docID).longValue(), values.longValue());
+                  }
                   break;
                 case 2:
-                  assertEquals(numbers.get(docID).longValue(), FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.FLOAT_POINT_PARSER, false).get(docID));
+                  {
+                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.FLOAT_POINT_PARSER);
+                    assertEquals(docID, values.advance(docID));
+                    assertEquals(numbers.get(docID).longValue(), values.longValue());
+                  }
                   break;
                 case 3:
-                  assertEquals(numbers.get(docID).longValue(), FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.DOUBLE_POINT_PARSER, false).get(docID));
+                  {
+                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.DOUBLE_POINT_PARSER);
+                    assertEquals(docID, values.advance(docID));
+                    assertEquals(numbers.get(docID).longValue(), values.longValue());
+                  }
                   break;
                 }
                 BytesRef term = bdv.get(docID);
@@ -194,13 +211,22 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           public void run() {
             Random random = random();            
             final SortedDocValues stringDVDirect;
-            final NumericDocValues docIDToID;
+            final NumericDocValuesIterator docIDToID;
             try {
               stringDVDirect = sr.getSortedDocValues("stringdv");
-              docIDToID = sr.getNumericDocValues("id");
+              docIDToID = sr.getNumericDocValuesIterator("id");
               assertNotNull(stringDVDirect);
             } catch (IOException ioe) {
               throw new RuntimeException(ioe);
+            }
+            int[] docIDToIDArray = new int[sr.maxDoc()];
+            for(int i=0;i<sr.maxDoc();i++) {
+              try {
+                assertEquals(i, docIDToID.nextDoc());
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+              }
+              docIDToIDArray[i] = (int) docIDToID.longValue();
             }
             while(System.nanoTime() < END_TIME) {
               final SortedDocValues source;
@@ -209,7 +235,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
               for(int iter=0;iter<100;iter++) {
                 final int docID = random.nextInt(sr.maxDoc());
                 BytesRef term = source.get(docID);
-                assertEquals(docValues.get((int) docIDToID.get(docID)), term);
+                assertEquals(docValues.get(docIDToIDArray[docID]), term);
               }
             }
           }

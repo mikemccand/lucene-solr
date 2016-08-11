@@ -19,16 +19,16 @@ package org.apache.solr.analytics.accumulator.facet;
 import java.io.IOException;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.analytics.accumulator.FacetingAccumulator;
 import org.apache.solr.analytics.accumulator.ValueAccumulator;
-import org.apache.solr.analytics.util.AnalyticsParsers;
 import org.apache.solr.analytics.util.AnalyticsParsers.NumericParser;
 import org.apache.solr.analytics.util.AnalyticsParsers.Parser;
+import org.apache.solr.analytics.util.AnalyticsParsers;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.schema.DateValueFieldType;
 import org.apache.solr.schema.SchemaField;
@@ -49,8 +49,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
   protected final boolean dateField;
   protected SortedSetDocValues setValues;
   protected SortedDocValues sortValues; 
-  protected NumericDocValues numValues; 
-  protected Bits numValuesBits; 
+  protected NumericDocValuesIterator numValues;
   
   public FieldFacetAccumulator(SolrIndexSearcher searcher, FacetValueAccumulator parent, SchemaField schemaField) throws IOException {  
     if( !schemaField.hasDocValues() ){
@@ -79,8 +78,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
       setValues = context.reader().getSortedSetDocValues(name);
     } else {
       if (numField) {
-        numValues = context.reader().getNumericDocValues(name);
-        numValuesBits = context.reader().getDocsWithField(name);
+        numValues = context.reader().getNumericDocValuesIterator(name);
       } else {
         sortValues = context.reader().getSortedDocValues(name);
       }
@@ -110,9 +108,12 @@ public class FieldFacetAccumulator extends ValueAccumulator {
     } else {
       if(numField){
         if(numValues != null) {
-          long v = numValues.get(doc);
-          if( v != 0 || numValuesBits.get(doc) ){
-            parent.collectField(doc, name, ((NumericParser)parser).parseNum(v));
+          int valuesDocID = numValues.docID();
+          if (valuesDocID < doc) {
+            valuesDocID = numValues.advance(doc);
+          }
+          if (valuesDocID == doc) {
+            parent.collectField(doc, name, ((NumericParser)parser).parseNum(numValues.longValue()));
           } else {
             parent.collectField(doc, name, FacetingAccumulator.MISSING_VALUE );
           }

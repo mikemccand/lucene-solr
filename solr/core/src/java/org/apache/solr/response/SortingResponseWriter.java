@@ -1299,8 +1299,13 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
-      int val = (int)vals.get(docId);
+      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      int val;
+      if (vals.advance(docId) == docId) {
+        val = (int) vals.longValue();
+      } else {
+        val = 0;
+      }
       if(fieldIndex>0) {
         out.write(',');
       }
@@ -1378,8 +1383,13 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
-      long val = vals.get(docId);
+      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      long val;
+      if (vals.advance(docId) == docId) {
+        val = vals.longValue();
+      } else {
+        val = 0;
+      }
       if(fieldIndex > 0) {
         out.write(',');
       }
@@ -1400,8 +1410,13 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
-      long val = vals.get(docId);
+      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      long val;
+      if (vals.advance(docId) == docId) {
+        val = vals.longValue();
+      } else {
+        val = 0;
+      }
 
       if (fieldIndex > 0) {
         out.write(',');
@@ -1459,8 +1474,13 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
-      int val = (int)vals.get(docId);
+      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      int val;
+      if (vals.advance(docId) == docId) {
+        val = (int)vals.longValue();
+      } else {
+        val = 0;
+      }
       if(fieldIndex > 0) {
         out.write(',');
       }
@@ -1481,11 +1501,16 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
+      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      long val;
+      if (vals.advance(docId) == docId) {
+        val = vals.longValue();
+      } else {
+        val = 0;
+      }
       if(fieldIndex > 0) {
         out.write(',');
       }
-      long val = vals.get(docId);
       out.write('"');
       out.write(this.field);
       out.write('"');

@@ -40,6 +40,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
@@ -353,7 +354,7 @@ public class TestDocTermOrds extends LuceneTestCase {
                                             TestUtil.nextInt(random(), 2, 10));
                                             
 
-    final NumericDocValues docIDToID = FieldCache.DEFAULT.getNumerics(r, "id", FieldCache.LEGACY_INT_PARSER, false);
+    final NumericDocValuesIterator docIDToID = FieldCache.DEFAULT.getNumerics(r, "id", FieldCache.LEGACY_INT_PARSER);
     /*
       for(int docID=0;docID<subR.maxDoc();docID++) {
       System.out.println("  docID=" + docID + " id=" + docIDToID[docID]);
@@ -405,11 +406,12 @@ public class TestDocTermOrds extends LuceneTestCase {
 
     SortedSetDocValues iter = dto.iterator(r);
     for(int docID=0;docID<r.maxDoc();docID++) {
+      assertEquals(docID, docIDToID.nextDoc());
       if (VERBOSE) {
-        System.out.println("TEST: docID=" + docID + " of " + r.maxDoc() + " (id=" + docIDToID.get(docID) + ")");
+        System.out.println("TEST: docID=" + docID + " of " + r.maxDoc() + " (id=" + docIDToID.longValue() + ")");
       }
       iter.setDocument(docID);
-      final int[] answers = idToOrds[(int) docIDToID.get(docID)];
+      final int[] answers = idToOrds[(int) docIDToID.longValue()];
       int upto = 0;
       long ord;
       while ((ord = iter.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {

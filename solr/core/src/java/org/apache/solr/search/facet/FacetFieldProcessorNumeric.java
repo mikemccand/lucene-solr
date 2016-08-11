@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BitUtil;
 import org.apache.lucene.util.Bits;
@@ -287,8 +288,7 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
       allBucketsAcc = new SpecialSlotAcc(fcontext, collectAcc, allBucketsSlot, otherAccs, 0);
     }
 
-    NumericDocValues values = null;
-    Bits docsWithField = null;
+    NumericDocValuesIterator values = null;
 
     // TODO: factor this code out so it can be shared...
     final List<LeafReaderContext> leaves = fcontext.searcher.getIndexReader().leaves();
@@ -309,13 +309,16 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
         assert doc >= ctx.docBase;
         setNextReaderFirstPhase(ctx);
 
-        values = DocValues.getNumeric(ctx.reader(), sf.getName());
-        docsWithField = DocValues.getDocsWithField(ctx.reader(), sf.getName());
+        values = DocValues.getNumericIterator(ctx.reader(), sf.getName());
       }
 
       int segDoc = doc - segBase;
-      long val = values.get(segDoc);
-      if (val != 0 || docsWithField.get(segDoc)) {
+      int valuesDocID = values.docID();
+      if (segDoc < valuesDocID) {
+        valuesDocID = values.advance(segDoc);
+      }
+      if (valuesDocID == segDoc) {
+        long val = values.longValue();
         int slot = table.add(val);  // this can trigger a rehash rehash
 
         // countAcc.incrementCount(slot, 1);

@@ -37,6 +37,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.ConstantScoreScorer;
@@ -274,14 +275,15 @@ public class TestFieldCacheSortRandom extends LuceneTestCase {
         public Scorer scorer(LeafReaderContext context) throws IOException {
           Random random = new Random(seed ^ context.docBase);
           final int maxDoc = context.reader().maxDoc();
-          final NumericDocValues idSource = DocValues.getNumeric(context.reader(), "id");
+          final NumericDocValuesIterator idSource = DocValues.getNumericIterator(context.reader(), "id");
           assertNotNull(idSource);
           final FixedBitSet bits = new FixedBitSet(maxDoc);
           for(int docID=0;docID<maxDoc;docID++) {
             if (random.nextFloat() <= density) {
               bits.set(docID);
               //System.out.println("  acc id=" + idSource.getInt(docID) + " docID=" + docID);
-              matchValues.add(docValues.get((int) idSource.get(docID)));
+              assertEquals(docID, idSource.advance(docID));
+              matchValues.add(docValues.get((int) idSource.longValue()));
             }
           }
 

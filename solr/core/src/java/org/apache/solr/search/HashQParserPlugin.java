@@ -24,6 +24,7 @@ import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocIdSet;
@@ -268,7 +269,7 @@ public class HashQParserPlugin extends QParserPlugin {
 
   private interface HashKey {
     public void setNextReader(LeafReaderContext reader) throws IOException;
-    public long hashCode(int doc);
+    public long hashCode(int doc) throws IOException;
   }
 
   private class BytesHash implements HashKey {
@@ -297,7 +298,7 @@ public class HashQParserPlugin extends QParserPlugin {
 
   private class NumericHash implements HashKey {
 
-    private NumericDocValues values;
+    private NumericDocValuesIterator values;
     private String field;
 
     public NumericHash(String field) {
@@ -305,11 +306,20 @@ public class HashQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      values = context.reader().getNumericDocValues(field);
+      values = context.reader().getNumericDocValuesIterator(field);
     }
 
-    public long hashCode(int doc) {
-      long l = values.get(doc);
+    public long hashCode(int doc) throws IOException {
+      int valuesDocID = values.docID();
+      if (valuesDocID < doc) {
+        valuesDocID = values.advance(doc);
+      }
+      long l;
+      if (valuesDocID == doc) {
+        l = values.longValue();
+      } else {
+        l = 0;
+      }
       return Longs.hashCode(l);
     }
   }
@@ -346,7 +356,7 @@ public class HashQParserPlugin extends QParserPlugin {
       key4.setNextReader(context);
     }
 
-    public long hashCode(int doc) {
+    public long hashCode(int doc) throws IOException {
       return key1.hashCode(doc)+key2.hashCode(doc)+key3.hashCode(doc)+key4.hashCode(doc);
     }
   }

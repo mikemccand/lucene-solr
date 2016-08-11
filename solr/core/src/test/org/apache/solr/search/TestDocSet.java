@@ -419,11 +419,6 @@ public class TestDocSet extends LuceneTestCase {
       }
 
       @Override
-      public NumericDocValues getNumericDocValues(String field) {
-        return null;
-      }
-
-      @Override
       public NumericDocValuesIterator getNumericDocValuesIterator(String field) {
         return null;
       }
