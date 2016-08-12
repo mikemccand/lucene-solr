@@ -16,15 +16,6 @@
  */
 package org.apache.solr.uninverting;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.lucene.analysis.MockAnalyzer;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
@@ -58,6 +49,17 @@ import org.apache.lucene.util.TestUtil;
 import org.apache.solr.index.SlowCompositeReaderWrapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
@@ -143,19 +145,19 @@ public class TestFieldCache extends LuceneTestCase {
     
     NumericDocValuesIterator longs = cache.getNumerics(reader, "theLong", FieldCache.LONG_POINT_PARSER);
     for (int i = 0; i < NUM_DOCS; i++) {
-      assertEquals(i, doubles.nextDoc());
+      assertEquals(i, longs.nextDoc());
       assertEquals(Long.MAX_VALUE - i, longs.longValue());
     }
 
     NumericDocValuesIterator ints = cache.getNumerics(reader, "theInt", FieldCache.INT_POINT_PARSER);
     for (int i = 0; i < NUM_DOCS; i++) {
-      assertEquals(i, doubles.nextDoc());
+      assertEquals(i, ints.nextDoc());
       assertEquals(Integer.MAX_VALUE - i, ints.longValue());
     }
     
     NumericDocValuesIterator floats = cache.getNumerics(reader, "theFloat", FieldCache.FLOAT_POINT_PARSER);
     for (int i = 0; i < NUM_DOCS; i++) {
-      assertEquals(i, doubles.nextDoc());
+      assertEquals(i, floats.nextDoc());
       assertEquals(Float.floatToIntBits(Float.MAX_VALUE - i), floats.longValue());
     }
 
@@ -629,6 +631,7 @@ public class TestFieldCache extends LuceneTestCase {
     doc.add(field);
     doc.add(field2);
     final long[] values = new long[TestUtil.nextInt(random(), 1, 10)];
+    Set<Integer> missing = new HashSet<>();
     for (int i = 0; i < values.length; ++i) {
       final long v;
       switch (random().nextInt(10)) {
@@ -649,6 +652,7 @@ public class TestFieldCache extends LuceneTestCase {
       if (v == 0 && random().nextBoolean()) {
         // missing
         iw.addDocument(new Document());
+        missing.add(i);
       } else {
         field.setLongValue(v);
         field2.setLongValue(v);
@@ -659,9 +663,12 @@ public class TestFieldCache extends LuceneTestCase {
     final DirectoryReader reader = iw.getReader();
     final NumericDocValuesIterator longs = FieldCache.DEFAULT.getNumerics(getOnlyLeafReader(reader), "f", FieldCache.LONG_POINT_PARSER);
     for (int i = 0; i < values.length; ++i) {
-      assertEquals(i, longs.nextDoc());
-      assertEquals(values[i], longs.longValue());
+      if (missing.contains(i) == false) {
+        assertEquals(i, longs.nextDoc());
+        assertEquals(values[i], longs.longValue());
+      }
     }
+    assertEquals(NO_MORE_DOCS, longs.nextDoc());
     reader.close();
     iw.close();
     dir.close();
@@ -677,6 +684,7 @@ public class TestFieldCache extends LuceneTestCase {
     IntPoint field = new IntPoint("f", 0);
     doc.add(field);
     final int[] values = new int[TestUtil.nextInt(random(), 1, 10)];
+    Set<Integer> missing = new HashSet<>();
     for (int i = 0; i < values.length; ++i) {
       final int v;
       switch (random().nextInt(10)) {
@@ -697,6 +705,7 @@ public class TestFieldCache extends LuceneTestCase {
       if (v == 0 && random().nextBoolean()) {
         // missing
         iw.addDocument(new Document());
+        missing.add(i);
       } else {
         field.setIntValue(v);
         iw.addDocument(doc);
@@ -706,9 +715,12 @@ public class TestFieldCache extends LuceneTestCase {
     final DirectoryReader reader = iw.getReader();
     final NumericDocValuesIterator ints = FieldCache.DEFAULT.getNumerics(getOnlyLeafReader(reader), "f", FieldCache.INT_POINT_PARSER);
     for (int i = 0; i < values.length; ++i) {
-      assertEquals(i, ints.nextDoc());
-      assertEquals(values[i], ints.longValue());
+      if (missing.contains(i) == false) {
+        assertEquals(i, ints.nextDoc());
+        assertEquals(values[i], ints.longValue());
+      }
     }
+    assertEquals(NO_MORE_DOCS, ints.nextDoc());
     reader.close();
     iw.close();
     dir.close();

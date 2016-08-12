@@ -1132,6 +1132,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     protected double currentValue;
     protected DoubleComp comp;
     private int lastDocID;
+    private LeafReader reader;
 
     public DoubleValue(String field, DoubleComp comp) {
       this.field = field;
@@ -1144,12 +1145,14 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumericIterator(context.reader(), field);
+      this.reader = context.reader();
+      this.vals = DocValues.getNumericIterator(this.reader, this.field);
     }
 
     public void setCurrentValue(int docId) throws IOException {
       if (docId < lastDocID) {
-        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + docId);
+        // TODO: can we enforce caller to go in order instead?
+        this.vals = DocValues.getNumericIterator(this.reader, this.field);
       }
       lastDocID = docId;
       int curDocID = vals.docID();

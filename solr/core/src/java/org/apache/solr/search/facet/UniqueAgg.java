@@ -212,10 +212,18 @@ public class UniqueAgg extends StrAggValueSource {
     @Override
     public void setNextReader(LeafReaderContext readerContext) throws IOException {
       values = DocValues.getNumericIterator(readerContext.reader(),  sf.getName());
+      lastDocID = -1;
     }
+
+    // nocommit
+    private int lastDocID;
 
     @Override
     public void collect(int doc, int slot) throws IOException {
+      if (doc < lastDocID) {
+        throw new RuntimeException("docs out of order doc=" + doc + " vs lastDocID=" + lastDocID);
+      }
+      lastDocID = doc;
       int valuesDocID = values.docID();
       if (valuesDocID < doc) {
         valuesDocID = values.advance(doc);

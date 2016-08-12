@@ -608,8 +608,10 @@ class FieldCacheImpl implements FieldCache {
   static class LongsFromArray implements Accountable {
     private final PackedInts.Reader values;
     private final long minValue;
+    private final String field;
 
-    public LongsFromArray(PackedInts.Reader values, long minValue) {
+    public LongsFromArray(String field, PackedInts.Reader values, long minValue) {
+      this.field = field;
       this.values = values;
       this.minValue = minValue;
     }
@@ -631,11 +633,10 @@ class FieldCacheImpl implements FieldCache {
         @Override
         public int nextDoc() {
           while (true) {
+            docID++;
             if (docID >= values.size()) {
               docID = NO_MORE_DOCS;
               return docID;
-            } else {
-              docID++;
             }
             if (docsWithField.get(docID)) {
               return docID;
@@ -729,9 +730,9 @@ class FieldCacheImpl implements FieldCache {
       wrapper.setDocsWithField(reader, key.field, u.docsWithField, parser);
       GrowableWriterAndMinValue values = valuesRef.get();
       if (values == null) {
-        return new LongsFromArray(new PackedInts.NullReader(reader.maxDoc()), 0L);
+        return new LongsFromArray(key.field, new PackedInts.NullReader(reader.maxDoc()), 0L);
       }
-      return new LongsFromArray(values.writer.getMutable(), values.minValue);
+      return new LongsFromArray(key.field, values.writer.getMutable(), values.minValue);
     }
   }
 

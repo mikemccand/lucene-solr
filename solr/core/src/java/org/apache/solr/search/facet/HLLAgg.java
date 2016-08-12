@@ -141,7 +141,6 @@ public class HLLAgg extends StrAggValueSource {
         valuesDocID = values.advance(doc);
       }
       if (valuesDocID > doc) {
-        // missing
         return;
       }
       assert valuesDocID == doc;

@@ -64,14 +64,15 @@ public class LongFieldSource extends FieldCacheSource {
   
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-    final NumericDocValuesIterator arr = DocValues.getNumericIterator(readerContext.reader(), field);
     
     return new LongDocValues(this) {
       int lastDocID;
+      private NumericDocValuesIterator arr = DocValues.getNumericIterator(readerContext.reader(), field);
 
       private long getValueForDoc(int doc) throws IOException {
         if (doc < lastDocID) {
-          throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
+          // TODO: can we enforce caller to go in order instead?
+          arr = DocValues.getNumericIterator(readerContext.reader(), field);
         }
         lastDocID = doc;
         int curDocID = arr.docID();

@@ -314,7 +314,8 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
 
       int segDoc = doc - segBase;
       int valuesDocID = values.docID();
-      if (segDoc < valuesDocID) {
+
+      if (segDoc > valuesDocID) {
         valuesDocID = values.advance(segDoc);
       }
       if (valuesDocID == segDoc) {

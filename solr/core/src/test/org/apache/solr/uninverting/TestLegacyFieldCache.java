@@ -16,13 +16,6 @@
  */
 package org.apache.solr.uninverting;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.lucene.analysis.MockAnalyzer;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
@@ -56,6 +49,15 @@ import org.apache.lucene.util.TestUtil;
 import org.apache.solr.index.SlowCompositeReaderWrapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
@@ -406,6 +408,7 @@ public class TestLegacyFieldCache extends LuceneTestCase {
     LegacyLongField field = new LegacyLongField("f", 0L, Store.YES);
     doc.add(field);
     final long[] values = new long[TestUtil.nextInt(random(), 1, 10)];
+    Set<Integer> missing = new HashSet<>();
     for (int i = 0; i < values.length; ++i) {
       final long v;
       switch (random().nextInt(10)) {
@@ -426,6 +429,7 @@ public class TestLegacyFieldCache extends LuceneTestCase {
       if (v == 0 && random().nextBoolean()) {
         // missing
         iw.addDocument(new Document());
+        missing.add(i);
       } else {
         field.setLongValue(v);
         iw.addDocument(doc);
@@ -435,9 +439,12 @@ public class TestLegacyFieldCache extends LuceneTestCase {
     final DirectoryReader reader = iw.getReader();
     final NumericDocValuesIterator longs = FieldCache.DEFAULT.getNumerics(getOnlyLeafReader(reader), "f", FieldCache.LEGACY_LONG_PARSER);
     for (int i = 0; i < values.length; ++i) {
-      assertEquals(i, longs.nextDoc());
-      assertEquals(values[i], longs.longValue());
+      if (missing.contains(i) == false) {
+        assertEquals(i, longs.nextDoc());
+        assertEquals(values[i], longs.longValue());
+      }
     }
+    assertEquals(NO_MORE_DOCS, longs.nextDoc());
     reader.close();
     iw.close();
     dir.close();
@@ -453,6 +460,7 @@ public class TestLegacyFieldCache extends LuceneTestCase {
     LegacyIntField field = new LegacyIntField("f", 0, Store.YES);
     doc.add(field);
     final int[] values = new int[TestUtil.nextInt(random(), 1, 10)];
+    Set<Integer> missing = new HashSet<>();
     for (int i = 0; i < values.length; ++i) {
       final int v;
       switch (random().nextInt(10)) {
@@ -473,6 +481,7 @@ public class TestLegacyFieldCache extends LuceneTestCase {
       if (v == 0 && random().nextBoolean()) {
         // missing
         iw.addDocument(new Document());
+        missing.add(i);
       } else {
         field.setIntValue(v);
         iw.addDocument(doc);
@@ -482,9 +491,12 @@ public class TestLegacyFieldCache extends LuceneTestCase {
     final DirectoryReader reader = iw.getReader();
     final NumericDocValuesIterator ints = FieldCache.DEFAULT.getNumerics(getOnlyLeafReader(reader), "f", FieldCache.LEGACY_INT_PARSER);
     for (int i = 0; i < values.length; ++i) {
-      assertEquals(i, ints.nextDoc());
-      assertEquals(values[i], ints.longValue());
+      if (missing.contains(i) == false) {
+        assertEquals(i, ints.nextDoc());
+        assertEquals(values[i], ints.longValue());
+      }
     }
+    assertEquals(NO_MORE_DOCS, ints.nextDoc());
     reader.close();
     iw.close();
     dir.close();
