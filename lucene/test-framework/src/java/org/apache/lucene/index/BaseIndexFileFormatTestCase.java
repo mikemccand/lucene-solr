@@ -330,7 +330,49 @@ abstract class BaseIndexFileFormatTestCase extends LuceneTestCase {
     
     // DocValuesFormat
     try (DocValuesConsumer consumer = codec.docValuesFormat().fieldsConsumer(writeState)) {
-      consumer.addNumericField(field, Collections.singleton(5));
+      consumer.addNumericField(field,
+                               new EmptyDocValuesProducer() {
+                                 @Override
+                                 public NumericDocValuesIterator getNumericIterator(FieldInfo field) {
+                                   return new NumericDocValuesIterator() {
+                                     int docID = -1;
+                                 
+                                     @Override
+                                     public int docID() {
+                                       return docID;
+                                     }
+                                 
+                                     @Override
+                                     public int nextDoc() {
+                                       docID++;
+                                       if (docID == 1) {
+                                         docID = NO_MORE_DOCS;
+                                       }
+                                       return docID;
+                                     }
+
+                                     @Override
+                                     public int advance(int target) {
+                                       if (docID <= 0 && target == 0) {
+                                         docID = 0;
+                                       } else {
+                                         docID = NO_MORE_DOCS;
+                                       }
+                                       return docID;
+                                     }
+
+                                     @Override
+                                     public long cost() {
+                                       return 1;
+                                     }
+
+                                     @Override
+                                     public long longValue() {
+                                       return 5;
+                                     }
+                                   };
+                                 }
+                               });
       IOUtils.close(consumer);
       IOUtils.close(consumer);
     }

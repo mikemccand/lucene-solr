@@ -27,10 +27,12 @@ import java.util.Locale;
 import java.util.Set;
 
 import org.apache.lucene.codecs.DocValuesConsumer;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
+import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
-import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
@@ -69,7 +71,12 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   }
 
   @Override
-  public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+  public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addNumericField(field, new StupidNumericDocValuesIterable(field, valuesProducer, numDocs));
+  }
+
+  void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.NUMERIC || field.hasNorms();
     writeFieldEntry(field, DocValuesType.NUMERIC);

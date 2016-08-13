@@ -32,6 +32,8 @@ import java.util.stream.StreamSupport;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -42,8 +44,8 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LongsRef;
 import org.apache.lucene.util.MathUtil;
-import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.PagedBytes.PagedBytesDataInput;
+import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.packed.DirectMonotonicWriter;
 import org.apache.lucene.util.packed.DirectWriter;
@@ -85,8 +87,8 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
   }
   
   @Override
-  public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
-    addNumericField(field, values, NumberType.VALUE);
+  public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addNumericField(field, new StupidNumericDocValuesIterable(field, valuesProducer, maxDoc), NumberType.VALUE);
   }
 
   void addNumericField(FieldInfo field, Iterable<Number> values, NumberType numberType) throws IOException {
@@ -586,7 +588,7 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
     if (isSingleValued(docToValueCount)) {
       meta.writeVInt(SORTED_SINGLE_VALUED);
       // The field is single-valued, we can encode it as NUMERIC
-      addNumericField(field, singletonView(docToValueCount, values, null));
+      addNumericField(field, singletonView(docToValueCount, values, null), NumberType.VALUE);
     } else {
       final SortedSet<LongsRef> uniqueValueSets = uniqueValueSets(docToValueCount, values);
       if (uniqueValueSets != null) {

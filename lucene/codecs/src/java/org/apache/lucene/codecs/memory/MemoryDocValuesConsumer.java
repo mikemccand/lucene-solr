@@ -25,6 +25,8 @@ import java.util.NoSuchElementException;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -45,19 +47,19 @@ import org.apache.lucene.util.packed.MonotonicBlockPackedWriter;
 import org.apache.lucene.util.packed.PackedInts.FormatAndBits;
 import org.apache.lucene.util.packed.PackedInts;
 
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.VERSION_CURRENT;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.BLOCK_COMPRESSED;
 import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.BLOCK_SIZE;
 import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.BYTES;
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.NUMBER;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.DELTA_COMPRESSED;
 import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.FST;
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.SORTED_SET;
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.SORTED_SET_SINGLETON;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.GCD_COMPRESSED;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.NUMBER;
 import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.SORTED_NUMERIC;
 import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.SORTED_NUMERIC_SINGLETON;
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.DELTA_COMPRESSED;
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.BLOCK_COMPRESSED;
-import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.GCD_COMPRESSED;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.SORTED_SET;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.SORTED_SET_SINGLETON;
 import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.TABLE_COMPRESSED;
+import static org.apache.lucene.codecs.memory.MemoryDocValuesProducer.VERSION_CURRENT;
 
 /**
  * Writer for {@link MemoryDocValuesFormat}
@@ -87,8 +89,8 @@ class MemoryDocValuesConsumer extends DocValuesConsumer {
   }
 
   @Override
-  public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
-    addNumericField(field, values, true);
+  public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addNumericField(field, new StupidNumericDocValuesIterable(field, valuesProducer, maxDoc), true);
   }
 
   void addNumericField(FieldInfo field, Iterable<Number> values, boolean optimizeStorage) throws IOException {

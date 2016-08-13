@@ -31,6 +31,8 @@ import java.util.TreeSet;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -41,8 +43,8 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LongsRef;
 import org.apache.lucene.util.MathUtil;
-import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.PagedBytes.PagedBytesDataInput;
+import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.packed.DirectWriter;
 import org.apache.lucene.util.packed.MonotonicBlockPackedWriter;
@@ -76,8 +78,8 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   }
   
   @Override
-  public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
-    addNumericField(field, values, true);
+  public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addNumericField(field, new StupidNumericDocValuesIterable(field, valuesProducer, maxDoc), true);
   }
 
   void addNumericField(FieldInfo field, Iterable<Number> values, boolean optimizeStorage) throws IOException {
@@ -467,7 +469,7 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
     if (isSingleValued(docToValueCount)) {
       meta.writeVInt(SORTED_SINGLE_VALUED);
       // The field is single-valued, we can encode it as NUMERIC
-      addNumericField(field, singletonView(docToValueCount, values, null));
+      addNumericField(field, singletonView(docToValueCount, values, null), true);
     } else {
       final SortedSet<LongsRef> uniqueValueSets = uniqueValueSets(docToValueCount, values);
       if (uniqueValueSets != null) {

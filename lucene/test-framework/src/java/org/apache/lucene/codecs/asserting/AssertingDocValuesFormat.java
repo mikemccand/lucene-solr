@@ -79,14 +79,17 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+    public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      // nocommit get these checks back:
+      /*
       int count = 0;
       for (Number v : values) {
         count++;
       }
       assert count == maxDoc;
       TestUtil.checkIterator(values.iterator(), maxDoc, true);
-      in.addNumericField(field, values);
+      */
+      in.addNumericField(field, valuesProducer);
     }
     
     @Override

@@ -22,6 +22,8 @@ import java.util.Iterator;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -29,14 +31,14 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
 
-import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.VERSION_CURRENT;
 import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.BYTES;
+import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.NUMBER;
 import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.SORTED;
 import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.SORTED_NUMERIC;
 import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.SORTED_NUMERIC_SINGLETON;
 import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.SORTED_SET;
 import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.SORTED_SET_SINGLETON;
-import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.NUMBER;
+import static org.apache.lucene.codecs.memory.DirectDocValuesProducer.VERSION_CURRENT;
 
 /**
  * Writer for {@link DirectDocValuesFormat}
@@ -65,10 +67,10 @@ class DirectDocValuesConsumer extends DocValuesConsumer {
   }
 
   @Override
-  public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+  public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
     meta.writeVInt(field.number);
     meta.writeByte(NUMBER);
-    addNumericFieldValues(field, values);
+    addNumericFieldValues(field, new StupidNumericDocValuesIterable(field, valuesProducer, maxDoc));
   }
 
   private void addNumericFieldValues(FieldInfo field, Iterable<Number> values) throws IOException {

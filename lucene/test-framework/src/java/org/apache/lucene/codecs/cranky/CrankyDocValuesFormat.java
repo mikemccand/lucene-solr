@@ -70,11 +70,11 @@ class CrankyDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+    public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       if (random.nextInt(100) == 0) {
         throw new IOException("Fake IOException from DocValuesConsumer.addNumericField()");
       }
-      delegate.addNumericField(field, values);
+      delegate.addNumericField(field, valuesProducer);
     }
 
     @Override

@@ -325,67 +325,85 @@ class ReadersAndUpdates {
       final SegmentWriteState state = new SegmentWriteState(null, trackingDir, info.info, fieldInfos, null, updatesContext, segmentSuffix);
       try (final DocValuesConsumer fieldsConsumer = dvFormat.fieldsConsumer(state)) {
         // write the numeric updates to a new gen'd docvalues file
-        fieldsConsumer.addNumericField(fieldInfo, new Iterable<Number>() {
-          final int maxDoc = reader.maxDoc();
-          final NumericDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
-          @Override
-          public Iterator<Number> iterator() {
-            final NumericDocValuesIterator currentValues;
-            try {
-              currentValues = reader.getNumericDocValuesIterator(field);
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }
-            updatesIter.reset();
-            return new Iterator<Number>() {
-
-              int curDoc = -1;
-              int updateDoc = updatesIter.nextDoc();
-              
-              @Override
-              public boolean hasNext() {
-                return curDoc < maxDoc - 1;
+        fieldsConsumer.addNumericField(fieldInfo, new EmptyDocValuesProducer() {
+            @Override
+            public NumericDocValuesIterator getNumericIterator(FieldInfo fieldInfoIn) {
+              if (fieldInfoIn != fieldInfo) {
+                throw new IllegalArgumentException("wrong fieldInfo");
               }
+              final int maxDoc = reader.maxDoc();
 
-              @Override
-              public Number next() {
-                if (++curDoc >= maxDoc) {
-                  throw new NoSuchElementException("no more documents to return values for");
+              final NumericDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
+
+              final NumericDocValuesIterator currentValues;
+              try {
+                currentValues = reader.getNumericDocValuesIterator(field);
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+              }
+              updatesIter.reset();
+
+              // Merge sort of the original doc values with updated doc values:
+              return new NumericDocValuesIterator() {
+                // merged docID
+                private int docIDOut = -1;
+
+                // docID from our original doc values
+                private int docIDIn = -1;
+
+                // docID from our updates
+                private int updateDocID = -1;
+
+                private long value;
+
+                @Override
+                public int docID() {
+                  return docIDOut;
                 }
-                if (curDoc == updateDoc) { // this document has an updated value
-                  Long value = updatesIter.value(); // either null (unset value) or updated value
-                  updateDoc = updatesIter.nextDoc(); // prepare for next round
+
+                @Override
+                public int advance(int target) {
+                  throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public long cost() {
+                  // TODO
+                  return 0;
+                }
+
+                @Override
+                public long longValue() {
                   return value;
-                } else {
-                  // no update for this document
-                  assert curDoc < updateDoc;
-                  if (currentValues != null) {
-                    if (currentValues.docID() < curDoc) {
-                      try {
-                        currentValues.advance(curDoc);
-                      } catch (IOException ioe) {
-                        throw new RuntimeException(ioe);
-                      }
-                    }
-                    // only read the current value if the document had a value before
-                    if (currentValues.docID() == curDoc) {
-                      return currentValues.longValue();
-                    } else {
-                      return null;
-                    }
-                  } else {
-                    return null;
-                  }
                 }
-              }
 
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException("this iterator does not support removing elements");
-              }
-            };
-          }
-        });
+                @Override
+                public int nextDoc() throws IOException {
+                  if (docIDIn == docIDOut) {
+                    if (currentValues == null) {
+                      docIDIn = NO_MORE_DOCS;
+                    } else {
+                      docIDIn = currentValues.nextDoc();
+                    }
+                  }
+                  if (updateDocID == docIDOut) {
+                    updateDocID = updatesIter.nextDoc();
+                  }
+                  if (docIDIn < updateDocID) {
+                    // no update to this doc
+                    docIDOut = docIDIn;
+                    value = currentValues.longValue();
+                  } else {
+                    docIDOut = updateDocID;
+                    if (docIDOut != NO_MORE_DOCS) {
+                      value = updatesIter.value();
+                    }
+                  }
+                  return docIDOut;
+                }
+              };
+            }
+          });
       }
       info.advanceDocValuesGen();
       assert !fieldFiles.containsKey(fieldInfo.number);

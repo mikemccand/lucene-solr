@@ -106,7 +106,7 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
+    public void addNumericField(FieldInfo field, DocValuesProducer values) throws IOException {
       getInstance(field).addNumericField(field, values);
     }
 

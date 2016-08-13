@@ -27,6 +27,7 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocIDMerger;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.EmptyDocValuesProducer;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.MergeState;
@@ -80,11 +81,10 @@ public abstract class DocValuesConsumer implements Closeable {
   /**
    * Writes numeric docvalues for a field.
    * @param field field information
-   * @param values Iterable of numeric values (one for each document). {@code null} indicates
-   *               a missing value.
+   * @param values Numeric values to write.
    * @throws IOException if an I/O error occurred.
    */
-  public abstract void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException;    
+  public abstract void addNumericField(FieldInfo field, DocValuesProducer values) throws IOException;    
 
   /**
    * Writes binary docvalues for a field.
@@ -230,33 +230,16 @@ public abstract class DocValuesConsumer implements Closeable {
   private static class NumericDocValuesSub extends DocIDMerger.Sub {
 
     private final NumericDocValuesIterator values;
-    private final int maxDoc;
-    private int docID = -1;
-    Long value;
 
-    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValuesIterator values, int maxDoc) {
+    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValuesIterator values) {
       super(docMap);
       this.values = values;
-      this.maxDoc = maxDoc;
       assert values.docID() == -1;
     }
 
     @Override
     public int nextDoc() throws IOException {
-      if (docID == values.docID()) {
-        values.nextDoc();
-      }
-      docID++;
-      if (docID == maxDoc) {
-        return NO_MORE_DOCS;
-      }
-      if (docID == values.docID()) {
-        value = values.longValue();
-      } else {
-        // fill in holes with null
-        value = null;
-      }
-      return docID;
+      return values.nextDoc();
     }
   }
   
@@ -268,37 +251,34 @@ public abstract class DocValuesConsumer implements Closeable {
    */
   public void mergeNumericField(final FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
     addNumericField(mergeFieldInfo,
-                    new Iterable<Number>() {
+                    new EmptyDocValuesProducer() {
                       @Override
-                      public Iterator<Number> iterator() {
+                      public NumericDocValuesIterator getNumericIterator(FieldInfo fieldInfo) {
+                        if (fieldInfo != mergeFieldInfo) {
+                          throw new IllegalArgumentException("wrong fieldInfo");
+                        }
 
                         List<NumericDocValuesIterator> toMerge = new ArrayList<>();
+                        List<NumericDocValuesSub> subs = new ArrayList<>();
+                        assert mergeState.docMaps.length == mergeState.docValuesProducers.length;
+                        long totalCost = 0;
                         for (int i=0;i<mergeState.docValuesProducers.length;i++) {
                           NumericDocValuesIterator values = null;
                           DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
                           if (docValuesProducer != null) {
-                            FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-                            if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.NUMERIC) {
+                            FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                            if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.NUMERIC) {
                               try {
-                                values = docValuesProducer.getNumericIterator(fieldInfo);
+                                values = docValuesProducer.getNumericIterator(readerFieldInfo);
                               } catch (IOException ioe) {
                                 throw new RuntimeException(ioe);
                               }
                             }
                           }
-                          if (values == null) {
-                            values = DocValues.emptyNumericIterator();
+                          if (values != null) {
+                            totalCost += values.cost();
+                            subs.add(new NumericDocValuesSub(mergeState.docMaps[i], values));
                           }
-                          toMerge.add(values);
-                        }
-
-                        // nocommit merge these two loops:
-                        
-                        // We must make a new DocIDMerger for each iterator:
-                        List<NumericDocValuesSub> subs = new ArrayList<>();
-                        assert mergeState.docMaps.length == toMerge.size();
-                        for(int i=0;i<toMerge.size();i++) {
-                          subs.add(new NumericDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
                         }
 
                         final DocIDMerger<NumericDocValuesSub> docIDMerger;
@@ -308,43 +288,38 @@ public abstract class DocValuesConsumer implements Closeable {
                           throw new RuntimeException(ioe);
                         }
 
-                        return new Iterator<Number>() {
-                          Long nextValue;
-                          boolean nextIsSet;
+                        final long finalTotalCost = totalCost;
+
+                        return new NumericDocValuesIterator() {
+                          private NumericDocValuesSub current;
 
                           @Override
-                          public boolean hasNext() {
-                            return nextIsSet || setNext();
+                          public int docID() {
+                            if (current == null) {
+                              return NO_MORE_DOCS;
+                            }
+                            return current.mappedDocID;
                           }
 
                           @Override
-                          public void remove() {
+                          public int nextDoc() throws IOException {
+                            current = docIDMerger.next();
+                            return docID();
+                          }
+
+                          @Override
+                          public int advance(int target) throws IOException {
                             throw new UnsupportedOperationException();
                           }
 
                           @Override
-                          public Number next() {
-                            if (hasNext() == false) {
-                              throw new NoSuchElementException();
-                            }
-                            assert nextIsSet;
-                            nextIsSet = false;
-                            return nextValue;
+                          public long cost() {
+                            return finalTotalCost;
                           }
 
-                          private boolean setNext() {
-                            NumericDocValuesSub sub;
-                            try {
-                              sub = docIDMerger.next();
-                            } catch (IOException ioe) {
-                              throw new RuntimeException(ioe);
-                            }
-                            if (sub == null) {
-                              return false;
-                            }
-                            nextIsSet = true;
-                            nextValue = sub.value;
-                            return true;
+                          @Override
+                          public long longValue() {
+                            return current.values.longValue();
                           }
                         };
                       }
