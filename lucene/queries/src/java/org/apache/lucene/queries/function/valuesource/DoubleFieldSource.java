@@ -53,14 +53,15 @@ public class DoubleFieldSource extends FieldCacheSource {
   
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
+
+    final NumericDocValuesIterator values = DocValues.getNumericIterator(readerContext.reader(), field);
+
     return new DoubleDocValues(this) {
       int lastDocID;
-      private NumericDocValuesIterator values = DocValues.getNumericIterator(readerContext.reader(), field);
 
       private double getValueForDoc(int doc) throws IOException {
         if (doc < lastDocID) {
-          // TODO: can we enforce caller to go in order instead?
-          values = DocValues.getNumericIterator(readerContext.reader(), field);
+          throw new IllegalArgumentException("docs were sent out-of-order: lastDocID=" + lastDocID + " vs docID=" + doc);
         }
         lastDocID = doc;
         int curDocID = values.docID();
