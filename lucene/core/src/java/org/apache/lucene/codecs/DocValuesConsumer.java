@@ -253,7 +253,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addNumericField(mergeFieldInfo,
                     new EmptyDocValuesProducer() {
                       @Override
-                      public NumericDocValuesIterator getNumericIterator(FieldInfo fieldInfo) {
+                      public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) {
                         if (fieldInfo != mergeFieldInfo) {
                           throw new IllegalArgumentException("wrong fieldInfo");
                         }
@@ -269,7 +269,7 @@ public abstract class DocValuesConsumer implements Closeable {
                             FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
                             if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.NUMERIC) {
                               try {
-                                values = docValuesProducer.getNumericIterator(readerFieldInfo);
+                                values = docValuesProducer.getNumeric(readerFieldInfo);
                               } catch (IOException ioe) {
                                 throw new RuntimeException(ioe);
                               }

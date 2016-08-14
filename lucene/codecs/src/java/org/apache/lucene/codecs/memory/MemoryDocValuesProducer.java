@@ -31,15 +31,17 @@ import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -56,11 +58,11 @@ import org.apache.lucene.util.IntsRefBuilder;
 import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.RamUsageEstimator;
-import org.apache.lucene.util.fst.BytesRefFSTEnum;
 import org.apache.lucene.util.fst.BytesRefFSTEnum.InputOutput;
-import org.apache.lucene.util.fst.FST;
+import org.apache.lucene.util.fst.BytesRefFSTEnum;
 import org.apache.lucene.util.fst.FST.Arc;
 import org.apache.lucene.util.fst.FST.BytesReader;
+import org.apache.lucene.util.fst.FST;
 import org.apache.lucene.util.fst.PositiveIntOutputs;
 import org.apache.lucene.util.fst.Util;
 import org.apache.lucene.util.packed.BlockPackedReader;
@@ -279,7 +281,18 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized NumericDocValues getNumeric(FieldInfo field) throws IOException {
+  public synchronized NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
+    NumericDocValues instance = numericInstances.get(field.name);
+    if (instance == null) {
+      instance = loadNumeric(field);
+      if (!merging) {
+        numericInstances.put(field.name, instance);
+      }
+    }
+    return new StupidNumericDocValuesIterator(getDocsWithField(field), instance);
+  }
+
+  private synchronized NumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
     NumericDocValues instance = numericInstances.get(field.name);
     if (instance == null) {
       instance = loadNumeric(field);
@@ -476,7 +489,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    final NumericDocValues docToOrd = getNumeric(field);
+    final NumericDocValues docToOrd = getNumericNonIterator(field);
     final FST<Long> fst = instance;
     
     // per-thread resources
@@ -538,12 +551,12 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     SortedNumericEntry entry = sortedNumerics.get(field.name);
     if (entry.singleton) {
-      NumericDocValues values = getNumeric(field);
+      NumericDocValues values = getNumericNonIterator(field);
       NumericEntry ne = numerics.get(field.name);
       Bits docsWithField = getMissingBits(field, ne.missingOffset, ne.missingBytes);
       return DocValues.singleton(values, docsWithField);
     } else {
-      final NumericDocValues values = getNumeric(field);
+      final NumericDocValues values = getNumericNonIterator(field);
       final MonotonicBlockPackedReader addr;
       synchronized (this) {
         MonotonicBlockPackedReader res = addresses.get(field.name);

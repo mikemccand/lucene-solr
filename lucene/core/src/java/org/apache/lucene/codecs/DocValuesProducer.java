@@ -45,15 +45,11 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
   /** Returns {@link NumericDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
-  public abstract NumericDocValues getNumeric(FieldInfo field) throws IOException;
-
-  /** Returns {@link NumericDocValues} for this field.
-   *  The returned instance need not be thread-safe: it will only be
-   *  used by a single thread. */
   // nocommit make abstract
-  public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
-    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(field));
-  }
+  public abstract NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException;
+
+  //return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(field));
+  //}
 
   /** Returns {@link BinaryDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be

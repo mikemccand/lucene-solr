@@ -224,12 +224,7 @@ public final class SlowCodecReaderWrapper {
     return new DocValuesProducer() {
 
       @Override
-      public NumericDocValues getNumeric(FieldInfo field) throws IOException {
-        throw new UnsupportedOperationException();
-      }
-
-      @Override
-      public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {  
+      public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {  
         return reader.getNumericDocValuesIterator(field.name);
       }
 

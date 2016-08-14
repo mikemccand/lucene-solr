@@ -23,7 +23,7 @@ import org.apache.lucene.util.Bits;
 // nocommit jdocs
 public abstract class EmptyDocValuesProducer extends DocValuesProducer {
   @Override
-  public NumericDocValues getNumeric(FieldInfo field) {
+  public NumericDocValuesIterator getNumeric(FieldInfo field) {
     throw new UnsupportedOperationException();
   }
 

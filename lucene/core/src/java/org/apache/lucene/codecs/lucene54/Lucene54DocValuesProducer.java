@@ -452,14 +452,9 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   }
 
   @Override
-  public NumericDocValues getNumeric(FieldInfo field) throws IOException {
+  public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
-    return getNumeric(entry);
-  }
-
-  @Override
-  public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
-    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(field));
+    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(entry));
   }
 
   @Override

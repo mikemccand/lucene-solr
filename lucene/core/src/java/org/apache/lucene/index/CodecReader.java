@@ -143,6 +143,8 @@ public abstract class CodecReader extends LeafReader implements Accountable {
 
     return fi;
   }
+
+  // nocommit rename this method:
   
   @Override
   public final NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
@@ -152,7 +154,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
       return null;
     }
     // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
-    return getDocValuesReader().getNumericIterator(fi);
+    return getDocValuesReader().getNumeric(fi);
   }
 
   @Override

@@ -327,7 +327,7 @@ class ReadersAndUpdates {
         // write the numeric updates to a new gen'd docvalues file
         fieldsConsumer.addNumericField(fieldInfo, new EmptyDocValuesProducer() {
             @Override
-            public NumericDocValuesIterator getNumericIterator(FieldInfo fieldInfoIn) {
+            public NumericDocValuesIterator getNumeric(FieldInfo fieldInfoIn) {
               if (fieldInfoIn != fieldInfo) {
                 throw new IllegalArgumentException("wrong fieldInfo");
               }

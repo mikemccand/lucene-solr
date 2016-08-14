@@ -35,11 +35,13 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Accountable;
@@ -282,7 +284,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized NumericDocValues getNumeric(FieldInfo field) throws IOException {
+  public synchronized NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
     NumericRawValues instance = numericInstances.get(field.name);
     if (instance == null) {
       // Lazy load
@@ -292,7 +294,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         ramBytesUsed.addAndGet(instance.ramBytesUsed());
       }
     }
-    return instance.numerics;
+    return new StupidNumericDocValuesIterator(getDocsWithField(field), instance.numerics);
   }
   
   private NumericRawValues loadNumeric(NumericEntry entry) throws IOException {

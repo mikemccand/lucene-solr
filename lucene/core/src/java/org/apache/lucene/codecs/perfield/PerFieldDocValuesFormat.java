@@ -279,15 +279,9 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public NumericDocValues getNumeric(FieldInfo field) throws IOException {
+    public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
       DocValuesProducer producer = fields.get(field.name);
       return producer == null ? null : producer.getNumeric(field);
-    }
-
-    @Override
-    public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getNumericIterator(field);
     }
 
     @Override

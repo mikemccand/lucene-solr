@@ -36,10 +36,12 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.store.BufferedChecksumIndexInput;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -147,7 +149,11 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
 
   @Override
-  public NumericDocValues getNumeric(FieldInfo fieldInfo) throws IOException {
+  public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) throws IOException {
+    return new StupidNumericDocValuesIterator(getDocsWithField(fieldInfo), getNumericNonIterator(fieldInfo));
+  }
+  
+  NumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
     assert field != null;
 

@@ -2250,7 +2250,7 @@ public final class CheckIndex implements Closeable {
         break;
       case NUMERIC:
         status.totalNumericFields++;
-        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumericIterator(fi), docsWithField);
+        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumeric(fi), docsWithField);
         break;
       default:
         throw new AssertionError();

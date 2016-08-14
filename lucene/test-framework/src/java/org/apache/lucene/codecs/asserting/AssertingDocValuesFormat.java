@@ -230,17 +230,9 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public NumericDocValues getNumeric(FieldInfo field) throws IOException {
+    public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.NUMERIC;
-      NumericDocValues values = in.getNumeric(field);
-      assert values != null;
-      return new AssertingLeafReader.AssertingNumericDocValues(values, maxDoc);
-    }
-
-    @Override
-    public NumericDocValuesIterator getNumericIterator(FieldInfo field) throws IOException {
-      assert field.getDocValuesType() == DocValuesType.NUMERIC;
-      NumericDocValuesIterator values = in.getNumericIterator(field);
+      NumericDocValuesIterator values = in.getNumeric(field);
       assert values != null;
       return new AssertingLeafReader.AssertingNumericDocValuesIterator(values, maxDoc);
     }

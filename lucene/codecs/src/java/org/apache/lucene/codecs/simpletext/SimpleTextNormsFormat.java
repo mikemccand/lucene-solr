@@ -67,7 +67,7 @@ public class SimpleTextNormsFormat extends NormsFormat {
     
     @Override
     public NumericDocValues getNorms(FieldInfo field) throws IOException {
-      return impl.getNumeric(field);
+      return impl.getNumericNonIterator(field);
     }
     
     @Override

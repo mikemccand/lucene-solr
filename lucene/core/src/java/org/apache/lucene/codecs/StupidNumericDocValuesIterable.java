@@ -40,7 +40,7 @@ public class StupidNumericDocValuesIterable implements Iterable<Number> {
 
     final NumericDocValuesIterator values;
     try {
-      values = valuesProducer.getNumericIterator(field);
+      values = valuesProducer.getNumeric(field);
       values.nextDoc();
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);

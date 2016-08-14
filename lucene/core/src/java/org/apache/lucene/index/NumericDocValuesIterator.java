@@ -19,6 +19,8 @@ package org.apache.lucene.index;
 
 import org.apache.lucene.search.DocIdSetIterator;
 
+// nocommit rename
+
 /**
  * A per-document numeric value.
  */

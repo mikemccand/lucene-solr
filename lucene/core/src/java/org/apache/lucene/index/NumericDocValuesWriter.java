@@ -90,7 +90,7 @@ class NumericDocValuesWriter extends DocValuesWriter {
     dvConsumer.addNumericField(fieldInfo,
                                new EmptyDocValuesProducer() {
                                  @Override
-                                 public NumericDocValuesIterator getNumericIterator(FieldInfo fieldInfo) {
+                                 public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) {
                                    if (fieldInfo != NumericDocValuesWriter.this.fieldInfo) {
                                      throw new IllegalArgumentException("wrong fieldInfo");
                                    }

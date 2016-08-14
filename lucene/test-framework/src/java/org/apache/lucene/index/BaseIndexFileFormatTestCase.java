@@ -333,7 +333,7 @@ abstract class BaseIndexFileFormatTestCase extends LuceneTestCase {
       consumer.addNumericField(field,
                                new EmptyDocValuesProducer() {
                                  @Override
-                                 public NumericDocValuesIterator getNumericIterator(FieldInfo field) {
+                                 public NumericDocValuesIterator getNumeric(FieldInfo field) {
                                    return new NumericDocValuesIterator() {
                                      int docID = -1;
                                  
