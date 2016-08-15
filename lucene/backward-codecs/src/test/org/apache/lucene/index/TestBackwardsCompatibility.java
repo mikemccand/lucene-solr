@@ -749,8 +749,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
     if (is40Index) {
       // check docvalues fields
       NumericDocValuesIterator dvByte = MultiDocValues.getNumericValuesIterator(reader, "dvByte");
-      BinaryDocValues dvBytesDerefFixed = MultiDocValues.getBinaryValues(reader, "dvBytesDerefFixed");
-      BinaryDocValues dvBytesDerefVar = MultiDocValues.getBinaryValues(reader, "dvBytesDerefVar");
+      BinaryDocValuesIterator dvBytesDerefFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefFixed");
+      BinaryDocValuesIterator dvBytesDerefVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefVar");
       SortedDocValues dvBytesSortedFixed = MultiDocValues.getSortedValues(reader, "dvBytesSortedFixed");
       SortedDocValues dvBytesSortedVar = MultiDocValues.getSortedValues(reader, "dvBytesSortedVar");
       BinaryDocValues dvBytesStraightFixed = MultiDocValues.getBinaryValues(reader, "dvBytesStraightFixed");
@@ -780,9 +780,11 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
         };
         BytesRef expectedRef = new BytesRef(bytes);
         
-        BytesRef term = dvBytesDerefFixed.get(i);
+        assertEquals(i, dvBytesDerefFixed.nextDoc());
+        BytesRef term = dvBytesDerefFixed.binaryValue();
         assertEquals(expectedRef, term);
-        term = dvBytesDerefVar.get(i);
+        assertEquals(i, dvBytesDerefVar.nextDoc());
+        term = dvBytesDerefVar.binaryValue();
         assertEquals(expectedRef, term);
         term = dvBytesSortedFixed.get(i);
         assertEquals(expectedRef, term);
@@ -1386,10 +1388,12 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
   }
   
   private void assertBinaryDocValues(LeafReader r, String f, String cf) throws IOException {
-    BinaryDocValues bdvf = r.getBinaryDocValues(f);
-    BinaryDocValues bdvcf = r.getBinaryDocValues(cf);
+    BinaryDocValuesIterator bdvf = r.getBinaryDocValuesIterator(f);
+    BinaryDocValuesIterator bdvcf = r.getBinaryDocValuesIterator(cf);
     for (int i = 0; i < r.maxDoc(); i++) {
-      assertEquals(getValue(bdvcf, i), getValue(bdvf, i)*2);
+      assertEquals(i, bdvf.nextDoc());
+      assertEquals(i, bdvcf.nextDoc());
+      assertEquals(getValue(bdvcf), getValue(bdvf)*2);
     }
   }
   
@@ -1467,9 +1471,9 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
     }
   }
   
-  static long getValue(BinaryDocValues bdv, int idx) {
-    BytesRef term = bdv.get(idx);
-    idx = term.offset;
+  static long getValue(BinaryDocValuesIterator bdv) {
+    BytesRef term = bdv.binaryValue();
+    int idx = term.offset;
     byte b = term.bytes[idx++];
     long value = b & 0x7FL;
     for (int shift = 7; (b & 0x80L) != 0; shift += 7) {

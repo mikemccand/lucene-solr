@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
@@ -43,6 +44,7 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -497,6 +499,11 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
       default:
         throw new AssertionError();
     }
+  }
+
+  @Override
+  public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+    return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
   }
 
   @Override

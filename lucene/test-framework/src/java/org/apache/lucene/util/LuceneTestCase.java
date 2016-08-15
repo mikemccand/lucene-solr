@@ -2447,13 +2447,16 @@ public abstract class LuceneTestCase extends Assert {
       }
 
       {
-        BinaryDocValues leftValues = MultiDocValues.getBinaryValues(leftReader, field);
-        BinaryDocValues rightValues = MultiDocValues.getBinaryValues(rightReader, field);
+        BinaryDocValuesIterator leftValues = MultiDocValues.getBinaryValuesIterator(leftReader, field);
+        BinaryDocValuesIterator rightValues = MultiDocValues.getBinaryValuesIterator(rightReader, field);
         if (leftValues != null && rightValues != null) {
-          for(int docID=0;docID<leftReader.maxDoc();docID++) {
-            final BytesRef left = BytesRef.deepCopyOf(leftValues.get(docID));
-            final BytesRef right = rightValues.get(docID);
-            assertEquals(info, left, right);
+          while (true) {
+            int docID = leftValues.nextDoc();
+            assertEquals(docID, rightValues.nextDoc());
+            if (docID == NO_MORE_DOCS) {
+              break;
+            }
+            assertEquals(leftValues.binaryValue(), rightValues.binaryValue());
           }
         } else {
           assertNull(info, leftValues);

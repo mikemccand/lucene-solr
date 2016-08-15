@@ -1115,6 +1115,11 @@ public class MemoryIndex {
     }
 
     @Override
+    public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) {
+      return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinaryDocValues(field));
+    }
+
+    @Override
     public SortedDocValues getSortedDocValues(String field) {
       return getSortedDocValues(field, DocValuesType.SORTED);
     }
@@ -1175,7 +1180,7 @@ public class MemoryIndex {
     }
 
     @Override
-    public Bits getDocsWithField(String field) throws IOException {
+    public Bits getDocsWithField(String field) {
       Info info = fields.get(field);
       if (info != null && info.fieldInfo.getDocValuesType() != DocValuesType.NONE) {
         return new Bits.MatchAllBits(1);
