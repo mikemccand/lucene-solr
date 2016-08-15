@@ -44,6 +44,7 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.BaseCompressingDocValuesFormatTestCase;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
@@ -211,8 +212,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       final SortedDocValues sorted = DocValues.getSorted(reader, "sorted");
       final Bits sortedBits = DocValues.getDocsWithField(reader, "sorted");
 
-      final BinaryDocValues binary = DocValues.getBinary(reader, "binary");
-      final Bits binaryBits = DocValues.getDocsWithField(reader, "binary");
+      final BinaryDocValuesIterator binary = DocValues.getBinaryIterator(reader, "binary");
 
       final SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
       final Bits sortedNumericBits = DocValues.getDocsWithField(reader, "sorted_numeric");
@@ -225,26 +225,20 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
         final IndexableField valueField = doc.getField("value");
         final Long value = valueField == null ? null : valueField.numericValue().longValue();
 
-        if (numeric.docID() < i) {
-          numeric.advance(i);
-        }
-
         if (value == null) {
           assertTrue(numeric.docID() > i);
           assertEquals(-1, sorted.getOrd(i));
-          assertEquals(new BytesRef(), binary.get(i));
 
           assertFalse(sortedBits.get(i));
-          assertFalse(binaryBits.get(i));
         } else {
-          assertEquals(i, numeric.docID());
+          assertEquals(i, numeric.nextDoc());
+          assertEquals(i, binary.nextDoc());
           assertEquals(value.longValue(), numeric.longValue());
           assertTrue(sorted.getOrd(i) >= 0);
           assertEquals(new BytesRef(Long.toString(value)), sorted.lookupOrd(sorted.getOrd(i)));
-          assertEquals(new BytesRef(Long.toString(value)), binary.get(i));
+          assertEquals(new BytesRef(Long.toString(value)), binary.binaryValue());
 
           assertTrue(sortedBits.get(i));
-          assertTrue(binaryBits.get(i));
         }
 
         final IndexableField[] valuesFields = doc.getFields("values");

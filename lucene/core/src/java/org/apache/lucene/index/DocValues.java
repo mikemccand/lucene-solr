@@ -45,6 +45,46 @@ public final class DocValues {
   }
 
   /** 
+   * An empty BinaryDocValuesIterator which returns no documents
+   */
+  public static final BinaryDocValuesIterator emptyBinaryIterator() {
+    return new BinaryDocValuesIterator() {
+      private boolean exhausted = false;
+      
+      @Override
+      public int advance(int target) {
+        assert exhausted == false;
+        assert target >= 0;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public int docID() {
+        return exhausted ? NO_MORE_DOCS : -1;
+      }
+      
+      @Override
+      public int nextDoc() {
+        assert exhausted == false;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public long cost() {
+        return 0;
+      }
+
+      @Override
+      public BytesRef binaryValue() {
+        assert false;
+        return null;
+      }
+    };
+  }
+
+  /** 
    * An empty NumericDocValues which returns zero for every document 
    */
   public static final NumericDocValues emptyNumeric() {
@@ -331,6 +371,28 @@ public final class DocValues {
       if (dv == null) {
         checkField(reader, field, DocValuesType.BINARY, DocValuesType.SORTED);
         return emptyBinary();
+      }
+    }
+    return dv;
+  }
+
+  /**
+   * Returns BinaryDocValuesIterator for the field, or {@link #emptyBinaryIterator} if it has none. 
+   * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
+   * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
+   * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#BINARY}
+   *                               or {@link DocValuesType#SORTED}.
+   * @throws IOException if an I/O error occurs.
+   */
+  public static BinaryDocValuesIterator getBinaryIterator(LeafReader reader, String field) throws IOException {
+    BinaryDocValuesIterator dv = reader.getBinaryDocValuesIterator(field);
+    if (dv == null) {
+      BinaryDocValues dv2 = reader.getSortedDocValues(field);
+      if (dv2 == null) {
+        checkField(reader, field, DocValuesType.BINARY, DocValuesType.SORTED);
+        return emptyBinaryIterator();
+      } else {
+        dv = new StupidBinaryDocValuesIterator(getDocsWithField(reader, field), dv2);
       }
     }
     return dv;

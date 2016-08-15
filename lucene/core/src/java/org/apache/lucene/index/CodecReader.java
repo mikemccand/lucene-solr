@@ -201,6 +201,17 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
 
   @Override
+  public final BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+    ensureOpen();
+    FieldInfo fi = getDVField(field, DocValuesType.BINARY);
+    if (fi == null) {
+      return null;
+    }
+    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
+    return getDocValuesReader().getBinaryIterator(fi);
+  }
+
+  @Override
   public final SortedDocValues getSortedDocValues(String field) throws IOException {
     ensureOpen();
     Map<String,Object> dvFields = docValuesLocal.get();

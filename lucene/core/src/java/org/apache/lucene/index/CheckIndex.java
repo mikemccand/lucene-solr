@@ -2069,6 +2069,18 @@ public final class CheckIndex implements Closeable {
     }
   }
   
+  private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValuesIterator bdv) throws IOException {
+    int doc;
+    if (bdv.docID() != -1) {
+      throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + bdv.docID());
+    }
+    // TODO: we could add stats to DVs, e.g. total doc count w/ a value for this field
+    // nocommit test advance, cost too
+    while ((doc = bdv.nextDoc()) != NO_MORE_DOCS) {
+      bdv.binaryValue();
+    }
+  }
+
   private static void checkSortedDocValues(String fieldName, int maxDoc, SortedDocValues dv, Bits docsWithField) {
     checkBinaryDocValues(fieldName, maxDoc, dv, docsWithField);
     final int maxOrd = dv.getValueCount()-1;
@@ -2212,7 +2224,7 @@ public final class CheckIndex implements Closeable {
     }
   }
 
-  private static void checkNumericDocValues(String fieldName, int maxDoc, NumericDocValuesIterator ndv, Bits docsWithField) throws IOException {
+  private static void checkNumericDocValues(String fieldName, int maxDoc, NumericDocValuesIterator ndv) throws IOException {
     int doc;
     if (ndv.docID() != -1) {
       throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
@@ -2246,11 +2258,11 @@ public final class CheckIndex implements Closeable {
         break;
       case BINARY:
         status.totalBinaryFields++;
-        checkBinaryDocValues(fi.name, maxDoc, dvReader.getBinary(fi), docsWithField);
+        checkBinaryDocValues(fi.name, maxDoc, dvReader.getBinaryIterator(fi));
         break;
       case NUMERIC:
         status.totalNumericFields++;
-        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumeric(fi), docsWithField);
+        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumeric(fi));
         break;
       default:
         throw new AssertionError();

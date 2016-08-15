@@ -21,6 +21,7 @@ package org.apache.lucene.search;
 import java.io.IOException;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
@@ -852,12 +853,12 @@ public abstract class FieldComparator<T> {
     
     private final BytesRef[] values;
     private final BytesRefBuilder[] tempBRs;
-    private BinaryDocValues docTerms;
-    private Bits docsWithField;
+    private BinaryDocValuesIterator docTerms;
     private final String field;
     private BytesRef bottom;
     private BytesRef topValue;
     private final int missingSortCmp;
+    private int lastDocID = -1;
 
     /** Sole constructor. */
     public TermValComparator(int numHits, String field, boolean sortMissingLast) {
@@ -865,6 +866,22 @@ public abstract class FieldComparator<T> {
       tempBRs = new BytesRefBuilder[numHits];
       this.field = field;
       missingSortCmp = sortMissingLast ? 1 : -1;
+    }
+
+    private BytesRef getValueForDoc(int doc) throws IOException {
+      if (doc < lastDocID) {
+        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
+      }
+      lastDocID = doc;
+      int curDocID = docTerms.docID();
+      if (doc > curDocID) {
+        curDocID = docTerms.advance(doc);
+      }
+      if (doc == curDocID) {
+        return docTerms.binaryValue();
+      } else {
+        return null;
+      }
     }
 
     @Override
@@ -875,14 +892,14 @@ public abstract class FieldComparator<T> {
     }
 
     @Override
-    public int compareBottom(int doc) {
-      final BytesRef comparableBytes = getComparableBytes(doc, docTerms.get(doc));
+    public int compareBottom(int doc) throws IOException {
+      final BytesRef comparableBytes = getValueForDoc(doc);
       return compareValues(bottom, comparableBytes);
     }
 
     @Override
-    public void copy(int slot, int doc) {
-      final BytesRef comparableBytes = getComparableBytes(doc, docTerms.get(doc));
+    public void copy(int slot, int doc) throws IOException {
+      final BytesRef comparableBytes = getValueForDoc(doc);
       if (comparableBytes == null) {
         values[slot] = null;
       } else {
@@ -894,32 +911,23 @@ public abstract class FieldComparator<T> {
       }
     }
 
-    /** Retrieves the BinaryDocValues for the field in this segment */
-    protected BinaryDocValues getBinaryDocValues(LeafReaderContext context, String field) throws IOException {
-      return DocValues.getBinary(context.reader(), field);
-    }
-
-    /** Retrieves the set of documents that have a value in this segment */
-    protected Bits getDocsWithField(LeafReaderContext context, String field) throws IOException {
-      return DocValues.getDocsWithField(context.reader(), field);
+    /** Retrieves the BinaryDocValuesIterator for the field in this segment */
+    protected BinaryDocValuesIterator getBinaryDocValuesIterator(LeafReaderContext context, String field) throws IOException {
+      return DocValues.getBinaryIterator(context.reader(), field);
     }
 
     /** Check whether the given value represents <tt>null</tt>. This can be
-     *  useful if the {@link BinaryDocValues} returned by {@link #getBinaryDocValues}
-     *  use a special value as a sentinel. The default implementation checks
-     *  {@link #getDocsWithField}.
+     *  useful if the {@link BinaryDocValuesIterator} returned by {@link #getBinaryDocValuesIterator}
+     *  use a special value as a sentinel.
      *  <p>NOTE: The null value can only be an EMPTY {@link BytesRef}. */
-    protected boolean isNull(int doc, BytesRef term) {
-      return docsWithField != null && docsWithField.get(doc) == false;
+    protected boolean isNull(int doc, BytesRef term) throws IOException {
+      return getValueForDoc(doc) == null;
     }
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-      docTerms = getBinaryDocValues(context, field);
-      docsWithField = getDocsWithField(context, field);
-      if (docsWithField instanceof Bits.MatchAllBits) {
-        docsWithField = null;
-      }
+      lastDocID = -1;
+      docTerms = getBinaryDocValuesIterator(context, field);
       return this;
     }
     
@@ -955,20 +963,9 @@ public abstract class FieldComparator<T> {
     }
 
     @Override
-    public int compareTop(int doc) {
-      final BytesRef comparableBytes = getComparableBytes(doc, docTerms.get(doc));
+    public int compareTop(int doc) throws IOException {
+      final BytesRef comparableBytes = getValueForDoc(doc);
       return compareValues(topValue, comparableBytes);
-    }
-
-    /**
-     * Given a document and a term, return the term itself if it exists or
-     * <tt>null</tt> otherwise.
-     */
-    private BytesRef getComparableBytes(int doc, BytesRef term) {
-      if (term.length == 0 && isNull(doc, term)) {
-        return null;
-      }
-      return term;
     }
 
     @Override

@@ -486,6 +486,65 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
   }
   
+  /** Wraps a BinaryDocValuesIterator but with additional asserts */
+  public static class AssertingBinaryDocValuesIterator extends BinaryDocValuesIterator {
+    private final Thread creationThread = Thread.currentThread();
+    private final BinaryDocValuesIterator in;
+    private final int maxDoc;
+    private int lastDocID = -1;
+    
+    public AssertingBinaryDocValuesIterator(BinaryDocValuesIterator in, int maxDoc) {
+      this.in = in;
+      this.maxDoc = maxDoc;
+      // should start unpositioned:
+      assert in.docID() == -1;
+    }
+
+    @Override
+    public int docID() {
+      assertThread("Binary doc values iterator", creationThread);
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      assertThread("Binary doc values iterator", creationThread);
+      int docID = in.nextDoc();
+      assert docID > lastDocID;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      lastDocID = docID;
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      assertThread("Binary doc values iterator", creationThread);
+      assert target >= 0;
+      assert target >= in.docID();
+      int docID = in.advance(target);
+      assert docID >= target;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      lastDocID = docID;
+      return docID;
+    }
+
+    @Override
+    public long cost() {
+      assertThread("Binary doc values iterator", creationThread);
+      long cost = in.cost();
+      assert cost >= 0;
+      return cost;
+    }
+
+    @Override
+    public BytesRef binaryValue() {
+      assertThread("Binary doc values iterator", creationThread);
+      assert in.docID() != -1;
+      assert in.docID() != NO_MORE_DOCS;
+      return in.binaryValue();
+    }    
+  }
+
   /** Wraps a SortedDocValues but with additional asserts */
   public static class AssertingSortedDocValues extends SortedDocValues {
     private final Thread creationThread = Thread.currentThread();

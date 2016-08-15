@@ -32,6 +32,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.BaseDocValuesFormatTestCase;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -111,16 +112,17 @@ public class TestPerFieldDocValuesFormat extends BaseDocValuesFormatTestCase {
     assertEquals(1, hits.totalHits);
     // Iterate through the results:
     for (int i = 0; i < hits.scoreDocs.length; i++) {
-      Document hitDoc = isearcher.doc(hits.scoreDocs[i].doc);
+      int hitDocID = hits.scoreDocs[i].doc;
+      Document hitDoc = isearcher.doc(hitDocID);
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
       NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValuesIterator("dv1");
-      int hitDocID = hits.scoreDocs[i].doc;
       assertEquals(hitDocID, dv.advance(hitDocID));
       assertEquals(5, dv.longValue());
       
-      BinaryDocValues dv2 = ireader.leaves().get(0).reader().getBinaryDocValues("dv2");
-      final BytesRef term = dv2.get(hits.scoreDocs[i].doc);
+      BinaryDocValuesIterator dv2 = ireader.leaves().get(0).reader().getBinaryDocValuesIterator("dv2");
+      assertEquals(hitDocID, dv2.advance(hitDocID));
+      final BytesRef term = dv2.binaryValue();
       assertEquals(new BytesRef("hello world"), term);
     }
 

@@ -27,6 +27,7 @@ import org.apache.lucene.index.AssertingLeafReader.AssertingRandomAccessOrds;
 import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValues;
 import org.apache.lucene.index.AssertingLeafReader;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
@@ -243,6 +244,14 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
       BinaryDocValues values = in.getBinary(field);
       assert values != null;
       return new AssertingLeafReader.AssertingBinaryDocValues(values, maxDoc);
+    }
+
+    @Override
+    public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+      assert field.getDocValuesType() == DocValuesType.BINARY;
+      BinaryDocValuesIterator values = in.getBinaryIterator(field);
+      assert values != null;
+      return new AssertingLeafReader.AssertingBinaryDocValuesIterator(values, maxDoc);
     }
 
     @Override

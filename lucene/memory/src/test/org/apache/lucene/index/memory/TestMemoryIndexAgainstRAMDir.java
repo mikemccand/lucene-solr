@@ -54,6 +54,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CompositeReader;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
@@ -524,9 +525,11 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
       assertEquals(controlSortedNumericDocValues.valueAt(i), sortedNumericDocValues.valueAt(i));
     }
 
-    BinaryDocValues binaryDocValues = leafReader.getBinaryDocValues("binary");
-    BinaryDocValues controlBinaryDocValues = controlLeafReader.getBinaryDocValues("binary");
-    assertEquals(controlBinaryDocValues.get(0), binaryDocValues.get(0));
+    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValuesIterator("binary");
+    BinaryDocValuesIterator controlBinaryDocValues = controlLeafReader.getBinaryDocValuesIterator("binary");
+    assertEquals(0, binaryDocValues.nextDoc());
+    assertEquals(0, controlBinaryDocValues.nextDoc());
+    assertEquals(controlBinaryDocValues.binaryValue(), binaryDocValues.binaryValue());
 
     SortedDocValues sortedDocValues = leafReader.getSortedDocValues("sorted");
     SortedDocValues controlSortedDocValues = controlLeafReader.getSortedDocValues("sorted");

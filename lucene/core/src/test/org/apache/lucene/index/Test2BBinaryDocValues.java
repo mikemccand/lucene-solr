@@ -85,13 +85,14 @@ public class Test2BBinaryDocValues extends LuceneTestCase {
     int expectedValue = 0;
     for (LeafReaderContext context : r.leaves()) {
       LeafReader reader = context.reader();
-      BinaryDocValues dv = reader.getBinaryDocValues("dv");
+      BinaryDocValuesIterator dv = reader.getBinaryDocValuesIterator("dv");
       for (int i = 0; i < reader.maxDoc(); i++) {
         bytes[0] = (byte)(expectedValue >> 24);
         bytes[1] = (byte)(expectedValue >> 16);
         bytes[2] = (byte)(expectedValue >> 8);
         bytes[3] = (byte) expectedValue;
-        final BytesRef term = dv.get(i);
+        assertEquals(i, dv.nextDoc());
+        final BytesRef term = dv.binaryValue();
         assertEquals(data, term);
         expectedValue++;
       }
@@ -146,9 +147,10 @@ public class Test2BBinaryDocValues extends LuceneTestCase {
     ByteArrayDataInput input = new ByteArrayDataInput();
     for (LeafReaderContext context : r.leaves()) {
       LeafReader reader = context.reader();
-      BinaryDocValues dv = reader.getBinaryDocValues("dv");
+      BinaryDocValuesIterator dv = reader.getBinaryDocValuesIterator("dv");
       for (int i = 0; i < reader.maxDoc(); i++) {
-        final BytesRef term = dv.get(i);
+        assertEquals(i, dv.nextDoc());
+        final BytesRef term = dv.binaryValue();
         input.reset(term.bytes, term.offset, term.length);
         assertEquals(expectedValue % 65535, input.readVInt());
         assertTrue(input.eof());
