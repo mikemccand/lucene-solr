@@ -371,8 +371,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
   }
 
-  @Override
-  public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
     BinaryRawValues instance = binaryInstances.get(field.name);
     if (instance == null) {
       // Lazy load

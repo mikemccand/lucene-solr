@@ -27,6 +27,7 @@ import org.apache.lucene.document.FloatDocValuesField;
 import org.apache.lucene.document.LegacyFloatField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.IndexReader;
@@ -126,11 +127,41 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     }
 
     @Override
-    protected NumericDocValues getKeys(final LeafReaderContext context) {
+    protected NumericDocValuesIterator getKeys(final LeafReaderContext context) {
 
-      return new NumericDocValues() {
+      return new NumericDocValuesIterator() {
+        int docID = -1;
+
         @Override
-        public long get(int docID) {
+        public int docID() {
+          return docID;
+        }
+
+        @Override
+        public int nextDoc() {
+          docID++;
+          if (docID == context.reader().maxDoc()) {
+            docID = NO_MORE_DOCS;
+          }
+          return docID;
+        }
+
+        @Override
+        public int advance(int target) {
+          docID = target;
+          if (docID >= context.reader().maxDoc()) {
+            docID = NO_MORE_DOCS;
+          }
+          return docID;
+        }
+
+        @Override
+        public long cost() {
+          return 0;
+        }
+        
+        @Override
+        public long longValue() {
           // Keys are always expressed as a long so we obtain the
           // ordinal for our String-based artist name here
           return sdv.getOrd(context.docBase + docID);
@@ -141,11 +172,10 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
 
   // Alternative, faster implementation for converting String keys to longs
   // but with the potential for hash collisions
-  private static final class HashedDocValuesDiversifiedCollector extends
-      DiversifiedTopDocsCollector {
+  private static final class HashedDocValuesDiversifiedCollector extends DiversifiedTopDocsCollector {
 
     private final String field;
-    private BinaryDocValues vals;
+    private BinaryDocValuesIterator vals;
 
     public HashedDocValuesDiversifiedCollector(int size, int maxHitsPerKey,
         String field) {
@@ -154,11 +184,27 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     }
 
     @Override
-    protected NumericDocValues getKeys(LeafReaderContext context) {
-      return new NumericDocValues() {
+    protected NumericDocValuesIterator getKeys(LeafReaderContext context) {
+      return new NumericDocValuesIterator() {
         @Override
-        public long get(int docID) {
-          return vals == null ? -1 : vals.get(docID).hashCode();
+        public int docID() {
+          return vals.docID();
+        }
+        @Override
+        public int nextDoc() throws IOException {
+          return vals.nextDoc();
+        }
+        @Override
+        public int advance(int target) throws IOException {
+          return vals.advance(target);
+        }
+        @Override
+        public long cost() {
+          return vals.cost();
+        }
+        @Override
+        public long longValue() {
+          return vals == null ? -1 : vals.binaryValue().hashCode();
         }
       };
     }
@@ -166,7 +212,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context)
         throws IOException {
-      this.vals = DocValues.getBinary(context.reader(), field);
+      this.vals = DocValues.getBinaryIterator(context.reader(), field);
       return super.getLeafCollector(context);
     }
   }

@@ -800,13 +800,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
-    BinaryDocValues dv = super.getBinaryDocValues(field);
+  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+    BinaryDocValuesIterator dv = super.getBinaryDocValuesIterator(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.BINARY;
-      return new AssertingBinaryDocValues(dv, maxDoc());
+      return new AssertingBinaryDocValuesIterator(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.BINARY;
       return null;

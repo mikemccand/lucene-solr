@@ -338,8 +338,9 @@ public class TestMemoryIndex extends LuceneTestCase {
     assertEquals(0, penum.startOffset());
     assertEquals(5, penum.endOffset());
 
-    BinaryDocValues binaryDocValues = leafReader.getBinaryDocValues("text");
-    assertEquals("quick brown fox", binaryDocValues.get(0).utf8ToString());
+    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValuesIterator("text");
+    assertEquals(0, binaryDocValues.nextDoc());
+    assertEquals("quick brown fox", binaryDocValues.binaryValue().utf8ToString());
   }
 
   public void testPointValues() throws Exception {
@@ -479,7 +480,9 @@ public class TestMemoryIndex extends LuceneTestCase {
     assertArrayEquals(packedPoint, leafReader.getPointValues().getMinPackedValue("field"));
     assertArrayEquals(packedPoint, leafReader.getPointValues().getMaxPackedValue("field"));
 
-    assertEquals("term", leafReader.getBinaryDocValues("field").get(0).utf8ToString());
+    BinaryDocValuesIterator dvs = leafReader.getBinaryDocValuesIterator("field");
+    assertEquals(0, dvs.nextDoc());
+    assertEquals("term", dvs.binaryValue().utf8ToString());
   }
 
   public void testToStringDebug() {

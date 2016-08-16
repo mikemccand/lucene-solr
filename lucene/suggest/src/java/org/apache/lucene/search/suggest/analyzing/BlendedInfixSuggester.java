@@ -28,9 +28,10 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.PostingsEnum;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.MultiDocValues;
+import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanClause;
@@ -186,13 +187,6 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
                                                     boolean doHighlight, Set<String> matchedTokens, String prefixToken)
       throws IOException {
 
-    BinaryDocValues textDV = MultiDocValues.getBinaryValues(searcher.getIndexReader(), TEXT_FIELD_NAME);
-    assert textDV != null;
-
-    // This will just be null if app didn't pass payloads to build():
-    // TODO: maybe just stored fields?  they compress...
-    BinaryDocValues payloadsDV = MultiDocValues.getBinaryValues(searcher.getIndexReader(), "payloads");
-
     TreeSet<Lookup.LookupResult> results = new TreeSet<>(LOOKUP_COMP);
 
     // we reduce the num to the one initially requested
@@ -201,12 +195,25 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
     for (int i = 0; i < hits.scoreDocs.length; i++) {
       FieldDoc fd = (FieldDoc) hits.scoreDocs[i];
 
-      final String text = textDV.get(fd.doc).utf8ToString();
+      BinaryDocValuesIterator textDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), TEXT_FIELD_NAME);
+      assert textDV != null;
+
+      textDV.advance(fd.doc);
+
+      final String text = textDV.binaryValue().utf8ToString();
       long weight = (Long) fd.fields[0];
+
+      // This will just be null if app didn't pass payloads to build():
+      // TODO: maybe just stored fields?  they compress...
+      BinaryDocValuesIterator payloadsDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), "payloads");
 
       BytesRef payload;
       if (payloadsDV != null) {
-        payload = BytesRef.deepCopyOf(payloadsDV.get(fd.doc));
+        if (payloadsDV.advance(fd.doc) == fd.doc) {
+          payload = BytesRef.deepCopyOf(payloadsDV.binaryValue());
+        } else {
+          payload = new BytesRef(BytesRef.EMPTY_BYTES);
+        }
       } else {
         payload = null;
       }

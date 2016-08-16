@@ -19,6 +19,7 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefHash;
@@ -40,7 +41,6 @@ abstract class TermsCollector<DV> extends DocValuesTermsCollector<DV> {
     return collectorTerms;
   }
 
-  
   /**
    * Chooses the right {@link TermsCollector} implementation.
    *
@@ -73,15 +73,23 @@ abstract class TermsCollector<DV> extends DocValuesTermsCollector<DV> {
   }
 
   // impl that works with single value per document
-  static class SV extends TermsCollector<BinaryDocValues> {
+  static class SV extends TermsCollector<BinaryDocValuesIterator> {
 
-    SV(Function<BinaryDocValues> docValuesCall) {
+    SV(Function<BinaryDocValuesIterator> docValuesCall) {
       super(docValuesCall);
     }
 
     @Override
     public void collect(int doc) throws IOException {
-      final BytesRef term = docValues.get(doc);
+      if (docValues.docID() < doc) {
+        docValues.advance(doc);
+      }
+      BytesRef term;
+      if (docValues.docID() == doc) {
+        term = docValues.binaryValue();
+      } else {
+        term = new BytesRef(BytesRef.EMPTY_BYTES);
+      }
       collectorTerms.add(term);
     }
   }

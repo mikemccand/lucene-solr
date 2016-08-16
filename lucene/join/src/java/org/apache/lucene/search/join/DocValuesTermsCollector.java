@@ -22,6 +22,7 @@ import java.util.function.LongConsumer;
 import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -38,7 +39,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   
   @FunctionalInterface
   static interface Function<R> {
-      R apply(LeafReader t) throws IOException  ;
+    R apply(LeafReader t) throws IOException;
   }
   
   protected DV docValues;
@@ -53,49 +54,46 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
     docValues = docValuesCall.apply(context.reader());
   }
   
-  static Function<BinaryDocValues> binaryDocValues(String field) {
-      return (ctx) -> DocValues.getBinary(ctx, field);
+  static Function<BinaryDocValuesIterator> binaryDocValues(String field) {
+    return (ctx) -> DocValues.getBinaryIterator(ctx, field);
   }
+
   static Function<SortedSetDocValues> sortedSetDocValues(String field) {
     return (ctx) -> DocValues.getSortedSet(ctx, field);
   }
   
-  static Function<BinaryDocValues> numericAsBinaryDocValues(String field, LegacyNumericType numTyp) {
+  static Function<BinaryDocValuesIterator> numericAsBinaryDocValues(String field, LegacyNumericType numTyp) {
     return (ctx) -> {
       final NumericDocValuesIterator numeric = DocValues.getNumericIterator(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);
       
-      return new BinaryDocValues() {
-        private int lastDocID = -1;
-
-        private boolean docsInOrder(int docID) {
-          if (docID < lastDocID) {
-            throw new AssertionError("docs out of order: lastDocID=" + lastDocID + " vs docID=" + docID);
-          }
-          lastDocID = docID;
-          return true;
-        }
+      return new BinaryDocValuesIterator() {
         
         @Override
-        public BytesRef get(int docID) {
-          assert docsInOrder(docID);
-          int dvDocID = numeric.docID();
-          final long lVal;
-          try {
-            if (dvDocID < docID) {
-              dvDocID = numeric.advance(docID);
-            }
-            if (dvDocID == docID) {
-              lVal = numeric.longValue();
-            } else {
-              lVal = 0;
-            }
-          } catch(IOException ioe) {
-            throw new RuntimeException(ioe);
-          }
-          coder.accept(lVal);
+        public int docID() {
+          return numeric.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          return numeric.nextDoc();
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+          return numeric.advance(target);
+        }
+
+        @Override
+        public long cost() {
+          return numeric.cost();
+        }
+
+        @Override
+        public BytesRef binaryValue() {
+          coder.accept(numeric.longValue());
           return bytes.get();
         }
       };

@@ -51,6 +51,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
@@ -1222,13 +1223,18 @@ public class TestJoinUtil extends LuceneTestCase {
         searcher.search(new TermQuery(new Term("value", uniqueRandomValue)), new SimpleCollector() {
 
           private Scorer scorer;
-          private BinaryDocValues terms;
-          private Bits docsWithField;
+          private BinaryDocValuesIterator terms;
 
           @Override
           public void collect(int doc) throws IOException {
-            final BytesRef joinValue = terms.get(doc);
-            if (joinValue.length == 0 && !docsWithField.get(doc)) {
+            if (doc > terms.docID()) {
+              terms.advance(doc);
+            }
+            final BytesRef joinValue;
+            if (doc == terms.docID()) {
+              joinValue = terms.binaryValue();
+            } else {
+              // missing;
               return;
             }
 
@@ -1244,8 +1250,7 @@ public class TestJoinUtil extends LuceneTestCase {
 
           @Override
           protected void doSetNextReader(LeafReaderContext context) throws IOException {
-            terms = DocValues.getBinary(context.reader(), fromField);
-            docsWithField = DocValues.getDocsWithField(context.reader(), fromField);
+            terms = DocValues.getBinaryIterator(context.reader(), fromField);
           }
 
           @Override
@@ -1286,12 +1291,21 @@ public class TestJoinUtil extends LuceneTestCase {
       } else {
         searcher.search(new MatchAllDocsQuery(), new SimpleCollector() {
 
-          private BinaryDocValues terms;
+          private BinaryDocValuesIterator terms;
           private int docBase;
 
           @Override
-          public void collect(int doc) {
-            final BytesRef joinValue = terms.get(doc);
+          public void collect(int doc) throws IOException {
+            if (doc > terms.docID()) {
+              terms.advance(doc);
+            }
+            final BytesRef joinValue;
+            if (doc == terms.docID()) {
+              joinValue = terms.binaryValue();
+            } else {
+              // missing;
+              joinValue = new BytesRef(BytesRef.EMPTY_BYTES);
+            }
             JoinScore joinScore = joinValueToJoinScores.get(joinValue);
             if (joinScore == null) {
               return;
@@ -1301,7 +1315,7 @@ public class TestJoinUtil extends LuceneTestCase {
 
           @Override
           protected void doSetNextReader(LeafReaderContext context) throws IOException {
-            terms = DocValues.getBinary(context.reader(), toField);
+            terms = DocValues.getBinaryIterator(context.reader(), toField);
             docBase = context.docBase;
           }
 

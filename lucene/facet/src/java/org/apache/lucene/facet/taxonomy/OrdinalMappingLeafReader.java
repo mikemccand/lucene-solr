@@ -20,13 +20,15 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.FacetsConfig.DimConfig;
+import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.taxonomy.OrdinalsReader.OrdinalsSegmentReader;
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter.OrdinalMap;
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.FilterBinaryDocValuesIterator;
 import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IntsRef;
 
@@ -75,25 +77,26 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
     
   }
   
-  private class OrdinalMappingBinaryDocValues extends BinaryDocValues {
+  private class OrdinalMappingBinaryDocValuesIterator extends FilterBinaryDocValuesIterator {
     
     private final IntsRef ordinals = new IntsRef(32);
     private final OrdinalsSegmentReader ordsReader;
     
-    OrdinalMappingBinaryDocValues(OrdinalsSegmentReader ordsReader) throws IOException {
+    OrdinalMappingBinaryDocValuesIterator(OrdinalsSegmentReader ordsReader, BinaryDocValuesIterator in) throws IOException {
+      super(in);
       this.ordsReader = ordsReader;
     }
     
     @SuppressWarnings("synthetic-access")
     @Override
-    public BytesRef get(int docID) {
+    public BytesRef binaryValue() {
       try {
         // NOTE: this isn't quite koscher, because in general
         // multiple threads can call BinaryDV.get which would
         // then conflict on the single ordinals instance, but
         // because this impl is only used for merging, we know
         // only 1 thread calls us:
-        ordsReader.get(docID, ordinals);
+        ordsReader.get(docID(), ordinals);
         
         // map the ordinals
         for (int i = 0; i < ordinals.length; i++) {
@@ -102,7 +105,7 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
         
         return encode(ordinals);
       } catch (IOException e) {
-        throw new RuntimeException("error reading category ordinals for doc " + docID, e);
+        throw new RuntimeException("error reading category ordinals for doc " + docID(), e);
       }
     }
   }
@@ -147,12 +150,12 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
     if (facetFields.contains(field)) {
       final OrdinalsReader ordsReader = getOrdinalsReader(field);
-      return new OrdinalMappingBinaryDocValues(ordsReader.getReader(in.getContext()));
+      return new OrdinalMappingBinaryDocValuesIterator(ordsReader.getReader(in.getContext()), in.getBinaryDocValuesIterator(field));
     } else {
-      return in.getBinaryDocValues(field);
+      return in.getBinaryDocValuesIterator(field);
     }
   }
   

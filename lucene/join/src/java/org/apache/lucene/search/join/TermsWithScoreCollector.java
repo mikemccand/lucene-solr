@@ -20,9 +20,11 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefHash;
 
 abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV> 
@@ -87,15 +89,24 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
   }
  
   // impl that works with single value per document
-  static class SV extends TermsWithScoreCollector<BinaryDocValues> {
+  static class SV extends TermsWithScoreCollector<BinaryDocValuesIterator> {
 
-    SV(Function<BinaryDocValues> docValuesCall, ScoreMode scoreMode) {
+    SV(Function<BinaryDocValuesIterator> docValuesCall, ScoreMode scoreMode) {
       super(docValuesCall, scoreMode);
     }
 
     @Override
     public void collect(int doc) throws IOException {
-      int ord = collectedTerms.add(docValues.get(doc));
+      if (docValues.docID() < doc) {
+        docValues.advance(doc);
+      }
+      BytesRef value;
+      if (docValues.docID() == doc) {
+        value = docValues.binaryValue();
+      } else {
+        value = new BytesRef(BytesRef.EMPTY_BYTES);
+      }
+      int ord = collectedTerms.add(value);
       if (ord < 0) {
         ord = -ord - 1;
       } else {
@@ -139,13 +150,22 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
 
       int[] scoreCounts = new int[INITIAL_ARRAY_SIZE];
 
-      Avg(Function<BinaryDocValues> docValuesCall) {
+      Avg(Function<BinaryDocValuesIterator> docValuesCall) {
         super(docValuesCall, ScoreMode.Avg);
       }
 
       @Override
       public void collect(int doc) throws IOException {
-        int ord = collectedTerms.add(docValues.get(doc));
+        if (docValues.docID() < doc) {
+          docValues.advance(doc);
+        }
+        BytesRef value;
+        if (docValues.docID() == doc) {
+          value = docValues.binaryValue();
+        } else {
+          value = new BytesRef(BytesRef.EMPTY_BYTES);
+        }
+        int ord = collectedTerms.add(value);
         if (ord < 0) {
           ord = -ord - 1;
         } else {

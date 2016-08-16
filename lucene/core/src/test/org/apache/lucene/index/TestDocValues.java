@@ -46,7 +46,7 @@ public class TestDocValues extends LuceneTestCase {
     LeafReader r = getOnlyLeafReader(dr);
     
     // ok
-    assertNotNull(DocValues.getBinary(r, "bogus"));
+    assertNotNull(DocValues.getBinaryIterator(r, "bogus"));
     assertNotNull(DocValues.getNumericIterator(r, "bogus"));
     assertNotNull(DocValues.getSorted(r, "bogus"));
     assertNotNull(DocValues.getSortedSet(r, "bogus"));
@@ -72,7 +72,7 @@ public class TestDocValues extends LuceneTestCase {
    
     // errors
     expectThrows(IllegalStateException.class, () -> {
-      DocValues.getBinary(r, "foo");
+      DocValues.getBinaryIterator(r, "foo");
     });
     expectThrows(IllegalStateException.class, () -> {
       DocValues.getNumericIterator(r, "foo");
@@ -114,7 +114,7 @@ public class TestDocValues extends LuceneTestCase {
     
     // errors
     expectThrows(IllegalStateException.class, () -> {
-      DocValues.getBinary(r, "foo");
+      DocValues.getBinaryIterator(r, "foo");
     });
     expectThrows(IllegalStateException.class, () -> {
       DocValues.getSorted(r, "foo");
@@ -141,7 +141,7 @@ public class TestDocValues extends LuceneTestCase {
     LeafReader r = getOnlyLeafReader(dr);
     
     // ok
-    assertNotNull(DocValues.getBinary(r, "foo"));
+    assertNotNull(DocValues.getBinaryIterator(r, "foo"));
     assertNotNull(DocValues.getDocsWithField(r, "foo"));
     
     // errors
@@ -176,7 +176,7 @@ public class TestDocValues extends LuceneTestCase {
     LeafReader r = getOnlyLeafReader(dr);
     
     // ok
-    assertNotNull(DocValues.getBinary(r, "foo"));
+    assertNotNull(DocValues.getBinaryIterator(r, "foo"));
     assertNotNull(DocValues.getSorted(r, "foo"));
     assertNotNull(DocValues.getSortedSet(r, "foo"));
     assertNotNull(DocValues.getDocsWithField(r, "foo"));
@@ -212,7 +212,7 @@ public class TestDocValues extends LuceneTestCase {
     
     // errors
     expectThrows(IllegalStateException.class, () -> {
-      DocValues.getBinary(r, "foo");
+      DocValues.getBinaryIterator(r, "foo");
     });
     expectThrows(IllegalStateException.class, () -> {
       DocValues.getNumericIterator(r, "foo");
@@ -247,7 +247,7 @@ public class TestDocValues extends LuceneTestCase {
     
     // errors
     expectThrows(IllegalStateException.class, () -> {
-      DocValues.getBinary(r, "foo");
+        DocValues.getBinaryIterator(r, "foo");
     });
     expectThrows(IllegalStateException.class, () -> {
       DocValues.getNumericIterator(r, "foo");

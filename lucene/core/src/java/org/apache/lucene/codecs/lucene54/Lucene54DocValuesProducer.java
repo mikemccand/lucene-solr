@@ -685,8 +685,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
   }
 
-  @Override
-  public BinaryDocValues getBinary(FieldInfo field) throws IOException {
+  BinaryDocValues getBinary(FieldInfo field) throws IOException {
     BinaryEntry bytes = binaries.get(field.name);
     switch(bytes.format) {
       case BINARY_FIXED_UNCOMPRESSED:

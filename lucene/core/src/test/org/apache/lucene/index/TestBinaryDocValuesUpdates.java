@@ -54,6 +54,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
   static long getValue(BinaryDocValuesIterator bdv) {
     BytesRef term = bdv.binaryValue();
     int idx = term.offset;
+    assert term.length > 0;
     byte b = term.bytes[idx++];
     long value = b & 0x7FL;
     for (int shift = 7; (b & 0x80L) != 0; shift += 7) {

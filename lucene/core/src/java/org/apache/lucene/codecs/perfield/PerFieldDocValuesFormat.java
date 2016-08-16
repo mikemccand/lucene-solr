@@ -286,12 +286,6 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public BinaryDocValues getBinary(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getBinary(field);
-    }
-
-    @Override
     public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
       DocValuesProducer producer = fields.get(field.name);
       return producer == null ? null : producer.getBinaryIterator(field);

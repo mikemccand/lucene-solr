@@ -248,51 +248,6 @@ public class MultiDocValues {
     }
   }
 
-  /** Returns a BinaryDocValues for a reader's docvalues (potentially merging on-the-fly)
-   * <p>
-   * This is a slow way to access binary values. Instead, access them per-segment
-   * with {@link LeafReader#getBinaryDocValues(String)}
-   * </p>  
-   */
-  public static BinaryDocValues getBinaryValues(final IndexReader r, final String field) throws IOException {
-    final List<LeafReaderContext> leaves = r.leaves();
-    final int size = leaves.size();
-    
-    if (size == 0) {
-      return null;
-    } else if (size == 1) {
-      return leaves.get(0).reader().getBinaryDocValues(field);
-    }
-    
-    boolean anyReal = false;
-    final BinaryDocValues[] values = new BinaryDocValues[size];
-    final int[] starts = new int[size+1];
-    for (int i = 0; i < size; i++) {
-      LeafReaderContext context = leaves.get(i);
-      BinaryDocValues v = context.reader().getBinaryDocValues(field);
-      if (v == null) {
-        v = DocValues.emptyBinary();
-      } else {
-        anyReal = true;
-      }
-      values[i] = v;
-      starts[i] = context.docBase;
-    }
-    starts[size] = r.maxDoc();
-    
-    if (!anyReal) {
-      return null;
-    } else {
-      return new BinaryDocValues() {
-        @Override
-        public BytesRef get(int docID) {
-          int subIndex = ReaderUtil.subIndex(docID, starts);
-          return values[subIndex].get(docID - starts[subIndex]);
-        }
-      };
-    }
-  }
-  
   /** Returns a BinaryDocValuesIterator for a reader's docvalues (potentially merging on-the-fly) */  
   public static BinaryDocValuesIterator getBinaryValuesIterator(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();

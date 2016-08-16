@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocIDMerger;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
@@ -147,27 +148,7 @@ public abstract class DocValuesConsumer implements Closeable {
         if (type == DocValuesType.NUMERIC) {
           mergeNumericField(mergeFieldInfo, mergeState);
         } else if (type == DocValuesType.BINARY) {
-          List<BinaryDocValues> toMerge = new ArrayList<>();
-          List<Bits> docsWithField = new ArrayList<>();
-          for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-            BinaryDocValues values = null;
-            Bits bits = null;
-            DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-            if (docValuesProducer != null) {
-              FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-              if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.BINARY) {
-                values = docValuesProducer.getBinary(fieldInfo);
-                bits = docValuesProducer.getDocsWithField(fieldInfo);
-              }
-            }
-            if (values == null) {
-              values = DocValues.emptyBinary();
-              bits = new Bits.MatchNoBits(mergeState.maxDocs[i]);
-            }
-            toMerge.add(values);
-            docsWithField.add(bits);
-          }
-          mergeBinaryField(mergeFieldInfo, mergeState, toMerge, docsWithField);
+          mergeBinaryField(mergeFieldInfo, mergeState);
         } else if (type == DocValuesType.SORTED) {
           List<SortedDocValues> toMerge = new ArrayList<>();
           for (int i=0;i<mergeState.docValuesProducers.length;i++) {
@@ -329,26 +310,33 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one binary sub-reader that we are merging */
   private static class BinaryDocValuesSub extends DocIDMerger.Sub {
 
-    private final BinaryDocValues values;
-    private final Bits docsWithField;
+    private final BinaryDocValuesIterator values;
     private int docID = -1;
     private final int maxDoc;
+    BytesRef value;
 
-    public BinaryDocValuesSub(MergeState.DocMap docMap, BinaryDocValues values, Bits docsWithField, int maxDoc) {
+    public BinaryDocValuesSub(MergeState.DocMap docMap, BinaryDocValuesIterator values, int maxDoc) {
       super(docMap);
       this.values = values;
-      this.docsWithField = docsWithField;
       this.maxDoc = maxDoc;
     }
 
     @Override
-    public int nextDoc() {
+    public int nextDoc() throws IOException {
       docID++;
       if (docID == maxDoc) {
         return NO_MORE_DOCS;
-      } else {
-        return docID;
       }
+      if (docID > values.docID()) {
+        values.nextDoc();
+      }
+      if (docID == values.docID()) {
+        value = values.binaryValue();
+      } else {
+        // fill in missing docs with null
+        value = null;
+      }
+      return docID;
     }
   }
 
@@ -358,17 +346,39 @@ public abstract class DocValuesConsumer implements Closeable {
    * The default implementation calls {@link #addBinaryField}, passing
    * an Iterable that merges and filters deleted documents on the fly.
    */
-  public void mergeBinaryField(FieldInfo fieldInfo, final MergeState mergeState, final List<BinaryDocValues> toMerge, final List<Bits> docsWithField) throws IOException {
-    addBinaryField(fieldInfo,
+  public void mergeBinaryField(FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
+    addBinaryField(mergeFieldInfo,
                    new Iterable<BytesRef>() {
                      @Override
                      public Iterator<BytesRef> iterator() {
+
+                       List<BinaryDocValuesIterator> toMerge = new ArrayList<>();
+                       for (int i=0;i<mergeState.docValuesProducers.length;i++) {
+                         BinaryDocValuesIterator values = null;
+                         DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
+                         if (docValuesProducer != null) {
+                           FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                           if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.BINARY) {
+                             try {
+                               values = docValuesProducer.getBinaryIterator(fieldInfo);
+                             } catch (IOException ioe) {
+                               throw new RuntimeException(ioe);
+                             }
+                           }
+                         }
+                         if (values == null) {
+                           values = DocValues.emptyBinaryIterator();
+                         }
+                         toMerge.add(values);
+                       }
+
+                       // nocommit combine these for loops
 
                        // We must make a new DocIDMerger for each iterator:
                        List<BinaryDocValuesSub> subs = new ArrayList<>();
                        assert mergeState.docMaps.length == toMerge.size();
                        for(int i=0;i<toMerge.size();i++) {
-                         subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], toMerge.get(i), docsWithField.get(i), mergeState.maxDocs[i]));
+                         subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
                        }
 
                        final DocIDMerger<BinaryDocValuesSub> docIDMerger;
@@ -380,7 +390,6 @@ public abstract class DocValuesConsumer implements Closeable {
 
                        return new Iterator<BytesRef>() {
                          BytesRef nextValue;
-                         BytesRef nextPointer; // points to null if missing, or nextValue
                          boolean nextIsSet;
 
                          @Override
@@ -400,7 +409,7 @@ public abstract class DocValuesConsumer implements Closeable {
                            }
                            assert nextIsSet;
                            nextIsSet = false;
-                           return nextPointer;
+                           return nextValue;
                          }
 
                          private boolean setNext() {
@@ -412,14 +421,10 @@ public abstract class DocValuesConsumer implements Closeable {
                                throw new RuntimeException(ioe);
                              }
                              if (sub == null) {
-                                 return false;
+                               return false;
                              }
                              nextIsSet = true;
-                             if (sub.docsWithField.get(sub.docID)) {
-                               nextPointer = nextValue = sub.values.get(sub.docID);
-                             } else {
-                               nextPointer = null;
-                             }
+                             nextValue = sub.value;
                              return true;
                            }
                          }

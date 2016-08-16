@@ -753,8 +753,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
       BinaryDocValuesIterator dvBytesDerefVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefVar");
       SortedDocValues dvBytesSortedFixed = MultiDocValues.getSortedValues(reader, "dvBytesSortedFixed");
       SortedDocValues dvBytesSortedVar = MultiDocValues.getSortedValues(reader, "dvBytesSortedVar");
-      BinaryDocValues dvBytesStraightFixed = MultiDocValues.getBinaryValues(reader, "dvBytesStraightFixed");
-      BinaryDocValues dvBytesStraightVar = MultiDocValues.getBinaryValues(reader, "dvBytesStraightVar");
+      BinaryDocValuesIterator dvBytesStraightFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightFixed");
+      BinaryDocValuesIterator dvBytesStraightVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightVar");
       NumericDocValuesIterator dvDouble = MultiDocValues.getNumericValuesIterator(reader, "dvDouble");
       NumericDocValuesIterator dvFloat = MultiDocValues.getNumericValuesIterator(reader, "dvFloat");
       NumericDocValuesIterator dvInt = MultiDocValues.getNumericValuesIterator(reader, "dvInt");
@@ -790,9 +790,11 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
         assertEquals(expectedRef, term);
         term = dvBytesSortedVar.get(i);
         assertEquals(expectedRef, term);
-        term = dvBytesStraightFixed.get(i);
+        assertEquals(i, dvBytesStraightFixed.nextDoc());
+        term = dvBytesStraightFixed.binaryValue();
         assertEquals(expectedRef, term);
-        term = dvBytesStraightVar.get(i);
+        assertEquals(i, dvBytesStraightVar.nextDoc());
+        term = dvBytesStraightVar.binaryValue();
         assertEquals(expectedRef, term);
         
         assertEquals(i, dvDouble.nextDoc());

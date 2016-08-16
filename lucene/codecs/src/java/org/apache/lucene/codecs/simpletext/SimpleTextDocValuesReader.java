@@ -219,8 +219,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     };
   }
 
-  @Override
-  public BinaryDocValues getBinary(FieldInfo fieldInfo) throws IOException {
+  private BinaryDocValues getBinary(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
 
     // SegmentCoreReaders already verifies this field is

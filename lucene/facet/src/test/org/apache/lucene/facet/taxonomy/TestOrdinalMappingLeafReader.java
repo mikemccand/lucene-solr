@@ -28,9 +28,10 @@ import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyReader;
-import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter;
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter.MemoryOrdinalMap;
+import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -103,10 +104,12 @@ public class TestOrdinalMappingLeafReader extends FacetTestCase {
     assertEquals(NUM_DOCS, idResult.childCount);
     assertEquals(NUM_DOCS * 2, idResult.value); // each "id" appears twice
     
-    BinaryDocValues bdv = MultiDocValues.getBinaryValues(indexReader, "bdv");
-    BinaryDocValues cbdv = MultiDocValues.getBinaryValues(indexReader, "cbdv");
+    BinaryDocValuesIterator bdv = MultiDocValues.getBinaryValuesIterator(indexReader, "bdv");
+    BinaryDocValuesIterator cbdv = MultiDocValues.getBinaryValuesIterator(indexReader, "cbdv");
     for (int i = 0; i < indexReader.maxDoc(); i++) {
-      assertEquals(Integer.parseInt(cbdv.get(i).utf8ToString()), Integer.parseInt(bdv.get(i).utf8ToString())*2);
+      assertEquals(i, bdv.nextDoc());
+      assertEquals(i, cbdv.nextDoc());
+      assertEquals(Integer.parseInt(cbdv.binaryValue().utf8ToString()), Integer.parseInt(bdv.binaryValue().utf8ToString())*2);
     }
     IOUtils.close(indexReader, taxoReader);
   }

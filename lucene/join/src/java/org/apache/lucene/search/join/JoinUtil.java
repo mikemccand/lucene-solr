@@ -31,6 +31,7 @@ import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexReader;
@@ -103,13 +104,11 @@ public final class JoinUtil {
       Function<SortedSetDocValues> mvFunction = DocValuesTermsCollector.sortedSetDocValues(fromField);
       termsWithScoreCollector = GenericTermsCollector.createCollectorMV(mvFunction, scoreMode);
     } else {
-      Function<BinaryDocValues> svFunction = DocValuesTermsCollector.binaryDocValues(fromField);
-      termsWithScoreCollector =  GenericTermsCollector.createCollectorSV(svFunction, scoreMode);
+      Function<BinaryDocValuesIterator> svFunction = DocValuesTermsCollector.binaryDocValues(fromField);
+      termsWithScoreCollector = GenericTermsCollector.createCollectorSV(svFunction, scoreMode);
     }
     
-    return createJoinQuery(multipleValuesPerDocument, toField, fromQuery, fromSearcher, scoreMode,
-        termsWithScoreCollector);
-    
+    return createJoinQuery(multipleValuesPerDocument, toField, fromQuery, fromSearcher, scoreMode, termsWithScoreCollector);
   }
   
   /**
@@ -147,8 +146,8 @@ public final class JoinUtil {
       Function<SortedSetDocValues> mvFunction = DocValuesTermsCollector.sortedNumericAsSortedSetDocValues(fromField,numericType);
       termsCollector = GenericTermsCollector.createCollectorMV(mvFunction, scoreMode);
     } else {
-      Function<BinaryDocValues> svFunction = DocValuesTermsCollector.numericAsBinaryDocValues(fromField,numericType);
-      termsCollector =  GenericTermsCollector.createCollectorSV(svFunction, scoreMode);
+      Function<BinaryDocValuesIterator> svFunction = DocValuesTermsCollector.numericAsBinaryDocValues(fromField,numericType);
+      termsCollector = GenericTermsCollector.createCollectorSV(svFunction, scoreMode);
     }
     
     return createJoinQuery(multipleValuesPerDocument, toField, fromQuery, fromSearcher, scoreMode,

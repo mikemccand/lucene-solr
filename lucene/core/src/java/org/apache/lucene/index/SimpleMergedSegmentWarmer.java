@@ -60,7 +60,7 @@ public class SimpleMergedSegmentWarmer extends IndexReaderWarmer {
             reader.getNumericDocValuesIterator(info.name);
             break;
           case BINARY:
-            reader.getBinaryDocValues(info.name);
+            reader.getBinaryDocValuesIterator(info.name);
             break;
           case SORTED:
             reader.getSortedDocValues(info.name);

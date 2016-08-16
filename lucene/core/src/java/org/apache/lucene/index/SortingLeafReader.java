@@ -170,6 +170,48 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
+  private static class SortingBinaryDocValuesIterator extends BinaryDocValuesIterator {
+
+    private final CachedBinaryDVs dvs;
+    private int docID = -1;
+
+    public SortingBinaryDocValuesIterator(CachedBinaryDVs dvs) {
+      this.dvs = dvs;
+    }
+
+    @Override
+    public int nextDoc() {
+      if (docID+1 == dvs.docsWithField.length()) {
+        docID = NO_MORE_DOCS;
+      } else {
+        docID = dvs.docsWithField.nextSetBit(docID+1);
+      }
+
+      return docID;
+    }
+
+    @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) {
+      docID = dvs.docsWithField.nextSetBit(target);
+      return docID;
+    }
+
+    @Override
+    public BytesRef binaryValue() {
+      return dvs.values[docID];
+    }
+
+    @Override
+    public long cost() {
+      return dvs.docsWithField.cardinality();
+    }
+  }
+
   private static class SortingNumericDocValues extends NumericDocValues {
 
     private final NumericDocValues in;
@@ -194,6 +236,20 @@ class SortingLeafReader extends FilterLeafReader {
     private final BitSet docsWithField;
 
     public CachedNumericDVs(long[] values, BitSet docsWithField) {
+      this.values = values;
+      this.docsWithField = docsWithField;
+    }
+  }
+
+  private final Map<String,CachedBinaryDVs> cachedBinaryDVs = new HashMap<>();
+
+  // nocommit horrible!
+  private static class CachedBinaryDVs {
+    // nocommit at least cutover to packed:
+    private final BytesRef[] values;
+    private final BitSet docsWithField;
+
+    public CachedBinaryDVs(BytesRef[] values, BitSet docsWithField) {
       this.values = values;
       this.docsWithField = docsWithField;
     }
@@ -876,14 +932,32 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
-    BinaryDocValues oldDocValues = in.getBinaryDocValues(field);
-    if (oldDocValues == null) {
-      return null;
-    } else {
-      return new SortingBinaryDocValues(oldDocValues, docMap);
+  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+    final BinaryDocValuesIterator oldDocValues = in.getBinaryDocValuesIterator(field);
+    if (oldDocValues == null) return null;
+    // nocommit this is horrible!!
+    CachedBinaryDVs dvs;
+    synchronized (cachedBinaryDVs) {
+      dvs = cachedBinaryDVs.get(field);
+      if (dvs == null) {
+        FixedBitSet docsWithField = new FixedBitSet(maxDoc());
+        BytesRef[] values = new BytesRef[maxDoc()];
+        while (true) {
+          int docID = oldDocValues.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
+          }
+          int newDocID = docMap.oldToNew(docID);
+          docsWithField.set(newDocID);
+          values[newDocID] = BytesRef.deepCopyOf(oldDocValues.binaryValue());
+        }
+        dvs = new CachedBinaryDVs(values, docsWithField);
+        cachedBinaryDVs.put(field, dvs);
+      }
     }
+    return new SortingBinaryDocValuesIterator(dvs);
   }
+  
 
   @Override
   public Bits getLiveDocs() {

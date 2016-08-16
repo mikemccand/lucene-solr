@@ -431,14 +431,20 @@ class ReadersAndUpdates {
       final SegmentWriteState state = new SegmentWriteState(null, trackingDir, info.info, fieldInfos, null, updatesContext, segmentSuffix);
       try (final DocValuesConsumer fieldsConsumer = dvFormat.fieldsConsumer(state)) {
         // write the binary updates to a new gen'd docvalues file
+
+        // nocommit cutover to passing DocValuesProducer:
         fieldsConsumer.addBinaryField(fieldInfo, new Iterable<BytesRef>() {
-          final BinaryDocValues currentValues = reader.getBinaryDocValues(field);
-          final Bits docsWithField = reader.getDocsWithField(field);
           final int maxDoc = reader.maxDoc();
           final BinaryDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
           @Override
           public Iterator<BytesRef> iterator() {
             updatesIter.reset();
+            final BinaryDocValuesIterator currentValues;
+            try {
+              currentValues = reader.getBinaryDocValuesIterator(field);
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
             return new Iterator<BytesRef>() {
               
               int curDoc = -1;
@@ -461,12 +467,21 @@ class ReadersAndUpdates {
                 } else {
                   // no update for this document
                   assert curDoc < updateDoc;
-                  if (currentValues != null && docsWithField.get(curDoc)) {
-                    // only read the current value if the document had a value before
-                    return currentValues.get(curDoc);
-                  } else {
-                    return null;
+                  if (currentValues != null) {
+                    if (currentValues.docID() < curDoc) {
+                      try {
+                        currentValues.advance(curDoc);
+                      } catch (IOException ioe) {
+                        throw new RuntimeException(ioe);
+                      }
+                    }
+                    if (currentValues.docID() == curDoc) {
+                      // only read the current value if the document had a value before
+                      return currentValues.binaryValue();
+                    }
                   }
+
+                  return null;
                 }
               }
               

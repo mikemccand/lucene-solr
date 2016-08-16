@@ -964,8 +964,7 @@ public abstract class FieldComparator<T> {
 
     @Override
     public int compareTop(int doc) throws IOException {
-      final BytesRef comparableBytes = getValueForDoc(doc);
-      return compareValues(topValue, comparableBytes);
+      return compareValues(topValue, getValueForDoc(doc));
     }
 
     @Override

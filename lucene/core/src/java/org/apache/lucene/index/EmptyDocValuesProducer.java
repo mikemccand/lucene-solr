@@ -28,11 +28,6 @@ public abstract class EmptyDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public BinaryDocValues getBinary(FieldInfo field) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) {
     throw new UnsupportedOperationException();
   }

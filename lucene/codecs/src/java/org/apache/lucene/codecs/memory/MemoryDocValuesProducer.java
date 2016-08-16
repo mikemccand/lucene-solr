@@ -407,8 +407,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     }
   }
 
-  @Override
-  public BinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private BinaryDocValues getBinary(FieldInfo field) throws IOException {
     BinaryEntry entry = binaries.get(field.name);
 
     BytesAndAddresses instance;

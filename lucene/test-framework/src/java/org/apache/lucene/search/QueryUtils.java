@@ -228,11 +228,6 @@ public class QueryUtils {
       }
 
       @Override
-      public BinaryDocValues getBinaryDocValues(String field) throws IOException {
-        return null;
-      }
-
-      @Override
       public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
         return null;
       }
