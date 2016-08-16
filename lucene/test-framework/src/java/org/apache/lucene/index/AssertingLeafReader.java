@@ -860,13 +860,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
-    NumericDocValues dv = super.getNormValues(field);
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
+    NumericDocValuesIterator dv = super.getNormValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.hasNorms();
-      return new AssertingNumericDocValues(dv, maxDoc());
+      return new AssertingNumericDocValuesIterator(dv, maxDoc());
     } else {
       assert fi == null || fi.hasNorms() == false;
       return null;

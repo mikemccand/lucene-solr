@@ -16,16 +16,17 @@
  */
 package org.apache.lucene.queries.function.valuesource;
 
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.docvalues.FloatDocValues;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.similarities.TFIDFSimilarity;
-
-import java.io.IOException;
-import java.util.Map;
 
 /** 
  * Function that returns {@link TFIDFSimilarity#decodeNormValue(long)}
@@ -61,16 +62,29 @@ public class NormValueSource extends ValueSource {
     if (similarity == null) {
       throw new UnsupportedOperationException("requires a TFIDFSimilarity (such as ClassicSimilarity)");
     }
-    final NumericDocValues norms = readerContext.reader().getNormValues(field);
+    final NumericDocValuesIterator norms = readerContext.reader().getNormValues(field);
 
     if (norms == null) {
       return new ConstDoubleDocValues(0.0, this);
     }
     
     return new FloatDocValues(this) {
+      int lastDocID = -1;
       @Override
-      public float floatVal(int doc) {
-        return similarity.decodeNormValue(norms.get(doc));
+      public float floatVal(int docID) throws IOException {
+        if (docID < lastDocID) {
+          throw new AssertionError("docs out of order: lastDocID=" + lastDocID + " docID=" + docID);
+        }
+        if (docID > norms.docID()) {
+          norms.advance(docID);
+        }
+        long norm;
+        if (docID == norms.docID()) {
+          norm = norms.longValue();
+        } else {
+          norm = 0;
+        }
+        return similarity.decodeNormValue(norm);
       }
     };
   }

@@ -1001,7 +1001,7 @@ public final class CheckIndex implements Closeable {
       }
       for (FieldInfo info : reader.getFieldInfos()) {
         if (info.hasNorms()) {
-          checkNumericDocValues(info.name, reader.maxDoc(), normsReader.getNorms(info), new Bits.MatchAllBits(reader.maxDoc()));
+          checkNumericDocValues(info.name, normsReader.getNorms(info));
           ++status.totFields;
         }
       }
@@ -2215,16 +2215,7 @@ public final class CheckIndex implements Closeable {
     }
   }
 
-  private static void checkNumericDocValues(String fieldName, int maxDoc, NumericDocValues ndv, Bits docsWithField) {
-    for (int i = 0; i < maxDoc; i++) {
-      long value = ndv.get(i);
-      if (docsWithField.get(i) == false && value != 0) {
-        throw new RuntimeException("dv for field: " + fieldName + " is marked missing but has value=" + value + " for doc: " + i);
-      }
-    }
-  }
-
-  private static void checkNumericDocValues(String fieldName, int maxDoc, NumericDocValuesIterator ndv) throws IOException {
+  private static void checkNumericDocValues(String fieldName, NumericDocValuesIterator ndv) throws IOException {
     int doc;
     if (ndv.docID() != -1) {
       throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
@@ -2262,7 +2253,7 @@ public final class CheckIndex implements Closeable {
         break;
       case NUMERIC:
         status.totalNumericFields++;
-        checkNumericDocValues(fi.name, maxDoc, dvReader.getNumeric(fi));
+        checkNumericDocValues(fi.name, dvReader.getNumeric(fi));
         break;
       default:
         throw new AssertionError();

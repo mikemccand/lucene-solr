@@ -249,36 +249,22 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     }
   }
   
-  final CloseableThreadLocal<Map<String,NumericDocValues>> normsLocal = new CloseableThreadLocal<Map<String,NumericDocValues>>() {
-    @Override
-    protected Map<String,NumericDocValues> initialValue() {
-      return new HashMap<>();
-    }
-  };
-  
   @Override
-  public final NumericDocValues getNormValues(String field) throws IOException {
+  public final NumericDocValuesIterator getNormValues(String field) throws IOException {
     ensureOpen();
-    Map<String,NumericDocValues> normFields = normsLocal.get();
-
-    NumericDocValues norms = normFields.get(field);
-    if (norms != null) {
-      return norms;
-    } else {
-      FieldInfo fi = getFieldInfos().fieldInfo(field);
-      if (fi == null || !fi.hasNorms()) {
-        // Field does not exist or does not index norms
-        return null;
-      }
-      norms = getNormsReader().getNorms(fi);
-      normFields.put(field, norms);
-      return norms;
+    FieldInfo fi = getFieldInfos().fieldInfo(field);
+    if (fi == null || fi.hasNorms() == false) {
+      // Field does not exist or does not index norms
+      return null;
     }
+
+    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
+    return getNormsReader().getNorms(fi);
   }
 
   @Override
   protected void doClose() throws IOException {
-    IOUtils.close(docValuesLocal, docsWithFieldLocal, normsLocal);
+    IOUtils.close(docValuesLocal, docsWithFieldLocal);
   }
   
   @Override

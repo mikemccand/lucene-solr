@@ -28,6 +28,7 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
@@ -174,7 +175,7 @@ public class TestTermScorer extends LuceneTestCase {
     
     LeafReader forbiddenNorms = new FilterLeafReader(indexReader) {
       @Override
-      public NumericDocValues getNormValues(String field) throws IOException {
+      public NumericDocValuesIterator getNormValues(String field) throws IOException {
         fail("Norms should not be loaded");
         // unreachable
         return null;

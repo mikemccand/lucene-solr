@@ -199,12 +199,14 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
       if (iwTerms == null) {
         assertNull(memTerms);
       } else {
-        NumericDocValues normValues = MultiDocValues.getNormValues(other, field);
-        NumericDocValues memNormValues = memIndexReader.getNormValues(field);
+        NumericDocValuesIterator normValues = MultiDocValues.getNormValues(other, field);
+        NumericDocValuesIterator memNormValues = memIndexReader.getNormValues(field);
         if (normValues != null) {
           // mem idx always computes norms on the fly
           assertNotNull(memNormValues);
-          assertEquals(normValues.get(0), memNormValues.get(0));
+          assertEquals(0, normValues.nextDoc());
+          assertEquals(0, memNormValues.nextDoc());
+          assertEquals(normValues.longValue(), memNormValues.longValue());
         }
           
         assertNotNull(memTerms);

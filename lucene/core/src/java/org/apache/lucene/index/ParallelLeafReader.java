@@ -320,10 +320,10 @@ public class ParallelLeafReader extends LeafReader {
   }
 
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
     ensureOpen();
     LeafReader reader = fieldToReader.get(field);
-    NumericDocValues values = reader == null ? null : reader.getNormValues(field);
+    NumericDocValuesIterator values = reader == null ? null : reader.getNormValues(field);
     return values;
   }
 

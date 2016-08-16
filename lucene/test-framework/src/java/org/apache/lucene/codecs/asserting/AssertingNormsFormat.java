@@ -25,6 +25,7 @@ import org.apache.lucene.codecs.NormsProducer;
 import org.apache.lucene.index.AssertingLeafReader;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.util.Accountable;
@@ -93,11 +94,11 @@ public class AssertingNormsFormat extends NormsFormat {
     }
 
     @Override
-    public NumericDocValues getNorms(FieldInfo field) throws IOException {
+    public NumericDocValuesIterator getNorms(FieldInfo field) throws IOException {
       assert field.hasNorms();
-      NumericDocValues values = in.getNorms(field);
+      NumericDocValuesIterator values = in.getNorms(field);
       assert values != null;
-      return new AssertingLeafReader.AssertingNumericDocValues(values, maxDoc);
+      return new AssertingLeafReader.AssertingNumericDocValuesIterator(values, maxDoc);
     }
 
     @Override

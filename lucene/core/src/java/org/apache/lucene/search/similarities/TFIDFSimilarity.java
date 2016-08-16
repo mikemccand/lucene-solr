@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
@@ -583,19 +584,33 @@ public abstract class TFIDFSimilarity extends Similarity {
   private final class TFIDFSimScorer extends SimScorer {
     private final IDFStats stats;
     private final float weightValue;
-    private final NumericDocValues norms;
+    private final NumericDocValuesIterator norms;
     
-    TFIDFSimScorer(IDFStats stats, NumericDocValues norms) throws IOException {
+    TFIDFSimScorer(IDFStats stats, NumericDocValuesIterator norms) throws IOException {
       this.stats = stats;
       this.weightValue = stats.queryWeight;
       this.norms = norms;
     }
     
     @Override
-    public float score(int doc, float freq) {
+    public float score(int doc, float freq) throws IOException {
       final float raw = tf(freq) * weightValue; // compute tf(f)*weight
-      
-      return norms == null ? raw : raw * decodeNormValue(norms.get(doc));  // normalize for field
+
+      if (norms == null) {
+        return raw;
+      } else {
+        long normValue;
+        int normsDocID = norms.docID();
+        if (normsDocID < doc) {
+          normsDocID = norms.advance(doc);
+        }
+        if (normsDocID == doc) {
+          normValue = norms.longValue();
+        } else {
+          normValue = 0;
+        }
+        return raw * decodeNormValue(normValue);  // normalize for field
+      }
     }
     
     @Override
@@ -609,7 +624,7 @@ public abstract class TFIDFSimilarity extends Similarity {
     }
 
     @Override
-    public Explanation explain(int doc, Explanation freq) {
+    public Explanation explain(int doc, Explanation freq) throws IOException {
       return explainScore(doc, freq, stats, norms);
     }
   }
@@ -632,10 +647,17 @@ public abstract class TFIDFSimilarity extends Similarity {
     }
   }  
 
-  private Explanation explainField(int doc, Explanation freq, IDFStats stats, NumericDocValues norms) {
+  private Explanation explainField(int doc, Explanation freq, IDFStats stats, NumericDocValuesIterator norms) throws IOException {
     Explanation tfExplanation = Explanation.match(tf(freq.getValue()), "tf(freq="+freq.getValue()+"), with freq of:", freq);
+    float norm;
+    if (norms != null && norms.advance(doc) == doc) {
+      norm = decodeNormValue(norms.longValue());
+    } else {
+      norm = 1f;
+    }
+    
     Explanation fieldNormExpl = Explanation.match(
-        norms != null ? decodeNormValue(norms.get(doc)) : 1.0f,
+        norm,
         "fieldNorm(doc=" + doc + ")");
 
     return Explanation.match(
@@ -644,7 +666,7 @@ public abstract class TFIDFSimilarity extends Similarity {
         tfExplanation, stats.idf, fieldNormExpl);
   }
 
-  private Explanation explainScore(int doc, Explanation freq, IDFStats stats, NumericDocValues norms) {
+  private Explanation explainScore(int doc, Explanation freq, IDFStats stats, NumericDocValuesIterator norms) throws IOException {
     Explanation queryExpl = Explanation.match(stats.boost, "boost");
     Explanation fieldExpl = explainField(doc, freq, stats, norms);
     if (stats.boost == 1f) {

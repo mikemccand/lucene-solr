@@ -2345,8 +2345,8 @@ public abstract class LuceneTestCase extends Assert {
     }
     
     for (String field : leftFields) {
-      NumericDocValues leftNorms = MultiDocValues.getNormValues(leftReader, field);
-      NumericDocValues rightNorms = MultiDocValues.getNormValues(rightReader, field);
+      NumericDocValuesIterator leftNorms = MultiDocValues.getNormValues(leftReader, field);
+      NumericDocValuesIterator rightNorms = MultiDocValues.getNormValues(rightReader, field);
       if (leftNorms != null && rightNorms != null) {
         assertDocValuesEquals(info, leftReader.maxDoc(), leftNorms, rightNorms);
       } else {

@@ -25,6 +25,7 @@ import org.apache.lucene.codecs.NormsFormat;
 import org.apache.lucene.codecs.NormsProducer;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.util.Accountable;
@@ -66,8 +67,8 @@ public class SimpleTextNormsFormat extends NormsFormat {
     }
     
     @Override
-    public NumericDocValues getNorms(FieldInfo field) throws IOException {
-      return impl.getNumericNonIterator(field);
+    public NumericDocValuesIterator getNorms(FieldInfo field) throws IOException {
+      return impl.getNumeric(field);
     }
     
     @Override

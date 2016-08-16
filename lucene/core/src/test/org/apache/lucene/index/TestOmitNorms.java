@@ -266,7 +266,7 @@ public class TestOmitNorms extends LuceneTestCase {
    * Indexes at least 1 document with f1, and at least 1 document with f2.
    * returns the norms for "field".
    */
-  NumericDocValues getNorms(String field, Field f1, Field f2) throws IOException {
+  NumericDocValuesIterator getNorms(String field, Field f1, Field f2) throws IOException {
     Directory dir = newDirectory();
     IndexWriterConfig iwc = newIndexWriterConfig(new MockAnalyzer(random()))
                               .setMergePolicy(newLogMergePolicy());
@@ -292,18 +292,20 @@ public class TestOmitNorms extends LuceneTestCase {
 
     IndexReader ir1 = riw.getReader();
     // todo: generalize
-    NumericDocValues norms1 = MultiDocValues.getNormValues(ir1, field);
+    NumericDocValuesIterator norms1 = MultiDocValues.getNormValues(ir1, field);
     
     // fully merge and validate MultiNorms against single segment.
     riw.forceMerge(1);
     DirectoryReader ir2 = riw.getReader();
-    NumericDocValues norms2 = getOnlyLeafReader(ir2).getNormValues(field);
+    NumericDocValuesIterator norms2 = getOnlyLeafReader(ir2).getNormValues(field);
 
     if (norms1 == null) {
       assertNull(norms2);
     } else {
       for(int docID=0;docID<ir1.maxDoc();docID++) {
-        assertEquals(norms1.get(docID), norms2.get(docID));
+        assertEquals(docID, norms1.nextDoc());
+        assertEquals(docID, norms2.nextDoc());
+        assertEquals(norms1.longValue(), norms2.longValue());
       }
     }
     ir1.close();

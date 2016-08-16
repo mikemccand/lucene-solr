@@ -279,10 +279,11 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
       NumericDocValuesIterator expected = r.getNumericDocValuesIterator("dv");
-      NumericDocValues actual = r.getNormValues("indexed");
+      NumericDocValuesIterator actual = r.getNormValues("indexed");
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, expected.nextDoc());
-        assertEquals("doc " + i, expected.longValue(), actual.get(i));
+        assertEquals(i, actual.nextDoc());
+        assertEquals("doc " + i, expected.longValue(), actual.longValue());
       }
       assertEquals(NO_MORE_DOCS, expected.nextDoc());
     }
@@ -295,10 +296,11 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
       NumericDocValuesIterator expected = r.getNumericDocValuesIterator("dv");
-      NumericDocValues actual = r.getNormValues("indexed");
+      NumericDocValuesIterator actual = r.getNormValues("indexed");
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, expected.nextDoc());
-        assertEquals("doc " + i, expected.longValue(), actual.get(i));
+        assertEquals(i, actual.nextDoc());
+        assertEquals("doc " + i, expected.longValue(), actual.longValue());
       }
     }
     
@@ -399,10 +401,11 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
 
     // Confusingly, norms should exist, and should all be 0, even though we deleted all docs that had the field "content".  They should not
     // be undead:
-    NumericDocValues norms = MultiDocValues.getNormValues(r, "content");
+    NumericDocValuesIterator norms = MultiDocValues.getNormValues(r, "content");
     assertNotNull(norms);
     for(int i=0;i<r.maxDoc();i++) {
-      assertEquals(0, norms.get(i));
+      assertEquals(i, norms.nextDoc());
+      assertEquals(0, norms.longValue());
     }
 
     r.close();

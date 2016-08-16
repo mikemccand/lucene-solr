@@ -936,25 +936,48 @@ public class MemoryIndex {
       }
     }
 
-    NumericDocValues getNormDocValues() {
-      if (norms == null) {
-        FieldInvertState invertState = new FieldInvertState(fieldInfo.name, fieldInfo.number,
-            numTokens, numOverlapTokens, 0, boost);
-        final long value = normSimilarity.computeNorm(invertState);
-        if (DEBUG) System.err.println("MemoryIndexReader.norms: " + fieldInfo.name + ":" + value + ":" + numTokens);
-        norms = new NumericDocValues() {
+    NumericDocValuesIterator getNormDocValues() {
+      FieldInvertState invertState = new FieldInvertState(fieldInfo.name, fieldInfo.number,
+                                                          numTokens, numOverlapTokens, 0, boost);
+      final long value = normSimilarity.computeNorm(invertState);
+      if (DEBUG) System.err.println("MemoryIndexReader.norms: " + fieldInfo.name + ":" + value + ":" + numTokens);
+      return new NumericDocValuesIterator() {
+          private int docID = -1;
 
           @Override
-          public long get(int docID) {
-            if (docID != 0)
-              throw new IndexOutOfBoundsException();
-            else
-              return value;
+          public int nextDoc() {
+            docID++;
+            if (docID == 1) {
+              docID = NO_MORE_DOCS;
+            }
+            return docID;
           }
 
+          @Override
+          public int docID() {
+            return docID;
+          }
+
+          @Override
+          public int advance(int target) {
+            if (docID <= 0 && target == 0) {
+              docID = 0;
+            } else {
+              docID = NO_MORE_DOCS;
+            }
+            return docID;
+          }
+
+          @Override
+          public long cost() {
+            return 1;
+          }
+
+          @Override
+          public long longValue() {
+            return value;
+          }
         };
-      }
-      return norms;
     }
   }
   
@@ -1625,7 +1648,7 @@ public class MemoryIndex {
     }
     
     @Override
-    public NumericDocValues getNormValues(String field) {
+    public NumericDocValuesIterator getNormValues(String field) {
       Info info = fields.get(field);
       if (info == null) {
         return null;

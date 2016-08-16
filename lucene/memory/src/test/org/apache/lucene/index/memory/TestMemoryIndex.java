@@ -182,7 +182,9 @@ public class TestMemoryIndex extends LuceneTestCase {
 
     IndexSearcher searcher = mi.createSearcher();
     LeafReader reader = (LeafReader) searcher.getIndexReader();
-    float n1 = reader.getNormValues("f1").get(0);
+    NumericDocValuesIterator norms = reader.getNormValues("f1");
+    assertEquals(0, norms.nextDoc());
+    float n1 = norms.longValue();
 
     // Norms are re-computed when we change the Similarity
     mi.setSimilarity(new ClassicSimilarity() {
@@ -191,7 +193,9 @@ public class TestMemoryIndex extends LuceneTestCase {
         return 74;
       }
     });
-    float n2 = reader.getNormValues("f1").get(0);
+    norms = reader.getNormValues("f1");
+    assertEquals(0, norms.nextDoc());
+    float n2 = norms.longValue();
 
     assertTrue(n1 != n2);
     TestUtil.checkReader(reader);

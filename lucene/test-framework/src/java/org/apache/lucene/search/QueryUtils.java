@@ -253,7 +253,7 @@ public class QueryUtils {
       }
 
       @Override
-      public NumericDocValues getNormValues(String field) throws IOException {
+      public NumericDocValuesIterator getNormValues(String field) throws IOException {
         return null;
       }
 

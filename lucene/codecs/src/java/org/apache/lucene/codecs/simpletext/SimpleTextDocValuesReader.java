@@ -155,7 +155,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     return new StupidNumericDocValuesIterator(getDocsWithField(fieldInfo), getNumericNonIterator(fieldInfo));
   }
   
-  NumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
+  private NumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
     assert field != null;
 

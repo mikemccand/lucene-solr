@@ -176,7 +176,7 @@ class MergeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (fi == null || !fi.hasNorms()) {

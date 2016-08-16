@@ -277,11 +277,11 @@ public abstract class LeafReader extends IndexReader {
    *  returned instance should only be used by a single thread */
   public abstract Bits getDocsWithField(String field) throws IOException;
 
-  /** Returns {@link NumericDocValues} representing norms
-   *  for this field, or null if no {@link NumericDocValues}
+  /** Returns {@link NumericDocValuesIterator} representing norms
+   *  for this field, or null if no {@link NumericDocValuesIterator}
    *  were indexed. The returned instance should only be
    *  used by a single thread. */
-  public abstract NumericDocValues getNormValues(String field) throws IOException;
+  public abstract NumericDocValuesIterator getNormValues(String field) throws IOException;
 
   /**
    * Get the {@link FieldInfos} describing all fields in

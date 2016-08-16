@@ -136,7 +136,7 @@ public class TermVectorLeafReader extends LeafReader {
   }
 
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
     return null;//Is this needed?  See MemoryIndex for a way to do it.
   }
 

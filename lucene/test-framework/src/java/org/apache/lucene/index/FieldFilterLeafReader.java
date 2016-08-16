@@ -135,7 +135,7 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
     return hasField(field) ? super.getNormValues(field) : null;
   }
 

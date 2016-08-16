@@ -230,7 +230,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,CachedNumericDVs> cachedNumericDVs = new HashMap<>();
 
-  // nocommit horrible!
+  // nocommit horrible!  can we use offline sorter instead?
   private static class CachedNumericDVs {
     private final long[] values;
     private final BitSet docsWithField;
@@ -243,7 +243,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,CachedBinaryDVs> cachedBinaryDVs = new HashMap<>();
 
-  // nocommit horrible!
+  // nocommit horrible!  can we use offline sorter instead?
   private static class CachedBinaryDVs {
     // nocommit at least cutover to packed:
     private final BytesRef[] values;
@@ -979,14 +979,33 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
+  private final Map<String,CachedNumericDVs> cachedNorms = new HashMap<>();
+
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
-    final NumericDocValues norm = in.getNormValues(field);
-    if (norm == null) {
-      return null;
-    } else {
-      return new SortingNumericDocValues(norm, docMap);
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
+    final NumericDocValuesIterator oldNorms = in.getNormValues(field);
+    if (oldNorms == null) return null;
+    // nocommit this is horrible!!
+    CachedNumericDVs norms;
+    synchronized (cachedNorms) {
+      norms = cachedNorms.get(field);
+      if (norms == null) {
+        FixedBitSet docsWithField = new FixedBitSet(maxDoc());
+        long[] values = new long[maxDoc()];
+        while (true) {
+          int docID = oldNorms.nextDoc();
+          if (docID == NO_MORE_DOCS) {
+            break;
+          }
+          int newDocID = docMap.oldToNew(docID);
+          docsWithField.set(newDocID);
+          values[newDocID] = oldNorms.longValue();
+        }
+        norms = new CachedNumericDVs(values, docsWithField);
+        cachedNorms.put(field, norms);
+      }
     }
+    return new SortingNumericDocValuesIterator(norms);
   }
 
   @Override

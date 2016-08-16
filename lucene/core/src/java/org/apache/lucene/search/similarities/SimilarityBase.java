@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.TermStatistics;
@@ -268,23 +269,37 @@ public abstract class SimilarityBase extends Similarity {
    */
   private class BasicSimScorer extends SimScorer {
     private final BasicStats stats;
-    private final NumericDocValues norms;
+    private final NumericDocValuesIterator norms;
     
-    BasicSimScorer(BasicStats stats, NumericDocValues norms) throws IOException {
+    BasicSimScorer(BasicStats stats, NumericDocValuesIterator norms) throws IOException {
       this.stats = stats;
       this.norms = norms;
     }
+
+    private float getNormValue(int doc) throws IOException {
+      if (norms == null) {
+        return 1F;
+      }
+      int normsDocID = norms.docID();
+      if (normsDocID < doc) {
+        normsDocID = norms.advance(doc);
+      }
+      if (normsDocID == doc) {
+        return decodeNormValue((byte) norms.longValue());
+      } else {
+        return decodeNormValue((byte) 0);
+      }
+    }
     
     @Override
-    public float score(int doc, float freq) {
+    public float score(int doc, float freq) throws IOException {
       // We have to supply something in case norms are omitted
-      return SimilarityBase.this.score(stats, freq,
-          norms == null ? 1F : decodeNormValue((byte)norms.get(doc)));
+      return SimilarityBase.this.score(stats, freq, getNormValue(doc));
     }
+
     @Override
-    public Explanation explain(int doc, Explanation freq) {
-      return SimilarityBase.this.explain(stats, doc, freq,
-          norms == null ? 1F : decodeNormValue((byte)norms.get(doc)));
+    public Explanation explain(int doc, Explanation freq) throws IOException {
+      return SimilarityBase.this.explain(stats, doc, freq, getNormValue(doc));
     }
 
     @Override

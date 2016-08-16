@@ -569,12 +569,14 @@ public class TestDirectoryReader extends LuceneTestCase {
     // check norms
     for(FieldInfo fieldInfo : fieldInfos1) {
       String curField = fieldInfo.name;
-      NumericDocValues norms1 = MultiDocValues.getNormValues(index1, curField);
-      NumericDocValues norms2 = MultiDocValues.getNormValues(index2, curField);
+      NumericDocValuesIterator norms1 = MultiDocValues.getNormValues(index1, curField);
+      NumericDocValuesIterator norms2 = MultiDocValues.getNormValues(index2, curField);
       if (norms1 != null && norms2 != null) {
         // todo: generalize this (like TestDuelingCodecs assert)
         for (int i = 0; i < index1.maxDoc(); i++) {
-          assertEquals("Norm different for doc " + i + " and field '" + curField + "'.", norms1.get(i), norms2.get(i));
+          assertEquals(i, norms1.nextDoc());
+          assertEquals(i, norms2.nextDoc());
+          assertEquals("Norm different for doc " + i + " and field '" + curField + "'.", norms1.longValue(), norms2.longValue());
         }
       } else {
         assertNull(norms1);

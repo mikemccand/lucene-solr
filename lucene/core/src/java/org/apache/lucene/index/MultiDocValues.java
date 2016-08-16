@@ -60,7 +60,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getNormValues(String)}
    * </p> 
    */
-  public static NumericDocValues getNormValues(final IndexReader r, final String field) throws IOException {
+  public static NumericDocValuesIterator getNormValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -74,28 +74,92 @@ public class MultiDocValues {
     }
 
     boolean anyReal = false;
-    final NumericDocValues[] values = new NumericDocValues[size];
-    final int[] starts = new int[size+1];
+    final List<NumericDocValuesIterator> values = new ArrayList<>();
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      NumericDocValues v = context.reader().getNormValues(field);
-      if (v == null) {
-        v = DocValues.emptyNumeric();
-      } else {
+      NumericDocValuesIterator v = context.reader().getNormValues(field);
+      if (v != null) {
         anyReal = true;
+      } else {
+        v = DocValues.allZerosNumericIterator(context.reader().maxDoc());
       }
-      values[i] = v;
-      starts[i] = context.docBase;
+      values.add(v);
     }
-    starts[size] = r.maxDoc();
-    
+
+    // FieldInfo.hasNorms was true:
     assert anyReal;
 
-    return new NumericDocValues() {
+    return new NumericDocValuesIterator() {
+      private int nextLeaf;
+      private NumericDocValuesIterator currentValues;
+      private LeafReaderContext currentLeaf;
+      private int docID = -1;
+
       @Override
-      public long get(int docID) {
-        int subIndex = ReaderUtil.subIndex(docID, starts);
-        return values[subIndex].get(docID - starts[subIndex]);
+      public int nextDoc() throws IOException {
+        while (true) {
+          if (currentValues == null) {
+            if (nextLeaf == values.size()) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            currentLeaf = leaves.get(nextLeaf);
+            currentValues = values.get(nextLeaf);
+            nextLeaf++;
+          }
+
+          int newDocID = currentValues.nextDoc();
+
+          if (newDocID == NO_MORE_DOCS) {
+            currentValues = null;
+            continue;
+          } else {
+            docID = currentLeaf.docBase + newDocID;
+            return docID;
+          }
+        }
+      }
+        
+      @Override
+      public int docID() {
+        return docID;
+      }
+
+      @Override
+      public int advance(int targetDocID) throws IOException {
+        if (targetDocID <= docID) {
+          throw new IllegalArgumentException("can only advance beyond current document: on docID=" + docID + " but targetDocID=" + targetDocID);
+        }
+        int readerIndex = ReaderUtil.subIndex(targetDocID, leaves);
+        if (readerIndex >= nextLeaf) {
+          if (readerIndex == leaves.size()) {
+            currentValues = null;
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+          currentLeaf = leaves.get(readerIndex);
+          currentValues = values.get(readerIndex);
+          nextLeaf = readerIndex+1;
+        }
+        int newDocID = currentValues.advance(targetDocID - currentLeaf.docBase);
+        if (newDocID == NO_MORE_DOCS) {
+          currentValues = null;
+          return nextDoc();
+        } else {
+          docID = currentLeaf.docBase + newDocID;
+          return docID;
+        }
+      }
+
+      @Override
+      public long longValue() {
+        return currentValues.longValue();
+      }
+
+      @Override
+      public long cost() {
+        // nocommit
+        return 0;
       }
     };
   }
@@ -111,6 +175,7 @@ public class MultiDocValues {
     }
 
     final List<NumericDocValuesIterator> iterators = new ArrayList<>();
+    // nocommit this cost could be costly to compute?  should we only do it if user calls cost?
     long totalCost = 0;
     boolean any = false;
     for(int i=0;i<leaves.size();i++) {

@@ -17,16 +17,6 @@
 package org.apache.lucene.codecs.lucene50;
 
 
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.CONST_COMPRESSED;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.DELTA_COMPRESSED;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.INDIRECT;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.PATCHED_BITSET;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.PATCHED_TABLE;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.TABLE_COMPRESSED;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.UNCOMPRESSED;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.VERSION_CURRENT;
-import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.VERSION_START;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,17 +34,30 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
+import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
+import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.SparseFixedBitSet;
 import org.apache.lucene.util.packed.BlockPackedReader;
 import org.apache.lucene.util.packed.MonotonicBlockPackedReader;
 import org.apache.lucene.util.packed.PackedInts;
+
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.CONST_COMPRESSED;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.DELTA_COMPRESSED;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.INDIRECT;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.PATCHED_BITSET;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.PATCHED_TABLE;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.TABLE_COMPRESSED;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.UNCOMPRESSED;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.VERSION_CURRENT;
+import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.VERSION_START;
 
 /**
  * Reader for {@link Lucene50NormsFormat}
@@ -171,7 +174,7 @@ final class Lucene50NormsProducer extends NormsProducer {
   }
 
   @Override
-  public synchronized NumericDocValues getNorms(FieldInfo field) throws IOException {
+  public synchronized NumericDocValuesIterator getNorms(FieldInfo field) throws IOException {
     Norms instance = instances.get(field.name);
     if (instance == null) {
       instance = loadNorms(norms.get(field.name));
@@ -181,7 +184,7 @@ final class Lucene50NormsProducer extends NormsProducer {
         ramBytesUsed.addAndGet(instance.ramBytesUsed());
       }
     }
-    return instance;
+    return new StupidNumericDocValuesIterator(new Bits.MatchAllBits(maxDoc), instance);
   }
   
   @Override

@@ -137,18 +137,15 @@ public abstract class NormsConsumer implements Closeable {
                           if (normsProducer != null) {
                             FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
                             if (fieldInfo != null && fieldInfo.hasNorms()) {
-                              NumericDocValues values;
                               try {
-                                values = normsProducer.getNorms(fieldInfo);
+                                norms = normsProducer.getNorms(fieldInfo);
                               } catch (IOException ioe) {
                                 throw new RuntimeException(ioe);
-                              }
-                              if (values != null) {
-                                norms = new StupidNumericDocValuesIterator(mergeState.maxDocs[i], values);
                               }
                             }
                           }
                           if (norms == null) {
+                            // nocommit remove this once we fix flushing to use DVP
                             norms = DocValues.allZerosNumericIterator(mergeState.maxDocs[i]);
                           }
                           toMerge.add(norms);
@@ -170,7 +167,6 @@ public abstract class NormsConsumer implements Closeable {
                           throw new RuntimeException(ioe);
                         }
                           
-
                         return new Iterator<Number>() {
                           Long nextValue;
                           boolean nextIsSet;

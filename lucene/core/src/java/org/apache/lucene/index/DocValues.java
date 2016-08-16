@@ -126,7 +126,7 @@ public final class DocValues {
   /** 
    * A NumericDocValuesIterator which returns alldocuments with value 0
    */
-  // nocommit move this horrible thing to be private to NormsConsumer?
+  // nocommit move this horrible thing to be private to NormsConsumer?  remove it?
   public static final NumericDocValuesIterator allZerosNumericIterator(final int maxDoc) {
     return new NumericDocValuesIterator() {
       int docID = -1;
