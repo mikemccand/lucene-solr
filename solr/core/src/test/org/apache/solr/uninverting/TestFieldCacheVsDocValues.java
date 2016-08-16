@@ -30,6 +30,7 @@ import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexWriter;
@@ -200,10 +201,11 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     LeafReader ar = SlowCompositeReaderWrapper.wrap(r);
     TestUtil.checkReader(ar);
 
-    BinaryDocValues s = FieldCache.DEFAULT.getTerms(ar, "field");
+    BinaryDocValuesIterator s = FieldCache.DEFAULT.getTerms(ar, "field");
     for(int docID=0;docID<docBytes.size();docID++) {
       Document doc = ar.document(docID);
-      BytesRef bytes = s.get(docID);
+      assertEquals(docID, s.nextDoc());
+      BytesRef bytes = s.binaryValue();
       byte[] expected = docBytes.get(Integer.parseInt(doc.get("id")));
       assertEquals(expected.length, bytes.length);
       assertEquals(new BytesRef(expected), bytes);
@@ -272,13 +274,13 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     w.close();
 
     LeafReader ar = SlowCompositeReaderWrapper.wrap(r);
-    TestUtil.checkReader(ar
-                         );
+    TestUtil.checkReader(ar);
 
-    BinaryDocValues s = FieldCache.DEFAULT.getTerms(ar, "field");
+    BinaryDocValuesIterator s = FieldCache.DEFAULT.getTerms(ar, "field");
     for(int docID=0;docID<docBytes.size();docID++) {
+      assertEquals(docID, s.nextDoc());
       Document doc = ar.document(docID);
-      BytesRef bytes = s.get(docID);
+      BytesRef bytes = s.binaryValue();
       byte[] expected = docBytes.get(Integer.parseInt(doc.get("id")));
       assertEquals(expected.length, bytes.length);
       assertEquals(new BytesRef(expected), bytes);

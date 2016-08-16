@@ -27,12 +27,12 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PointValues.IntersectVisitor;
 import org.apache.lucene.index.PointValues.Relation;
@@ -41,6 +41,7 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -908,11 +909,54 @@ class FieldCacheImpl implements FieldCache {
       this.docToOffset = docToOffset;
     }
     
-    public BinaryDocValues iterator() {
-      final BytesRef term = new BytesRef();
-      return new BinaryDocValues() {
+    public BinaryDocValuesIterator iterator(Bits docsWithField) {
+      return new BinaryDocValuesIterator() {
+
+        final BytesRef term = new BytesRef();
+        
+        int docID = -1;
+
         @Override
-        public BytesRef get(int docID) {
+        public int docID() {
+          return docID;
+        }
+
+        @Override
+        public int nextDoc() {
+          while (true) {
+            docID++;
+            if (docID >= docToOffset.size()) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            if (docsWithField.get(docID)) {
+              return docID;
+            }
+          }
+        }
+
+        @Override
+        public int advance(int target) {
+          if (target < docToOffset.size()) {
+            docID = target;
+            if (docsWithField.get(docID)) {
+              return docID;
+            } else{
+              return nextDoc();
+            }
+          } else {
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+        }
+
+        @Override
+        public long cost() {
+          return docToOffset.size();
+        }
+
+        @Override
+        public BytesRef binaryValue() {
           final long pointer = docToOffset.get(docID);
           if (pointer == 0) {
             term.length = 0;
@@ -940,14 +984,17 @@ class FieldCacheImpl implements FieldCache {
 
   // TODO: this if DocTermsIndex was already created, we
   // should share it...
-  public BinaryDocValues getTerms(LeafReader reader, String field) throws IOException {
+  public BinaryDocValuesIterator getTerms(LeafReader reader, String field) throws IOException {
     return getTerms(reader, field, PackedInts.FAST);
   }
 
-  public BinaryDocValues getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
-    BinaryDocValues valuesIn = reader.getBinaryDocValues(field);
+  public BinaryDocValuesIterator getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
+    BinaryDocValuesIterator valuesIn = reader.getBinaryDocValuesIterator(field);
     if (valuesIn == null) {
-      valuesIn = reader.getSortedDocValues(field);
+      BinaryDocValues sortedValues = reader.getSortedDocValues(field);
+      if (sortedValues != null) {
+        valuesIn = new StupidBinaryDocValuesIterator(getDocsWithField(reader, field, null), sortedValues);
+      }
     }
 
     if (valuesIn != null) {
@@ -958,15 +1005,15 @@ class FieldCacheImpl implements FieldCache {
 
     final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
     if (info == null) {
-      return DocValues.emptyBinary();
+      return DocValues.emptyBinaryIterator();
     } else if (info.getDocValuesType() != DocValuesType.NONE) {
       throw new IllegalStateException("Type mismatch: " + field + " was indexed as " + info.getDocValuesType());
     } else if (info.getIndexOptions() == IndexOptions.NONE) {
-      return DocValues.emptyBinary();
+      return DocValues.emptyBinaryIterator();
     }
 
     BinaryDocValuesImpl impl = (BinaryDocValuesImpl) caches.get(BinaryDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
-    return impl.iterator();
+    return impl.iterator(getDocsWithField(reader, field, null));
   }
 
   static final class BinaryDocValuesCache extends Cache {

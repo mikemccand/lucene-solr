@@ -40,6 +40,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DocumentStoredFieldVisitor;
 import org.apache.lucene.document.LazyDocument;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
@@ -853,8 +854,14 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             doc.addField(fieldName, newVal);
             break;
           case BINARY:
-            BinaryDocValues bdv = leafReader.getBinaryDocValues(fieldName);
-            doc.addField(fieldName, bdv.get(docid));
+            BinaryDocValuesIterator bdv = leafReader.getBinaryDocValuesIterator(fieldName);
+            BytesRef value;
+            if (bdv.advance(docid) == docid) {
+              value = BytesRef.deepCopyOf(bdv.binaryValue());
+            } else {
+              value = new BytesRef(BytesRef.EMPTY_BYTES);
+            }
+            doc.addField(fieldName, value);
             break;
           case SORTED:
             SortedDocValues sdv = leafReader.getSortedDocValues(fieldName);

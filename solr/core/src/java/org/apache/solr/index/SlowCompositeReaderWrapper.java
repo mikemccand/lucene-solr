@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CompositeReader;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
@@ -127,9 +128,9 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
     ensureOpen();
-    return MultiDocValues.getBinaryValues(in, field);
+    return MultiDocValues.getBinaryValuesIterator(in, field);
   }
   
   @Override

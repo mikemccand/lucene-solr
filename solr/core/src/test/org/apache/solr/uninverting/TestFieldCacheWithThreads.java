@@ -31,6 +31,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -85,10 +86,6 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           @Override
           public void run() {
             try {
-              //NumericDocValues ndv = ar.getNumericDocValues("number");
-              NumericDocValuesIterator ndv = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER);
-              //BinaryDocValues bdv = ar.getBinaryDocValues("bytes");
-              BinaryDocValues bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
               SortedDocValues sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
               startingGun.await();
               int iters = atLeast(1000);
@@ -124,7 +121,9 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
                   }
                   break;
                 }
-                BytesRef term = bdv.get(docID);
+                BinaryDocValuesIterator bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
+                assertEquals(docID, bdv.advance(docID));
+                BytesRef term = bdv.binaryValue();
                 assertEquals(binary.get(docID), term);
                 term = sdv.get(docID);
                 assertEquals(sorted.get(docID), term);

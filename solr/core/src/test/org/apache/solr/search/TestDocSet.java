@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
@@ -424,7 +425,7 @@ public class TestDocSet extends LuceneTestCase {
       }
 
       @Override
-      public BinaryDocValues getBinaryDocValues(String field) {
+      public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) {
         return null;
       }
 
