@@ -224,7 +224,7 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   private final Map<String,OrdinalMap> cachedOrdMaps = new HashMap<>();
 
   @Override
-  public NumericDocValues getNormValues(String field) throws IOException {
+  public NumericDocValuesIterator getNormValues(String field) throws IOException {
     ensureOpen();
     return MultiDocValues.getNormValues(in, field);
   }

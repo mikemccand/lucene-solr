@@ -226,9 +226,8 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
         final Long value = valueField == null ? null : valueField.numericValue().longValue();
 
         if (value == null) {
-          assertTrue(numeric.docID() > i);
+          assertTrue(numeric.docID() + " vs " + i, numeric.docID() < i);
           assertEquals(-1, sorted.getOrd(i));
-
           assertFalse(sortedBits.get(i));
         } else {
           assertEquals(i, numeric.nextDoc());

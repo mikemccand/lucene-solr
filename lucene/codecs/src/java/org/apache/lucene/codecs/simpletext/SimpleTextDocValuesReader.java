@@ -152,10 +152,15 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
 
   @Override
   public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) throws IOException {
-    return new StupidNumericDocValuesIterator(getDocsWithField(fieldInfo), getNumericNonIterator(fieldInfo));
+    NumericDocValues values = getNumericNonIterator(fieldInfo);
+    if (values == null) {
+      return null;
+    } else {
+      return new StupidNumericDocValuesIterator(getDocsWithField(fieldInfo), values);
+    }
   }
   
-  private NumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
+  NumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
     assert field != null;
 
@@ -489,7 +494,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
       case NUMERIC:
         return getNumericDocsWithField(field);
       default:
-        throw new AssertionError();
+        throw new AssertionError("docValuesType=" + field.getDocValuesType());
     }
   }
 

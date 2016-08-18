@@ -101,7 +101,7 @@ public class TestNorms extends LuceneTestCase {
     NumericDocValuesIterator barNorms = MultiDocValues.getNormValues(reader, "bar");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, barNorms.nextDoc());
-      assertEquals(0, barNorms.longValue());
+      assertEquals(1, barNorms.longValue());
     }
     
     reader.close();

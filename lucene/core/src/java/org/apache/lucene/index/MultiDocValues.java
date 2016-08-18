@@ -203,7 +203,7 @@ public class MultiDocValues {
       @Override
       public int nextDoc() throws IOException {
         while (true) {
-          if (currentValues == null) {
+          while (currentValues == null) {
             if (nextLeaf == leaves.size()) {
               docID = NO_MORE_DOCS;
               return docID;

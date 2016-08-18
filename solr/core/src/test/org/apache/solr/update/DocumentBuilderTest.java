@@ -22,6 +22,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.util.TestUtil;
 import org.apache.solr.SolrTestCaseJ4;
@@ -356,19 +357,22 @@ public class DocumentBuilderTest extends SolrTestCaseJ4 {
 
       ClassicSimilarity sim = (ClassicSimilarity) searcher.getSimilarity(true);
       
-      NumericDocValues titleNorms = reader.getNormValues("title");
-      NumericDocValues fooNorms = reader.getNormValues("foo_t");
-      NumericDocValues textNorms =  reader.getNormValues("text");
+      NumericDocValuesIterator titleNorms = reader.getNormValues("title");
+      NumericDocValuesIterator fooNorms = reader.getNormValues("foo_t");
+      NumericDocValuesIterator textNorms =  reader.getNormValues("text");
 
+      assertEquals(docid, titleNorms.advance(docid));
       assertEquals(expectedNorm(sim, 2, TITLE_BOOST * DOC_BOOST),
-                   titleNorms.get(docid));
+                   titleNorms.longValue());
 
+      assertEquals(docid, fooNorms.advance(docid));
       assertEquals(expectedNorm(sim, 8-3, FOO_BOOST * DOC_BOOST),
-                   fooNorms.get(docid));
+                   fooNorms.longValue());
 
+      assertEquals(docid, textNorms.advance(docid));
       assertEquals(expectedNorm(sim, 2 + 8-3, 
                                 TITLE_BOOST * FOO_BOOST * DOC_BOOST),
-                   textNorms.get(docid));
+                   textNorms.longValue());
 
     } finally {
       req.close();

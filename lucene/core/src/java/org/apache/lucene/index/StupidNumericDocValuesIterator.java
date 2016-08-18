@@ -84,4 +84,9 @@ public final class StupidNumericDocValuesIterator extends NumericDocValuesIterat
   public long longValue() {
     return values.get(docID);
   }
+
+  @Override
+  public String toString() {
+    return "StupidNumericDocValuesIterator(" + values + ")";
+  }
 }
