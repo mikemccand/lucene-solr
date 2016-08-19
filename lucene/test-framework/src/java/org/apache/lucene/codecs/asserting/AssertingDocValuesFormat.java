@@ -94,7 +94,9 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
+    public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      // nocommit get these checks back:
+      /*
       int count = 0;
       for (BytesRef b : values) {
         assert b == null || b.isValid();
@@ -102,7 +104,8 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
       }
       assert count == maxDoc;
       TestUtil.checkIterator(values.iterator(), maxDoc, true);
-      in.addBinaryField(field, values);
+      */
+      in.addBinaryField(field, valuesProducer);
     }
     
     @Override

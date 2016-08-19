@@ -81,7 +81,10 @@ public class TestMultiDocValues extends LuceneTestCase {
     iwc.setMergePolicy(newLogMergePolicy());
     RandomIndexWriter iw = new RandomIndexWriter(random(), dir, iwc);
 
-    int numDocs = TEST_NIGHTLY ? atLeast(500) : atLeast(50);
+    //int numDocs = TEST_NIGHTLY ? atLeast(500) : atLeast(50);
+
+    // nocommit
+    int numDocs = 3;
     for (int i = 0; i < numDocs; i++) {
       BytesRef ref = new BytesRef(TestUtil.randomUnicodeString(random()));
       field.setBytesValue(ref);
@@ -95,7 +98,7 @@ public class TestMultiDocValues extends LuceneTestCase {
     DirectoryReader ir2 = iw.getReader();
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
-    
+
     BinaryDocValuesIterator multi = MultiDocValues.getBinaryValuesIterator(ir, "bytes");
     BinaryDocValuesIterator single = merged.getBinaryDocValuesIterator("bytes");
     for (int i = 0; i < numDocs; i++) {

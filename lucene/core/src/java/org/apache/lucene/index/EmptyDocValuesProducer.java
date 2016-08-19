@@ -17,18 +17,20 @@
 
 package org.apache.lucene.index;
 
+import java.io.IOException;
+
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.util.Bits;
 
 // nocommit jdocs
 public abstract class EmptyDocValuesProducer extends DocValuesProducer {
   @Override
-  public NumericDocValuesIterator getNumeric(FieldInfo field) {
+  public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) {
+  public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
     throw new UnsupportedOperationException();
   }
 

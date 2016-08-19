@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
@@ -140,10 +141,10 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   }
 
   @Override
-  public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
+  public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.BINARY;
-    doAddBinary(field, values);
+    doAddBinary(field, new StupidBinaryDocValuesIterable(field, valuesProducer, numDocs));
   }
     
   private void doAddBinary(FieldInfo field, Iterable<BytesRef> values) throws IOException {

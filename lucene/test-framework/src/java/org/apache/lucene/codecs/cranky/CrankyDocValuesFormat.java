@@ -78,11 +78,11 @@ class CrankyDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
+    public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       if (random.nextInt(100) == 0) {
         throw new IOException("Fake IOException from DocValuesConsumer.addBinaryField()");
       }
-      delegate.addBinaryField(field, values);
+      delegate.addBinaryField(field, valuesProducer);
     }
 
     @Override

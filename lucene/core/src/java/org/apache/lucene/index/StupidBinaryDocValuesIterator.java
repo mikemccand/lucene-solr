@@ -20,6 +20,7 @@ package org.apache.lucene.index;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.FixedBitSet;
 
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
@@ -36,10 +37,6 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator
     this.docsWithField = docsWithField;
     this.values = values;
     this.maxDoc = docsWithField.length();
-  }
-
-  public StupidBinaryDocValuesIterator(int maxDoc, BinaryDocValues values) {
-    this(new Bits.MatchAllBits(maxDoc), values);
   }
 
   @Override

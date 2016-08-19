@@ -23,6 +23,7 @@ import java.util.Iterator;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
@@ -164,10 +165,10 @@ class DirectDocValuesConsumer extends DocValuesConsumer {
   }
 
   @Override
-  public void addBinaryField(FieldInfo field, final Iterable<BytesRef> values) throws IOException {
+  public void addBinaryField(FieldInfo field, final DocValuesProducer valuesProducer) throws IOException {
     meta.writeVInt(field.number);
     meta.writeByte(BYTES);
-    addBinaryFieldValues(field, values);
+    addBinaryFieldValues(field, new StupidBinaryDocValuesIterable(field, valuesProducer, maxDoc));
   }
 
   private void addBinaryFieldValues(FieldInfo field, final Iterable<BytesRef> values) throws IOException {

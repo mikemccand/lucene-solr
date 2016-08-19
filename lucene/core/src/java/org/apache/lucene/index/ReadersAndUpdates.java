@@ -327,7 +327,7 @@ class ReadersAndUpdates {
         // write the numeric updates to a new gen'd docvalues file
         fieldsConsumer.addNumericField(fieldInfo, new EmptyDocValuesProducer() {
             @Override
-            public NumericDocValuesIterator getNumeric(FieldInfo fieldInfoIn) {
+            public NumericDocValuesIterator getNumeric(FieldInfo fieldInfoIn) throws IOException {
               if (fieldInfoIn != fieldInfo) {
                 throw new IllegalArgumentException("wrong fieldInfo");
               }
@@ -335,12 +335,7 @@ class ReadersAndUpdates {
 
               final NumericDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
 
-              final NumericDocValuesIterator currentValues;
-              try {
-                currentValues = reader.getNumericDocValuesIterator(field);
-              } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-              }
+              final NumericDocValuesIterator currentValues = reader.getNumericDocValuesIterator(field);
               updatesIter.reset();
 
               // Merge sort of the original doc values with updated doc values:
@@ -433,65 +428,80 @@ class ReadersAndUpdates {
         // write the binary updates to a new gen'd docvalues file
 
         // nocommit cutover to passing DocValuesProducer:
-        fieldsConsumer.addBinaryField(fieldInfo, new Iterable<BytesRef>() {
-          final int maxDoc = reader.maxDoc();
-          final BinaryDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
-          @Override
-          public Iterator<BytesRef> iterator() {
-            updatesIter.reset();
-            final BinaryDocValuesIterator currentValues;
-            try {
-              currentValues = reader.getBinaryDocValuesIterator(field);
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }
-            return new Iterator<BytesRef>() {
-              
-              int curDoc = -1;
-              int updateDoc = updatesIter.nextDoc();
-              
-              @Override
-              public boolean hasNext() {
-                return curDoc < maxDoc - 1;
+        fieldsConsumer.addBinaryField(fieldInfo, new EmptyDocValuesProducer() {
+            @Override
+            public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfoIn) throws IOException {
+              if (fieldInfoIn != fieldInfo) {
+                throw new IllegalArgumentException("wrong fieldInfo");
               }
-              
-              @Override
-              public BytesRef next() {
-                if (++curDoc >= maxDoc) {
-                  throw new NoSuchElementException("no more documents to return values for");
+              final int maxDoc = reader.maxDoc();
+
+              final BinaryDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
+              updatesIter.reset();
+
+              final BinaryDocValuesIterator currentValues = reader.getBinaryDocValuesIterator(field);
+
+              // Merge sort of the original doc values with updated doc values:
+              return new BinaryDocValuesIterator() {
+                // merged docID
+                private int docIDOut = -1;
+
+                // docID from our original doc values
+                private int docIDIn = -1;
+
+                // docID from our updates
+                private int updateDocID = -1;
+
+                private BytesRef value;
+
+                @Override
+                public int docID() {
+                  return docIDOut;
                 }
-                if (curDoc == updateDoc) { // this document has an updated value
-                  BytesRef value = updatesIter.value(); // either null (unset value) or updated value
-                  updateDoc = updatesIter.nextDoc(); // prepare for next round
+
+                @Override
+                public int advance(int target) {
+                  throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public long cost() {
+                  // TODO
+                  return 0;
+                }
+
+                @Override
+                public BytesRef binaryValue() {
                   return value;
-                } else {
-                  // no update for this document
-                  assert curDoc < updateDoc;
-                  if (currentValues != null) {
-                    if (currentValues.docID() < curDoc) {
-                      try {
-                        currentValues.advance(curDoc);
-                      } catch (IOException ioe) {
-                        throw new RuntimeException(ioe);
-                      }
-                    }
-                    if (currentValues.docID() == curDoc) {
-                      // only read the current value if the document had a value before
-                      return currentValues.binaryValue();
+                }
+
+                @Override
+                public int nextDoc() throws IOException {
+                  if (docIDIn == docIDOut) {
+                    if (currentValues == null) {
+                      docIDIn = NO_MORE_DOCS;
+                    } else {
+                      docIDIn = currentValues.nextDoc();
                     }
                   }
-
-                  return null;
+                  if (updateDocID == docIDOut) {
+                    updateDocID = updatesIter.nextDoc();
+                  }
+                  if (docIDIn < updateDocID) {
+                    // no update to this doc
+                    docIDOut = docIDIn;
+                    value = currentValues.binaryValue();
+                  } else {
+                    docIDOut = updateDocID;
+                    if (docIDOut != NO_MORE_DOCS) {
+                      value = updatesIter.value();
+                    }
+                  }
+                  return docIDOut;
                 }
-              }
-              
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException("this iterator does not support removing elements");
-              }
-            };
-          }
-        });
+              };
+            }
+          });
       }
       info.advanceDocValuesGen();
       assert !fieldFiles.containsKey(fieldInfo.number);

@@ -90,11 +90,10 @@ public abstract class DocValuesConsumer implements Closeable {
   /**
    * Writes binary docvalues for a field.
    * @param field field information
-   * @param values Iterable of binary values (one for each document). {@code null} indicates
-   *               a missing value.
+   * @param values Binary values to write.
    * @throws IOException if an I/O error occurred.
    */
-  public abstract void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException;
+  public abstract void addBinaryField(FieldInfo field, DocValuesProducer values) throws IOException;
 
   /**
    * Writes pre-sorted binary docvalues for a field.
@@ -225,10 +224,10 @@ public abstract class DocValuesConsumer implements Closeable {
   }
   
   /**
-   * Merges the numeric docvalues from <code>toMerge</code>.
+   * Merges the numeric docvalues from <code>MergeState</code>.
    * <p>
    * The default implementation calls {@link #addNumericField}, passing
-   * an Iterable that merges and filters deleted documents on the fly.
+   * a DocValuesProducer that merges and filters deleted documents on the fly.
    */
   public void mergeNumericField(final FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
     addNumericField(mergeFieldInfo,
@@ -239,10 +238,8 @@ public abstract class DocValuesConsumer implements Closeable {
                           throw new IllegalArgumentException("wrong fieldInfo");
                         }
 
-                        List<NumericDocValuesIterator> toMerge = new ArrayList<>();
                         List<NumericDocValuesSub> subs = new ArrayList<>();
                         assert mergeState.docMaps.length == mergeState.docValuesProducers.length;
-                        long totalCost = 0;
                         for (int i=0;i<mergeState.docValuesProducers.length;i++) {
                           NumericDocValuesIterator values = null;
                           DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
@@ -257,7 +254,6 @@ public abstract class DocValuesConsumer implements Closeable {
                             }
                           }
                           if (values != null) {
-                            totalCost += values.cost();
                             subs.add(new NumericDocValuesSub(mergeState.docMaps[i], values));
                           }
                         }
@@ -269,23 +265,24 @@ public abstract class DocValuesConsumer implements Closeable {
                           throw new RuntimeException(ioe);
                         }
 
-                        final long finalTotalCost = totalCost;
-
                         return new NumericDocValuesIterator() {
+                          private int docID = -1;
                           private NumericDocValuesSub current;
 
                           @Override
                           public int docID() {
-                            if (current == null) {
-                              return NO_MORE_DOCS;
-                            }
-                            return current.mappedDocID;
+                            return docID;
                           }
 
                           @Override
                           public int nextDoc() throws IOException {
                             current = docIDMerger.next();
-                            return docID();
+                            if (current == null) {
+                              docID = NO_MORE_DOCS;
+                            } else {
+                              docID = current.mappedDocID;
+                            }
+                            return docID;
                           }
 
                           @Override
@@ -295,7 +292,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                           @Override
                           public long cost() {
-                            return finalTotalCost;
+                            return 0;
                           }
 
                           @Override
@@ -341,44 +338,38 @@ public abstract class DocValuesConsumer implements Closeable {
   }
 
   /**
-   * Merges the binary docvalues from <code>toMerge</code>.
+   * Merges the binary docvalues from <code>MergeState</code>.
    * <p>
    * The default implementation calls {@link #addBinaryField}, passing
-   * an Iterable that merges and filters deleted documents on the fly.
+   * a DocValuesProducer that merges and filters deleted documents on the fly.
    */
   public void mergeBinaryField(FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
     addBinaryField(mergeFieldInfo,
-                   new Iterable<BytesRef>() {
+                   new EmptyDocValuesProducer() {
                      @Override
-                     public Iterator<BytesRef> iterator() {
+                     public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfo) {
+                       if (fieldInfo != mergeFieldInfo) {
+                         throw new IllegalArgumentException("wrong fieldInfo");
+                       }
+                   
+                       List<BinaryDocValuesSub> subs = new ArrayList<>();
 
-                       List<BinaryDocValuesIterator> toMerge = new ArrayList<>();
                        for (int i=0;i<mergeState.docValuesProducers.length;i++) {
                          BinaryDocValuesIterator values = null;
                          DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
                          if (docValuesProducer != null) {
-                           FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-                           if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.BINARY) {
+                           FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                           if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.BINARY) {
                              try {
-                               values = docValuesProducer.getBinaryIterator(fieldInfo);
+                               values = docValuesProducer.getBinaryIterator(readerFieldInfo);
                              } catch (IOException ioe) {
                                throw new RuntimeException(ioe);
                              }
                            }
                          }
-                         if (values == null) {
-                           values = DocValues.emptyBinaryIterator();
+                         if (values != null) {
+                           subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
                          }
-                         toMerge.add(values);
-                       }
-
-                       // nocommit combine these for loops
-
-                       // We must make a new DocIDMerger for each iterator:
-                       List<BinaryDocValuesSub> subs = new ArrayList<>();
-                       assert mergeState.docMaps.length == toMerge.size();
-                       for(int i=0;i<toMerge.size();i++) {
-                         subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], toMerge.get(i), mergeState.maxDocs[i]));
                        }
 
                        final DocIDMerger<BinaryDocValuesSub> docIDMerger;
@@ -388,45 +379,39 @@ public abstract class DocValuesConsumer implements Closeable {
                          throw new RuntimeException(ioe);
                        }
 
-                       return new Iterator<BytesRef>() {
-                         BytesRef nextValue;
-                         boolean nextIsSet;
+                       return new BinaryDocValuesIterator() {
+                         private BinaryDocValuesSub current;
+                         private int docID = -1;
 
                          @Override
-                         public boolean hasNext() {
-                           return nextIsSet || setNext();
+                         public int docID() {
+                           return docID;
                          }
 
                          @Override
-                         public void remove() {
+                         public int nextDoc() throws IOException {
+                           current = docIDMerger.next();
+                           if (current == null) {
+                             docID = NO_MORE_DOCS;
+                           } else {
+                             docID = current.mappedDocID;
+                           }
+                           return docID;
+                         }
+
+                         @Override
+                         public int advance(int target) throws IOException {
                            throw new UnsupportedOperationException();
                          }
 
                          @Override
-                         public BytesRef next() {
-                           if (hasNext() == false) {
-                             throw new NoSuchElementException();
-                           }
-                           assert nextIsSet;
-                           nextIsSet = false;
-                           return nextValue;
+                         public long cost() {
+                           return 0;
                          }
 
-                         private boolean setNext() {
-                           while (true) {
-                             BinaryDocValuesSub sub;
-                             try {
-                               sub = docIDMerger.next();
-                             } catch (IOException ioe) {
-                               throw new RuntimeException(ioe);
-                             }
-                             if (sub == null) {
-                               return false;
-                             }
-                             nextIsSet = true;
-                             nextValue = sub.value;
-                             return true;
-                           }
+                         @Override
+                         public BytesRef binaryValue() {
+                           return current.value;
                          }
                        };
                      }

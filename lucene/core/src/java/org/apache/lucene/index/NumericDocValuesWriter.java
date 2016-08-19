@@ -126,11 +126,14 @@ class NumericDocValuesWriter extends DocValuesWriter {
         docID = NO_MORE_DOCS;
       } else {
         int next = docsWithField.nextSetBit(docID+1);
-
-        // skip missing values:
-        while (docID < next) {
-          docID++;
-          value = iter.next();
+        if (next == NO_MORE_DOCS) {
+          docID = NO_MORE_DOCS;
+        } else {
+          // skip missing values:
+          while (docID < next) {
+            docID++;
+            value = iter.next();
+          }
         }
       }
       return docID;
@@ -138,15 +141,7 @@ class NumericDocValuesWriter extends DocValuesWriter {
     
     @Override
     public int advance(int target) {
-      if (target >= size) {
-        docID = NO_MORE_DOCS;
-      } else {
-        docID = target;
-        if (docsWithField.get(docID) == false) {
-          nextDoc();
-        }
-      }
-      return docID;
+      throw new UnsupportedOperationException();
     }
 
     @Override

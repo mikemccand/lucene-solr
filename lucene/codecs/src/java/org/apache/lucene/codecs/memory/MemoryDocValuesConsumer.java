@@ -26,6 +26,7 @@ import java.util.NoSuchElementException;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
@@ -299,7 +300,11 @@ class MemoryDocValuesConsumer extends DocValuesConsumer {
   }
 
   @Override
-  public void addBinaryField(FieldInfo field, final Iterable<BytesRef> values) throws IOException {
+  public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addBinaryField(field, new StupidBinaryDocValuesIterable(field, valuesProducer, maxDoc));
+  }
+
+  private void addBinaryField(FieldInfo field, final Iterable<BytesRef> values) throws IOException {
     // write the byte[] data
     meta.writeVInt(field.number);
     meta.writeByte(BYTES);

@@ -37,6 +37,7 @@ public final class StupidNumericDocValuesIterator extends NumericDocValuesIterat
     this.maxDoc = docsWithField.length();
   }
 
+  /** Constructor used only for norms */
   public StupidNumericDocValuesIterator(int maxDoc, NumericDocValues values) {
     this(new Bits.MatchAllBits(maxDoc), values);
   }

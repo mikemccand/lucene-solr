@@ -578,7 +578,11 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     IndexReader controlIndexReader = DirectoryReader.open(dir);
     LeafReader controlLeafReader =  controlIndexReader.leaves().get(0).reader();
 
-    assertEquals(controlLeafReader.getNormValues("text").get(0), leafReader.getNormValues("text").get(0));
+    NumericDocValuesIterator norms = controlLeafReader.getNormValues("text");
+    assertEquals(0, norms.nextDoc());
+    NumericDocValuesIterator norms2 = leafReader.getNormValues("text");
+    assertEquals(0, norms2.nextDoc());
+    assertEquals(norms.longValue(), norms2.longValue());
 
     controlIndexReader.close();
     dir.close();

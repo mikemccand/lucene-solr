@@ -112,7 +112,7 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
+    public void addBinaryField(FieldInfo field, DocValuesProducer values) throws IOException {
       getInstance(field).addBinaryField(field, values);
     }
 
