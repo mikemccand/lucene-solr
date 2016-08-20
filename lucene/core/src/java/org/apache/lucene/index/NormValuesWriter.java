@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import org.apache.lucene.codecs.NormsConsumer;
+import org.apache.lucene.codecs.NormsProducer;
 import org.apache.lucene.util.Counter;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
@@ -70,50 +71,78 @@ class NormValuesWriter {
     final PackedLongValues values = pending.build();
 
     normsConsumer.addNormsField(fieldInfo,
-                               new Iterable<Number>() {
-                                 @Override
-                                 public Iterator<Number> iterator() {
-                                   return new NumericIterator(maxDoc, values);
-                                 }
+                                new NormsProducer() {
+                                  @Override
+                                  public NumericDocValuesIterator getNorms(FieldInfo fieldInfo2) {
+                                   if (fieldInfo != NormValuesWriter.this.fieldInfo) {
+                                     throw new IllegalArgumentException("wrong fieldInfo");
+                                   }
+                                   return new NormsIterator(maxDoc, values);
+                                  }
+
+                                  @Override
+                                  public void checkIntegrity() {
+                                  }
+
+                                  @Override
+                                  public void close() {
+                                  }
+                                  
+                                  @Override
+                                  public long ramBytesUsed() {
+                                    return 0;
+                                  }
                                });
   }
 
+  // TODO: norms should only visit docs that had a field indexed!!
+  
   // iterates over the values we have in ram
-  private static class NumericIterator implements Iterator<Number> {
+  private static class NormsIterator extends NumericDocValuesIterator {
     final PackedLongValues.Iterator iter;
     final int size;
     final int maxDoc;
-    int upto;
+    private int docID = -1;
+    private long value;
     
-    NumericIterator(int maxDoc, PackedLongValues values) {
+    NormsIterator(int maxDoc, PackedLongValues values) {
       this.maxDoc = maxDoc;
       this.iter = values.iterator();
       this.size = (int) values.size();
     }
     
     @Override
-    public boolean hasNext() {
-      return upto < maxDoc;
+    public int docID() {
+      return docID;
     }
 
     @Override
-    public Number next() {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
+    public int nextDoc() {
+      docID++;
+      if (docID == maxDoc) {
+        docID = NO_MORE_DOCS;
       }
-      Long value;
-      if (upto < size) {
+      if (docID < size) {
         value = iter.next();
       } else {
         value = MISSING;
       }
-      upto++;
-      return value;
+      return docID;
+    }
+    
+    @Override
+    public int advance(int target) {
+      throw new UnsupportedOperationException();
     }
 
     @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
+    public long cost() {
+      return maxDoc;
+    }
+
+    @Override
+    public long longValue() {
+      return value;
     }
   }
 }

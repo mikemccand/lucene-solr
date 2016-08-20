@@ -233,7 +233,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addNumericField(mergeFieldInfo,
                     new EmptyDocValuesProducer() {
                       @Override
-                      public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) {
+                      public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) throws IOException {
                         if (fieldInfo != mergeFieldInfo) {
                           throw new IllegalArgumentException("wrong fieldInfo");
                         }
@@ -246,11 +246,7 @@ public abstract class DocValuesConsumer implements Closeable {
                           if (docValuesProducer != null) {
                             FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
                             if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.NUMERIC) {
-                              try {
-                                values = docValuesProducer.getNumeric(readerFieldInfo);
-                              } catch (IOException ioe) {
-                                throw new RuntimeException(ioe);
-                              }
+                              values = docValuesProducer.getNumeric(readerFieldInfo);
                             }
                           }
                           if (values != null) {
@@ -258,12 +254,7 @@ public abstract class DocValuesConsumer implements Closeable {
                           }
                         }
 
-                        final DocIDMerger<NumericDocValuesSub> docIDMerger;
-                        try {
-                          docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-                        } catch (IOException ioe) {
-                          throw new RuntimeException(ioe);
-                        }
+                        final DocIDMerger<NumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
 
                         return new NumericDocValuesIterator() {
                           private int docID = -1;
@@ -347,7 +338,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addBinaryField(mergeFieldInfo,
                    new EmptyDocValuesProducer() {
                      @Override
-                     public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfo) {
+                     public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfo) throws IOException {
                        if (fieldInfo != mergeFieldInfo) {
                          throw new IllegalArgumentException("wrong fieldInfo");
                        }
@@ -360,11 +351,7 @@ public abstract class DocValuesConsumer implements Closeable {
                          if (docValuesProducer != null) {
                            FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
                            if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.BINARY) {
-                             try {
-                               values = docValuesProducer.getBinaryIterator(readerFieldInfo);
-                             } catch (IOException ioe) {
-                               throw new RuntimeException(ioe);
-                             }
+                             values = docValuesProducer.getBinaryIterator(readerFieldInfo);
                            }
                          }
                          if (values != null) {
@@ -372,12 +359,7 @@ public abstract class DocValuesConsumer implements Closeable {
                          }
                        }
 
-                       final DocIDMerger<BinaryDocValuesSub> docIDMerger;
-                       try {
-                         docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-                       } catch (IOException ioe) {
-                         throw new RuntimeException(ioe);
-                       }
+                       final DocIDMerger<BinaryDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
 
                        return new BinaryDocValuesIterator() {
                          private BinaryDocValuesSub current;

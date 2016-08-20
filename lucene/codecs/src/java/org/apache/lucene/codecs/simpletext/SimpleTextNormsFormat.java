@@ -23,6 +23,7 @@ import java.util.Collection;
 import org.apache.lucene.codecs.NormsConsumer;
 import org.apache.lucene.codecs.NormsFormat;
 import org.apache.lucene.codecs.NormsProducer;
+import org.apache.lucene.codecs.StupidNormsIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
@@ -116,8 +117,8 @@ public class SimpleTextNormsFormat extends NormsFormat {
     }
     
     @Override
-    public void addNormsField(FieldInfo field, Iterable<Number> values) throws IOException {
-      impl.addNumericField(field, values);
+    public void addNormsField(FieldInfo field, NormsProducer normsProducer) throws IOException {
+      impl.addNumericField(field, new StupidNormsIterable(field, normsProducer, impl.numDocs));
     }
 
     @Override

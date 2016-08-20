@@ -24,14 +24,14 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValuesIterator;
 
 /** Temporary bridge class to convert {@link NumericDocValuesIterator} to {@code Iterable&lt;Number&gt} */
-public class StupidNumericDocValuesIterable implements Iterable<Number> {
+public class StupidNormsIterable implements Iterable<Number> {
   private final FieldInfo field;
-  private final DocValuesProducer valuesProducer;
+  private final NormsProducer normsProducer;
   private final int totalValueCount;
   
-  public StupidNumericDocValuesIterable(FieldInfo field, DocValuesProducer valuesProducer, int totalValueCount) {
+  public StupidNormsIterable(FieldInfo field, NormsProducer normsProducer, int totalValueCount) {
     this.field = field;
-    this.valuesProducer = valuesProducer;
+    this.normsProducer = normsProducer;
     this.totalValueCount = totalValueCount;
   }
 
@@ -40,35 +40,35 @@ public class StupidNumericDocValuesIterable implements Iterable<Number> {
 
     final NumericDocValuesIterator values;
     try {
-      values = valuesProducer.getNumeric(field);
-      // nocommit don't do this here; make it like the StupidBinary one:
-      values.nextDoc();
+      values = normsProducer.getNorms(field);
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
     
     return new Iterator<Number>() {
-      private int docIDUpto;
+      private int docIDUpto = -1;
 
       @Override
       public boolean hasNext() {
-        return docIDUpto < totalValueCount;
+        return docIDUpto+1 < totalValueCount;
       }
 
       @Override
       public Number next() {
-        Long result;
-        if (docIDUpto == values.docID()) {
-          result = Long.valueOf(values.longValue());
+        docIDUpto++;
+        if (docIDUpto > values.docID()) {
           try {
             values.nextDoc();
           } catch (IOException ioe) {
             throw new RuntimeException(ioe);
           }
+        }
+        Number result;
+        if (docIDUpto == values.docID()) {
+          result = values.longValue();
         } else {
           result = null;
         }
-        docIDUpto++;
         return result;
       }
     };

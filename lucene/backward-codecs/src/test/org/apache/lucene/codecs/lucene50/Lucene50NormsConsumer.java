@@ -23,6 +23,8 @@ import java.util.Iterator;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.NormsConsumer;
+import org.apache.lucene.codecs.NormsProducer;
+import org.apache.lucene.codecs.StupidNormsIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -32,8 +34,8 @@ import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.InPlaceMergeSorter;
 import org.apache.lucene.util.packed.BlockPackedWriter;
 import org.apache.lucene.util.packed.MonotonicBlockPackedWriter;
-import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedInts.FormatAndBits;
+import org.apache.lucene.util.packed.PackedInts;
 
 import static org.apache.lucene.codecs.lucene50.Lucene50NormsFormat.VERSION_CURRENT;
 
@@ -51,8 +53,12 @@ final class Lucene50NormsConsumer extends NormsConsumer {
   static final float INDIRECT_THRESHOLD = 1 - 1 / 31F;
 
   IndexOutput data, meta;
+
+  final int maxDoc;
   
   Lucene50NormsConsumer(SegmentWriteState state, String dataCodec, String dataExtension, String metaCodec, String metaExtension) throws IOException {
+    maxDoc = state.segmentInfo.maxDoc();
+    
     boolean success = false;
     try {
       String dataName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, dataExtension);
@@ -77,8 +83,8 @@ final class Lucene50NormsConsumer extends NormsConsumer {
   }
 
   @Override
-  public void addNormsField(FieldInfo field, Iterable<Number> values) throws IOException {
-    writeNormsField(field, values, 0);
+  public void addNormsField(FieldInfo field, NormsProducer valuesProducer) throws IOException {
+    writeNormsField(field, new StupidNormsIterable(field, valuesProducer, maxDoc), 0);
   }
   
   private void writeNormsField(FieldInfo field, Iterable<Number> values, int level) throws IOException {

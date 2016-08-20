@@ -62,7 +62,9 @@ public class AssertingNormsFormat extends NormsFormat {
     }
 
     @Override
-    public void addNormsField(FieldInfo field, Iterable<Number> values) throws IOException {
+    public void addNormsField(FieldInfo field, NormsProducer valuesProducer) throws IOException {
+      // nocommit get this back:
+      /*
       int count = 0;
       for (Number v : values) {
         assert v != null;
@@ -70,7 +72,8 @@ public class AssertingNormsFormat extends NormsFormat {
       }
       assert count == maxDoc;
       TestUtil.checkIterator(values.iterator(), maxDoc, false);
-      in.addNormsField(field, values);
+      */
+      in.addNormsField(field, valuesProducer);
     }
     
     @Override
