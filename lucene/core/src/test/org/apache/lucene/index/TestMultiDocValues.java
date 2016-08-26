@@ -32,6 +32,9 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.TestUtil;
 
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+
+
 /** Tests MultiDocValues versus ordinary segment merging */
 public class TestMultiDocValues extends LuceneTestCase {
   
@@ -140,17 +143,22 @@ public class TestMultiDocValues extends LuceneTestCase {
     DirectoryReader ir2 = iw.getReader();
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
-    
-    SortedDocValues multi = MultiDocValues.getSortedValues(ir, "bytes");
-    SortedDocValues single = merged.getSortedDocValues("bytes");
+    SortedDocValuesIterator multi = MultiDocValues.getSortedValues(ir, "bytes");
+    SortedDocValuesIterator single = merged.getSortedDocValues("bytes");
     assertEquals(single.getValueCount(), multi.getValueCount());
-    for (int i = 0; i < numDocs; i++) {
-      // check ord
-      assertEquals(single.getOrd(i), multi.getOrd(i));
+    while (true) {
+      assertEquals(single.nextDoc(), multi.nextDoc());
+      if (single.docID() == NO_MORE_DOCS) {
+        break;
+      }
+
       // check value
-      final BytesRef expected = BytesRef.deepCopyOf(single.get(i));
-      final BytesRef actual = multi.get(i);
+      final BytesRef expected = BytesRef.deepCopyOf(single.binaryValue());
+      final BytesRef actual = multi.binaryValue();
       assertEquals(expected, actual);
+
+      // check ord
+      assertEquals(single.ordValue(), multi.ordValue());
     }
     ir.close();
     ir2.close();
@@ -183,15 +191,17 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    SortedDocValues multi = MultiDocValues.getSortedValues(ir, "bytes");
-    SortedDocValues single = merged.getSortedDocValues("bytes");
+    SortedDocValuesIterator multi = MultiDocValues.getSortedValues(ir, "bytes");
+    SortedDocValuesIterator single = merged.getSortedDocValues("bytes");
     assertEquals(single.getValueCount(), multi.getValueCount());
     for (int i = 0; i < numDocs; i++) {
+      assertEquals(i, multi.nextDoc());
+      assertEquals(i, single.nextDoc());
       // check ord
-      assertEquals(single.getOrd(i), multi.getOrd(i));
+      assertEquals(single.ordValue(), multi.ordValue());
       // check ord value
-      final BytesRef expected = BytesRef.deepCopyOf(single.get(i));
-      final BytesRef actual = multi.get(i);
+      final BytesRef expected = BytesRef.deepCopyOf(single.binaryValue());
+      final BytesRef actual = multi.binaryValue();
       assertEquals(expected, actual);
     }
     ir.close();

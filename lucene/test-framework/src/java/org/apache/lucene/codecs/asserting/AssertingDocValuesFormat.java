@@ -36,6 +36,7 @@ import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Accountable;
@@ -250,11 +251,11 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public SortedDocValues getSorted(FieldInfo field) throws IOException {
+    public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.SORTED;
-      SortedDocValues values = in.getSorted(field);
+      SortedDocValuesIterator values = in.getSorted(field);
       assert values != null;
-      return new AssertingLeafReader.AssertingSortedDocValues(values, maxDoc);
+      return new AssertingLeafReader.AssertingSortedDocValuesIterator(values, maxDoc);
     }
     
     @Override

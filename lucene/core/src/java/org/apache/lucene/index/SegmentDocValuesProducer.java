@@ -108,7 +108,7 @@ class SegmentDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public SortedDocValues getSorted(FieldInfo field) throws IOException {
+  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
     DocValuesProducer dvProducer = dvProducersByField.get(field.name);
     assert dvProducer != null;
     return dvProducer.getSorted(field);

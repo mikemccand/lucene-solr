@@ -24,8 +24,10 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.BitSet;
@@ -110,7 +112,7 @@ public class ToParentBlockJoinSortField extends SortField {
     return new FieldComparator.TermOrdValComparator(numHits, getField(), missingValue == STRING_LAST) {
 
       @Override
-      protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
+      protected SortedDocValuesIterator getSortedDocValues(LeafReaderContext context, String field) throws IOException {
         SortedSetDocValues sortedSet = DocValues.getSortedSet(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
@@ -118,9 +120,9 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptySorted();
+          return DocValues.emptySortedIterator();
         }
-        return BlockJoinSelector.wrap(sortedSet, type, parents, children);
+        return new StupidSortedDocValuesIterator(BlockJoinSelector.wrap(sortedSet, type, parents, children), context.reader().maxDoc());
       }
 
     };

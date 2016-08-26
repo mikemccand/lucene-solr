@@ -2058,7 +2058,9 @@ public final class CheckIndex implements Closeable {
     }
     return status;
   }
-  
+
+  // nocommit remove now?
+  /*
   private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValues dv, Bits docsWithField) {
     for (int i = 0; i < maxDoc; i++) {
       final BytesRef term = dv.get(i);
@@ -2068,36 +2070,36 @@ public final class CheckIndex implements Closeable {
       }
     }
   }
+  */
   
   private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValuesIterator bdv) throws IOException {
     int doc;
     if (bdv.docID() != -1) {
-      throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + bdv.docID());
+      throw new RuntimeException("binary dv iterator for field: " + fieldName + " should start at docID=-1, but got " + bdv.docID());
     }
     // TODO: we could add stats to DVs, e.g. total doc count w/ a value for this field
     // nocommit test advance, cost too
     while ((doc = bdv.nextDoc()) != NO_MORE_DOCS) {
-      bdv.binaryValue();
+      BytesRef value = bdv.binaryValue();
+      value.isValid();
     }
   }
 
-  private static void checkSortedDocValues(String fieldName, int maxDoc, SortedDocValues dv, Bits docsWithField) {
-    checkBinaryDocValues(fieldName, maxDoc, dv, docsWithField);
+  private static void checkSortedDocValues(String fieldName, int maxDoc, SortedDocValuesIterator dv) throws IOException {
+    if (dv.docID() != -1) {
+      throw new RuntimeException("sorted dv iterator for field: " + fieldName + " should start at docID=-1, but got " + dv.docID());
+    }
     final int maxOrd = dv.getValueCount()-1;
     FixedBitSet seenOrds = new FixedBitSet(dv.getValueCount());
     int maxOrd2 = -1;
-    for (int i = 0; i < maxDoc; i++) {
-      int ord = dv.getOrd(i);
+    int docID;
+    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
+      int ord = dv.ordValue();
       if (ord == -1) {
-        if (docsWithField.get(i)) {
-          throw new RuntimeException("dv for field: " + fieldName + " has -1 ord but is not marked missing for doc: " + i);
-        }
+        throw new RuntimeException("dv for field: " + fieldName + " has -1 ord");
       } else if (ord < -1 || ord > maxOrd) {
         throw new RuntimeException("ord out of bounds: " + ord);
       } else {
-        if (!docsWithField.get(i)) {
-          throw new RuntimeException("dv for field: " + fieldName + " is missing but has ord=" + ord + " for doc: " + i);
-        }
         maxOrd2 = Math.max(maxOrd2, ord);
         seenOrds.set(ord);
       }
@@ -2111,7 +2113,7 @@ public final class CheckIndex implements Closeable {
     BytesRef lastValue = null;
     for (int i = 0; i <= maxOrd; i++) {
       final BytesRef term = dv.lookupOrd(i);
-      assert term.isValid();
+      term.isValid();
       if (lastValue != null) {
         if (term.compareTo(lastValue) <= 0) {
           throw new RuntimeException("dv for field: " + fieldName + " has ords out of order: " + lastValue + " >=" + term);
@@ -2237,7 +2239,8 @@ public final class CheckIndex implements Closeable {
     switch(fi.getDocValuesType()) {
       case SORTED:
         status.totalSortedFields++;
-        checkSortedDocValues(fi.name, maxDoc, dvReader.getSorted(fi), docsWithField);
+        checkBinaryDocValues(fi.name, maxDoc, dvReader.getSorted(fi));
+        checkSortedDocValues(fi.name, maxDoc, dvReader.getSorted(fi));
         break;
       case SORTED_NUMERIC:
         status.totalSortedNumericFields++;

@@ -27,6 +27,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
@@ -613,7 +614,7 @@ public abstract class FieldComparator<T> {
 
     /* Current reader's doc ord/values.
        @lucene.internal */
-    SortedDocValues termsIndex;
+    SortedDocValuesIterator termsIndex;
 
     private final String field;
 
@@ -648,6 +649,8 @@ public abstract class FieldComparator<T> {
     /** Which ordinal to use for a missing value. */
     final int missingOrd;
 
+    private int lastDocID = -1;
+
     /** Creates this, sorting missing values first. */
     public TermOrdValComparator(int numHits, String field) {
       this(numHits, field, false);
@@ -671,6 +674,26 @@ public abstract class FieldComparator<T> {
       }
     }
 
+    protected void checkDocsInOrder(int doc) {
+      if (doc < lastDocID) {
+        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
+      }
+      lastDocID = doc;
+    }
+
+    private int getOrdForDoc(int doc) throws IOException {
+      checkDocsInOrder(doc);
+      int curDocID = termsIndex.docID();
+      if (doc > curDocID) {
+        curDocID = termsIndex.advance(doc);
+      }
+      if (doc == curDocID) {
+        return termsIndex.ordValue();
+      } else {
+        return -1;
+      }
+    }
+
     @Override
     public int compare(int slot1, int slot2) {
       if (readerGen[slot1] == readerGen[slot2]) {
@@ -691,9 +714,9 @@ public abstract class FieldComparator<T> {
     }
 
     @Override
-    public int compareBottom(int doc) {
+    public int compareBottom(int doc) throws IOException {
       assert bottomSlot != -1;
-      int docOrd = termsIndex.getOrd(doc);
+      int docOrd = getOrdForDoc(doc);
       if (docOrd == -1) {
         docOrd = missingOrd;
       }
@@ -711,8 +734,8 @@ public abstract class FieldComparator<T> {
     }
 
     @Override
-    public void copy(int slot, int doc) {
-      int ord = termsIndex.getOrd(doc);
+    public void copy(int slot, int doc) throws IOException {
+      int ord = getOrdForDoc(doc);
       if (ord == -1) {
         ord = missingOrd;
         values[slot] = null;
@@ -729,7 +752,7 @@ public abstract class FieldComparator<T> {
     }
     
     /** Retrieves the SortedDocValues for the field in this segment */
-    protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
+    protected SortedDocValuesIterator getSortedDocValues(LeafReaderContext context, String field) throws IOException {
       return DocValues.getSorted(context.reader(), field);
     }
     
@@ -759,6 +782,8 @@ public abstract class FieldComparator<T> {
         setBottom(bottomSlot);
       }
 
+      lastDocID = -1;
+      
       return this;
     }
     
@@ -807,9 +832,9 @@ public abstract class FieldComparator<T> {
     }
 
     @Override
-    public int compareTop(int doc) {
+    public int compareTop(int doc) throws IOException {
 
-      int ord = termsIndex.getOrd(doc);
+      int ord = getOrdForDoc(doc);
       if (ord == -1) {
         ord = missingOrd;
       }

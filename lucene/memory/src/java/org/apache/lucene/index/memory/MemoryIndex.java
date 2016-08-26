@@ -1132,28 +1132,20 @@ public class MemoryIndex {
       return new StupidNumericDocValuesIterator(getDocsWithField(field), info.numericProducer.numericDocValues);
     }
 
-    private BinaryDocValues getBinaryDocValues(String field) {
+    @Override
+    public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) {
       return getSortedDocValues(field, DocValuesType.BINARY);
     }
 
     @Override
-    public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) {
-      Bits docsWithField = getDocsWithField(field);
-      if (docsWithField == null) {
-        return null;
-      }
-      return new StupidBinaryDocValuesIterator(docsWithField, getBinaryDocValues(field));
-    }
-
-    @Override
-    public SortedDocValues getSortedDocValues(String field) {
+    public SortedDocValuesIterator getSortedDocValues(String field) {
       return getSortedDocValues(field, DocValuesType.SORTED);
     }
 
-    private SortedDocValues getSortedDocValues(String field, DocValuesType docValuesType) {
+    private SortedDocValuesIterator getSortedDocValues(String field, DocValuesType docValuesType) {
       Info info = getInfoForExpectedDocValuesType(field, docValuesType);
       if (info != null) {
-        return info.binaryProducer.sortedDocValues;
+        return new StupidSortedDocValuesIterator(info.binaryProducer.sortedDocValues, 1);
       } else {
         return null;
       }

@@ -27,16 +27,15 @@ import org.apache.lucene.util.FixedBitSet;
 /**
  * A dumb iterator implementation that does a linear scan of the wrapped {@link BinaryDocValues}
  */
-public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator {
-  private final Bits docsWithField;
-  private final BinaryDocValues values;
+public final class StupidSortedDocValuesIterator extends SortedDocValuesIterator {
+  private final SortedDocValues values;
   private final int maxDoc;
   private int docID = -1;
+  private int ord;
   
-  public StupidBinaryDocValuesIterator(Bits docsWithField, BinaryDocValues values) {
-    this.docsWithField = docsWithField;
+  public StupidSortedDocValuesIterator(SortedDocValues values, int maxDoc) {
     this.values = values;
-    this.maxDoc = docsWithField.length();
+    this.maxDoc = maxDoc;
   }
 
   @Override
@@ -46,10 +45,11 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator
 
   @Override
   public int nextDoc() {
+    assert docID != NO_MORE_DOCS;
     docID++;
     while (docID < maxDoc) {
-      // nocommit if it's a FixedBitSet we can use nextSetBit?
-      if (docsWithField.get(docID)) {
+      ord = values.getOrd(docID);
+      if (ord != -1) {
         return docID;
       }
       docID++;
@@ -63,7 +63,7 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator
     if (target < docID) {
       throw new IllegalArgumentException("cannot advance backwards: docID=" + docID + " target=" + target);
     }
-    if (target == NO_MORE_DOCS) {
+    if (target >= maxDoc) {
       this.docID = NO_MORE_DOCS;
     } else {
       this.docID = target-1;
@@ -78,7 +78,17 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator
   }
 
   @Override
-  public BytesRef binaryValue() {
-    return values.get(docID);
+  public int ordValue() {
+    return ord;
+  }
+
+  @Override
+  public BytesRef lookupOrd(int ord) {
+    return values.lookupOrd(ord);
+  }
+
+  @Override
+  public int getValueCount() {
+    return values.getValueCount();
   }
 }

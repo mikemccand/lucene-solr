@@ -19,10 +19,12 @@ package org.apache.lucene.queries.function.valuesource;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.docvalues.DocTermsIndexDocValues;
 import org.apache.lucene.search.SortField;
@@ -58,14 +60,15 @@ public class SortedSetFieldSource extends FieldCacheSource {
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
     SortedSetDocValues sortedSet = DocValues.getSortedSet(readerContext.reader(), field);
     SortedDocValues view = SortedSetSelector.wrap(sortedSet, selector);
-    return new DocTermsIndexDocValues(this, view) {
+    SortedDocValuesIterator viewIter = new StupidSortedDocValuesIterator(view, readerContext.reader().maxDoc());
+    return new DocTermsIndexDocValues(this.field, this, viewIter) {
       @Override
       protected String toTerm(String readableValue) {
         return readableValue;
       }
 
       @Override
-      public Object objectVal(int doc) {
+      public Object objectVal(int doc) throws IOException {
         return strVal(doc);
       }
     };

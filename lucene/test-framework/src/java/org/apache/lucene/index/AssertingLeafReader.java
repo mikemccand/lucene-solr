@@ -432,6 +432,7 @@ public class AssertingLeafReader extends FilterLeafReader {
       int docID = in.nextDoc();
       assert docID > lastDocID;
       assert docID == NO_MORE_DOCS || docID < maxDoc;
+      assert docID == in.docID();
       lastDocID = docID;
       return docID;
     }
@@ -512,6 +513,7 @@ public class AssertingLeafReader extends FilterLeafReader {
       int docID = in.nextDoc();
       assert docID > lastDocID;
       assert docID == NO_MORE_DOCS || docID < maxDoc;
+      assert docID == in.docID();
       lastDocID = docID;
       return docID;
     }
@@ -590,6 +592,102 @@ public class AssertingLeafReader extends FilterLeafReader {
       assertThread("Sorted doc values", creationThread);
       assert docID >= 0 && docID < maxDoc;
       final BytesRef result = in.get(docID);
+      assert result.isValid();
+      return result;
+    }
+
+    @Override
+    public int lookupTerm(BytesRef key) {
+      assertThread("Sorted doc values", creationThread);
+      assert key.isValid();
+      int result = in.lookupTerm(key);
+      assert result < valueCount;
+      assert key.isValid();
+      return result;
+    }
+  }
+
+  /** Wraps a SortedDocValuesIterator but with additional asserts */
+  public static class AssertingSortedDocValuesIterator extends SortedDocValuesIterator {
+    private final Thread creationThread = Thread.currentThread();
+    private final SortedDocValuesIterator in;
+    private final int maxDoc;
+    private final int valueCount;
+    private int lastDocID = -1;
+    
+    public AssertingSortedDocValuesIterator(SortedDocValuesIterator in, int maxDoc) {
+      this.in = in;
+      this.maxDoc = maxDoc;
+      this.valueCount = in.getValueCount();
+      assert valueCount >= 0 && valueCount <= maxDoc;
+    }
+
+    @Override
+    public int docID() {
+      assertThread("Sorted doc values iterator", creationThread);
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      assertThread("Sorted doc values iterator", creationThread);
+      int docID = in.nextDoc();
+      assert docID > lastDocID;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      assert docID == in.docID();
+      lastDocID = docID;
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      assertThread("Sorted doc values iterator", creationThread);
+      assert target >= 0;
+      assert target >= in.docID();
+      int docID = in.advance(target);
+      assert docID >= target;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      lastDocID = docID;
+      return docID;
+    }
+
+    @Override
+    public long cost() {
+      assertThread("Sorted doc values iterator", creationThread);
+      long cost = in.cost();
+      assert cost >= 0;
+      return cost;
+    }
+
+    @Override
+    public int ordValue() {
+      assertThread("Sorted doc values", creationThread);
+      int ord = in.ordValue();
+      assert ord >= -1 && ord < valueCount;
+      return ord;
+    }
+
+    @Override
+    public BytesRef lookupOrd(int ord) {
+      assertThread("Sorted doc values", creationThread);
+      assert ord >= 0 && ord < valueCount;
+      final BytesRef result = in.lookupOrd(ord);
+      assert result.isValid();
+      return result;
+    }
+
+    @Override
+    public int getValueCount() {
+      assertThread("Sorted doc values", creationThread);
+      int valueCount = in.getValueCount();
+      assert valueCount == this.valueCount; // should not change
+      return valueCount;
+    }
+
+    @Override
+    public BytesRef binaryValue() {
+      assertThread("Sorted doc values", creationThread);
+      final BytesRef result = in.binaryValue();
       assert result.isValid();
       return result;
     }
@@ -814,13 +912,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedDocValues getSortedDocValues(String field) throws IOException {
-    SortedDocValues dv = super.getSortedDocValues(field);
+  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
+    SortedDocValuesIterator dv = super.getSortedDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.SORTED;
-      return new AssertingSortedDocValues(dv, maxDoc());
+      return new AssertingSortedDocValuesIterator(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED;
       return null;

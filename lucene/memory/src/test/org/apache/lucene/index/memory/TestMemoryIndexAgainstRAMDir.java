@@ -70,6 +70,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
@@ -533,11 +534,13 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     assertEquals(0, controlBinaryDocValues.nextDoc());
     assertEquals(controlBinaryDocValues.binaryValue(), binaryDocValues.binaryValue());
 
-    SortedDocValues sortedDocValues = leafReader.getSortedDocValues("sorted");
-    SortedDocValues controlSortedDocValues = controlLeafReader.getSortedDocValues("sorted");
+    SortedDocValuesIterator sortedDocValues = leafReader.getSortedDocValues("sorted");
+    SortedDocValuesIterator controlSortedDocValues = controlLeafReader.getSortedDocValues("sorted");
     assertEquals(controlSortedDocValues.getValueCount(), sortedDocValues.getValueCount());
-    assertEquals(controlSortedDocValues.get(0), sortedDocValues.get(0));
-    assertEquals(controlSortedDocValues.getOrd(0), sortedDocValues.getOrd(0));
+    assertEquals(0, sortedDocValues.nextDoc());
+    assertEquals(0, controlSortedDocValues.nextDoc());
+    assertEquals(controlSortedDocValues.binaryValue(), sortedDocValues.binaryValue());
+    assertEquals(controlSortedDocValues.ordValue(), sortedDocValues.ordValue());
     assertEquals(controlSortedDocValues.lookupOrd(0), sortedDocValues.lookupOrd(0));
 
     SortedSetDocValues sortedSetDocValues = leafReader.getSortedSetDocValues("sorted_set");

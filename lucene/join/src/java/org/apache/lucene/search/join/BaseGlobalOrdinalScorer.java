@@ -16,22 +16,22 @@
  */
 package org.apache.lucene.search.join;
 
-import org.apache.lucene.index.SortedDocValues;
+import java.io.IOException;
+
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 
-import java.io.IOException;
-
 abstract class BaseGlobalOrdinalScorer extends Scorer {
 
-  final SortedDocValues values;
+  final SortedDocValuesIterator values;
   final DocIdSetIterator approximation;
 
   float score;
 
-  public BaseGlobalOrdinalScorer(Weight weight, SortedDocValues values, DocIdSetIterator approximationScorer) {
+  public BaseGlobalOrdinalScorer(Weight weight, SortedDocValuesIterator values, DocIdSetIterator approximationScorer) {
     super(weight);
     this.values = values;
     this.approximation = approximationScorer;

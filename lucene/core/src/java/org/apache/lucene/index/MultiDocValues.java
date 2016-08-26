@@ -201,6 +201,11 @@ public class MultiDocValues {
       private int docID = -1;
 
       @Override
+      public int docID() {
+        return docID;
+      }
+
+      @Override
       public int nextDoc() throws IOException {
         while (true) {
           while (currentValues == null) {
@@ -225,11 +230,6 @@ public class MultiDocValues {
         }
       }
         
-      @Override
-      public int docID() {
-        return docID;
-      }
-
       @Override
       public int advance(int targetDocID) throws IOException {
         if (targetDocID <= docID) {
@@ -479,7 +479,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getSortedDocValues(String)}
    * </p>  
    */
-  public static SortedDocValues getSortedValues(final IndexReader r, final String field) throws IOException {
+  public static SortedDocValuesIterator getSortedValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     
@@ -490,26 +490,28 @@ public class MultiDocValues {
     }
     
     boolean anyReal = false;
-    final SortedDocValues[] values = new SortedDocValues[size];
+    final SortedDocValuesIterator[] values = new SortedDocValuesIterator[size];
     final int[] starts = new int[size+1];
+    long totalCost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      SortedDocValues v = context.reader().getSortedDocValues(field);
+      SortedDocValuesIterator v = context.reader().getSortedDocValues(field);
       if (v == null) {
-        v = DocValues.emptySorted();
+        v = DocValues.emptySortedIterator();
       } else {
         anyReal = true;
+        totalCost += v.cost();
       }
       values[i] = v;
       starts[i] = context.docBase;
     }
     starts[size] = r.maxDoc();
     
-    if (!anyReal) {
+    if (anyReal == false) {
       return null;
     } else {
       OrdinalMap mapping = OrdinalMap.build(r.getCoreCacheKey(), values, PackedInts.DEFAULT);
-      return new MultiSortedDocValues(values, starts, mapping);
+      return new MultiSortedDocValuesIterator(values, starts, mapping, totalCost);
     }
   }
   
@@ -620,7 +622,7 @@ public class MultiDocValues {
      * {@link SortedDocValues} instance as a weight.
      * @see #build(Object, TermsEnum[], long[], float)
      */
-    public static OrdinalMap build(Object owner, SortedDocValues[] values, float acceptableOverheadRatio) throws IOException {
+    public static OrdinalMap build(Object owner, SortedDocValuesIterator[] values, float acceptableOverheadRatio) throws IOException {
       final TermsEnum[] subs = new TermsEnum[values.length];
       final long[] weights = new long[values.length];
       for (int i = 0; i < values.length; ++i) {
@@ -834,27 +836,90 @@ public class MultiDocValues {
    * Implements SortedDocValues over n subs, using an OrdinalMap
    * @lucene.internal
    */
-  public static class MultiSortedDocValues extends SortedDocValues {
+  public static class MultiSortedDocValuesIterator extends SortedDocValuesIterator {
     /** docbase for each leaf: parallel with {@link #values} */
     public final int docStarts[];
     /** leaf values */
-    public final SortedDocValues values[];
+    public final SortedDocValuesIterator values[];
     /** ordinal map mapping ords from <code>values</code> to global ord space */
     public final OrdinalMap mapping;
+    private final long totalCost;
+
+    private int nextLeaf;
+    private SortedDocValuesIterator currentValues;
+    private int currentDocStart;
+    private int docID = -1;    
   
-    /** Creates a new MultiSortedDocValues over <code>values</code> */
-    public MultiSortedDocValues(SortedDocValues values[], int docStarts[], OrdinalMap mapping) throws IOException {
+    /** Creates a new MultiSortedDocValuesIterator over <code>values</code> */
+    public MultiSortedDocValuesIterator(SortedDocValuesIterator values[], int docStarts[], OrdinalMap mapping, long totalCost) throws IOException {
       assert docStarts.length == values.length + 1;
       this.values = values;
       this.docStarts = docStarts;
       this.mapping = mapping;
+      this.totalCost = totalCost;
     }
        
     @Override
-    public int getOrd(int docID) {
-      int subIndex = ReaderUtil.subIndex(docID, docStarts);
-      int segmentOrd = values[subIndex].getOrd(docID - docStarts[subIndex]);
-      return segmentOrd == -1 ? segmentOrd : (int) mapping.getGlobalOrds(subIndex).get(segmentOrd);
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      while (true) {
+        while (currentValues == null) {
+          if (nextLeaf == values.length) {
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+          currentDocStart = docStarts[nextLeaf];
+          currentValues = values[nextLeaf];
+          nextLeaf++;
+        }
+
+        int newDocID = currentValues.nextDoc();
+
+        if (newDocID == NO_MORE_DOCS) {
+          currentValues = null;
+          continue;
+        } else {
+          docID = currentDocStart + newDocID;
+          return docID;
+        }
+      }
+    }
+
+    // nocommit we needs better tests of DV-as-iterator, e.g. that advance in multi case is really working:
+
+    @Override
+    public int advance(int targetDocID) throws IOException {
+      if (targetDocID <= docID) {
+        throw new IllegalArgumentException("can only advance beyond current document: on docID=" + docID + " but targetDocID=" + targetDocID);
+      }
+      int readerIndex = ReaderUtil.subIndex(targetDocID, docStarts);
+      if (readerIndex >= nextLeaf) {
+        if (readerIndex == values.length) {
+          currentValues = null;
+          docID = NO_MORE_DOCS;
+          return docID;
+        }
+        currentDocStart = docStarts[readerIndex];
+        currentValues = values[readerIndex];
+        nextLeaf = readerIndex+1;
+      }
+      int newDocID = currentValues.advance(targetDocID - currentDocStart);
+      if (newDocID == NO_MORE_DOCS) {
+        currentValues = null;
+        return nextDoc();
+      } else {
+        docID = currentDocStart + newDocID;
+        return docID;
+      }
+    }
+    
+    @Override
+    public int ordValue() {
+      return (int) mapping.getGlobalOrds(nextLeaf-1).get(currentValues.ordValue());
     }
  
     @Override
@@ -867,6 +932,11 @@ public class MultiDocValues {
     @Override
     public int getValueCount() {
       return (int) mapping.getValueCount();
+    }
+
+    @Override
+    public long cost() {
+      return totalCost;
     }
   }
   

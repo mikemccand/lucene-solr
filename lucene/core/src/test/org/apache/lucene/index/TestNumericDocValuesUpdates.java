@@ -432,7 +432,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     LeafReader r = reader.leaves().get(0).reader();
     NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
     BinaryDocValuesIterator bdv = r.getBinaryDocValuesIterator("bdv");
-    SortedDocValues sdv = r.getSortedDocValues("sdv");
+    SortedDocValuesIterator sdv = r.getSortedDocValues("sdv");
     SortedSetDocValues ssdv = r.getSortedSetDocValues("ssdv");
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
@@ -440,7 +440,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
       assertEquals(i, bdv.nextDoc());
       BytesRef term = bdv.binaryValue();
       assertEquals(new BytesRef(Integer.toString(i)), term);
-      term = sdv.get(i);
+      assertEquals(i, sdv.nextDoc());
+      term = sdv.binaryValue();
       assertEquals(new BytesRef(Integer.toString(i)), term);
       ssdv.setDocument(i);
       long ord = ssdv.nextOrd();
@@ -580,11 +581,12 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     final DirectoryReader reader = DirectoryReader.open(dir);
     
     NumericDocValuesIterator ndv = MultiDocValues.getNumericValuesIterator(reader, "ndv");
-    SortedDocValues sdv = MultiDocValues.getSortedValues(reader, "sorted");
+    SortedDocValuesIterator sdv = MultiDocValues.getSortedValues(reader, "sorted");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(17, ndv.longValue());
-      final BytesRef term = sdv.get(i);
+      assertEquals(i, sdv.nextDoc());
+      final BytesRef term = sdv.binaryValue();
       assertEquals(new BytesRef("value"), term);
     }
     

@@ -81,7 +81,9 @@ public abstract class FunctionValues {
    * @return the sort ordinal for the specified doc
    * TODO: Maybe we can just use intVal for this...
    */
-  public int ordVal(int doc) { throw new UnsupportedOperationException(); }
+  public int ordVal(int doc) throws IOException {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * @return the number of unique sort ordinals this instance has
@@ -159,7 +161,7 @@ public abstract class FunctionValues {
   // because it needs different behavior depending on the type of fields.  There is also
   // a setup cost - parsing and normalizing params, and doing a binary search on the StringIndex.
   // TODO: change "reader" to LeafReaderContext
-  public ValueSourceScorer getRangeScorer(LeafReaderContext readerContext, String lowerVal, String upperVal, boolean includeLower, boolean includeUpper) {
+  public ValueSourceScorer getRangeScorer(LeafReaderContext readerContext, String lowerVal, String upperVal, boolean includeLower, boolean includeUpper) throws IOException {
     float lower;
     float upper;
 

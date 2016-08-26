@@ -24,6 +24,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreWeight;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -108,15 +109,15 @@ final class GlobalOrdinalsQuery extends Query {
 
     @Override
     public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-      SortedDocValues values = DocValues.getSorted(context.reader(), joinField);
+      SortedDocValuesIterator values = DocValues.getSorted(context.reader(), joinField);
       if (values == null) {
         return Explanation.noMatch("Not a match");
       }
 
-      int segmentOrd = values.getOrd(doc);
-      if (segmentOrd == -1) {
+      if (values.advance(doc) != doc) {
         return Explanation.noMatch("Not a match");
       }
+      int segmentOrd = values.ordValue();
       BytesRef joinValue = values.lookupOrd(segmentOrd);
 
       int ord;
@@ -134,7 +135,7 @@ final class GlobalOrdinalsQuery extends Query {
 
     @Override
     public Scorer scorer(LeafReaderContext context) throws IOException {
-      SortedDocValues values = DocValues.getSorted(context.reader(), joinField);
+      SortedDocValuesIterator values = DocValues.getSorted(context.reader(), joinField);
       if (values == null) {
         return null;
       }
@@ -157,7 +158,7 @@ final class GlobalOrdinalsQuery extends Query {
     final LongBitSet foundOrds;
     final LongValues segmentOrdToGlobalOrdLookup;
 
-    public OrdinalMapScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValues values, DocIdSetIterator approximationScorer, LongValues segmentOrdToGlobalOrdLookup) {
+    public OrdinalMapScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValuesIterator values, DocIdSetIterator approximationScorer, LongValues segmentOrdToGlobalOrdLookup) {
       super(weight, values, approximationScorer);
       this.score = score;
       this.foundOrds = foundOrds;
@@ -170,8 +171,12 @@ final class GlobalOrdinalsQuery extends Query {
 
         @Override
         public boolean matches() throws IOException {
-          final long segmentOrd = values.getOrd(approximation.docID());
-          if (segmentOrd != -1) {
+          int docID = approximation.docID();
+          if (docID > values.docID()) {
+            values.advance(docID);
+          }
+          if (docID == values.docID()) {
+            final long segmentOrd = values.ordValue();
             final long globalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
             if (foundOrds.get(globalOrd)) {
               return true;
@@ -192,7 +197,7 @@ final class GlobalOrdinalsQuery extends Query {
 
     final LongBitSet foundOrds;
 
-    public SegmentOrdinalScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValues values, DocIdSetIterator approximationScorer) {
+    public SegmentOrdinalScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValuesIterator values, DocIdSetIterator approximationScorer) {
       super(weight, values, approximationScorer);
       this.score = score;
       this.foundOrds = foundOrds;
@@ -204,9 +209,12 @@ final class GlobalOrdinalsQuery extends Query {
 
         @Override
         public boolean matches() throws IOException {
-          final long segmentOrd = values.getOrd(approximation.docID());
-          if (segmentOrd != -1) {
-            if (foundOrds.get(segmentOrd)) {
+          int docID = approximation.docID();
+          if (docID > values.docID()) {
+            values.advance(docID);
+          }
+          if (docID == values.docID()) {
+            if (foundOrds.get(values.ordValue())) {
               return true;
             }
           }

@@ -25,6 +25,7 @@ import org.apache.lucene.util.packed.PackedInts;
  *  level of abstraction every time we want eg. to use the {@link PackedInts}
  *  utility classes to represent a {@link NumericDocValues} instance.
  *  @lucene.internal */
+// nocommit removeme...?
 public abstract class LongValues extends NumericDocValues {
 
   /** An instance that returns the provided value. */

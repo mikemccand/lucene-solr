@@ -42,10 +42,12 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -795,45 +797,49 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   }
 
   @Override
-  public SortedDocValues getSorted(FieldInfo field) throws IOException {
+  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
+    return new StupidSortedDocValuesIterator(getSortedNonIterator(field), maxDoc);
+  }
+
+  private SortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
     final BinaryDocValues binary = getBinary(field);
     NumericEntry entry = ords.get(field.name);
     final LongValues ordinals = getNumeric(entry);
     return new SortedDocValues() {
 
-      @Override
-      public int getOrd(int docID) {
-        return (int) ordinals.get(docID);
-      }
-
-      @Override
-      public BytesRef lookupOrd(int ord) {
-        return binary.get(ord);
-      }
-
-      @Override
-      public int getValueCount() {
-        return valueCount;
-      }
-
-      @Override
-      public int lookupTerm(BytesRef key) {
-        if (binary instanceof CompressedBinaryDocValues) {
-          return (int) ((CompressedBinaryDocValues)binary).lookupTerm(key);
-        } else {
-          return super.lookupTerm(key);
+        @Override
+        public int getOrd(int docID) {
+          return (int) ordinals.get(docID);
         }
-      }
 
-      @Override
-      public TermsEnum termsEnum() {
-        if (binary instanceof CompressedBinaryDocValues) {
-          return ((CompressedBinaryDocValues)binary).getTermsEnum();
-        } else {
-          return super.termsEnum();
+        @Override
+        public BytesRef lookupOrd(int ord) {
+          return binary.get(ord);
         }
-      }
+
+        @Override
+        public int getValueCount() {
+          return valueCount;
+        }
+
+        @Override
+        public int lookupTerm(BytesRef key) {
+          if (binary instanceof CompressedBinaryDocValues) {
+            return (int) ((CompressedBinaryDocValues)binary).lookupTerm(key);
+          } else {
+            return super.lookupTerm(key);
+          }
+        }
+
+        @Override
+        public TermsEnum termsEnum() {
+          if (binary instanceof CompressedBinaryDocValues) {
+            return ((CompressedBinaryDocValues)binary).getTermsEnum();
+          } else {
+            return super.termsEnum();
+          }
+        }
     };
   }
 
@@ -918,7 +924,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     SortedSetEntry ss = sortedSets.get(field.name);
     switch (ss.format) {
       case SORTED_SINGLE_VALUED:
-        final SortedDocValues values = getSorted(field);
+        final SortedDocValues values = getSortedNonIterator(field);
         return DocValues.singleton(values);
       case SORTED_WITH_ADDRESSES:
         return getSortedSetWithAddresses(field);

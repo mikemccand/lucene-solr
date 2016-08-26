@@ -16,9 +16,17 @@
  */
 package org.apache.lucene.search.grouping.term;
 
-import org.apache.lucene.index.LeafReaderContext;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
@@ -28,13 +36,6 @@ import org.apache.lucene.search.grouping.AbstractAllGroupHeadsCollector;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.SentinelIntSet;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * A base implementation of {@link org.apache.lucene.search.grouping.AbstractAllGroupHeadsCollector} for retrieving the most relevant groups when grouping
@@ -49,7 +50,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
   final String groupField;
 
-  SortedDocValues groupIndex;
+  SortedDocValuesIterator groupIndex;
   LeafReaderContext readerContext;
 
   protected TermAllGroupHeadsCollector(String groupField, int numberOfSorts) {
@@ -131,15 +132,30 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
       }
     }
 
+    protected int getOrdForDoc(int doc) throws IOException {
+      int curDocID = groupIndex.docID();
+      if (curDocID < doc) {
+        curDocID = groupIndex.advance(doc);
+      }
+
+      if (curDocID == doc) {
+        return groupIndex.ordValue();
+      } else {
+        return -1;
+      }
+    }
+
     @Override
     protected void retrieveGroupHeadAndAddIfNotExist(int doc) throws IOException {
-      final int ord = groupIndex.getOrd(doc);
+      int ord = getOrdForDoc(doc);
+
       BytesRef groupValue;
       if (ord == -1) {
         groupValue = null;
       } else {
         groupValue = groupIndex.lookupOrd(ord);
       }
+        
       GroupHead groupHead = groups.get(groupValue);
       if (groupHead == null) {
         groupValue = groupValue == null ? null : BytesRef.deepCopyOf(groupValue);
@@ -230,7 +246,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
     private final List<GroupHead> collectedGroups;
     final SortField[] fields;
 
-    SortedDocValues[] sortsIndex;
+    SortedDocValuesIterator[] sortsIndex;
     Scorer scorer;
     private GroupHead[] segmentGroupHeads;
 
@@ -241,7 +257,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
       final SortField[] sortFields = sortWithinGroup.getSort();
       fields = new SortField[sortFields.length];
-      sortsIndex = new SortedDocValues[sortFields.length];
+      sortsIndex = new SortedDocValuesIterator[sortFields.length];
       for (int i = 0; i < sortFields.length; i++) {
         reversed[i] = sortFields[i].getReverse() ? -1 : 1;
         fields[i] = sortFields[i];
@@ -263,9 +279,22 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
       this.scorer = scorer;
     }
 
+    private int getOrdForDoc(int doc) throws IOException {
+      int curDocID = groupIndex.docID();
+      if (curDocID < doc) {
+        curDocID = groupIndex.advance(doc);
+      }
+
+      if (curDocID == doc) {
+        return groupIndex.ordValue();
+      } else {
+        return -1;
+      }
+    }
+
     @Override
     protected void retrieveGroupHeadAndAddIfNotExist(int doc) throws IOException {
-      int key = groupIndex.getOrd(doc);
+      int key = getOrdForDoc(doc);
       GroupHead groupHead;
       if (!ordSet.exists(key)) {
         ordSet.put(key);
@@ -328,6 +357,15 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
       }
     }
 
+    void setDoc(int docID) throws IOException {
+      for (int i = 0; i < sortsIndex.length; i++) {
+        SortedDocValuesIterator values = sortsIndex[i];
+        if (values != null && docID > values.docID()) {
+          values.advance(docID);
+        }
+      }
+    }
+
     class GroupHead extends AbstractAllGroupHeadsCollector.GroupHead<BytesRef> {
 
       BytesRefBuilder[] sortValues;
@@ -339,14 +377,19 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
         sortValues = new BytesRefBuilder[sortsIndex.length];
         sortOrds = new int[sortsIndex.length];
         scores = new float[sortsIndex.length];
+        setDoc(doc);
         for (int i = 0; i < sortsIndex.length; i++) {
           if (fields[i].getType() == SortField.Type.SCORE) {
             scores[i] = scorer.score();
           } else {
-            sortOrds[i] = sortsIndex[i].getOrd(doc);
+            if (doc == sortsIndex[i].docID()) {
+              sortOrds[i] = sortsIndex[i].ordValue();
+            } else {
+              sortOrds[i] = -1;
+            }
             sortValues[i] = new BytesRefBuilder();
             if (sortOrds[i] != -1) {
-              sortValues[i].copyBytes(sortsIndex[i].get(doc));
+              sortValues[i].copyBytes(sortsIndex[i].binaryValue());
             }
           }
         }
@@ -363,24 +406,44 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
           }
           return 0;
         } else {
+          if (sortsIndex[compIDX].docID() < doc) {
+            sortsIndex[compIDX].advance(doc);
+          }
           if (sortOrds[compIDX] < 0) {
             // The current segment doesn't contain the sort value we encountered before. Therefore the ord is negative.
-            final BytesRef term = sortsIndex[compIDX].get(doc);
+            final BytesRef term;
+            if (sortsIndex[compIDX].docID() == doc) {
+              term = sortsIndex[compIDX].binaryValue();
+            } else {
+              term = new BytesRef(BytesRef.EMPTY_BYTES);
+            }
             return sortValues[compIDX].get().compareTo(term);
           } else {
-            return sortOrds[compIDX] - sortsIndex[compIDX].getOrd(doc);
+            int ord;
+            if (sortsIndex[compIDX].docID() == doc) {
+              ord = sortsIndex[compIDX].ordValue();
+            } else {
+              ord = -1;
+            }
+            return sortOrds[compIDX] - ord;
           }
         }
       }
 
       @Override
       public void updateDocHead(int doc) throws IOException {
+        setDoc(doc);
         for (int i = 0; i < sortsIndex.length; i++) {
           if (fields[i].getType() == SortField.Type.SCORE) {
             scores[i] = scorer.score();
           } else {
-            sortOrds[i] = sortsIndex[i].getOrd(doc);
-            sortValues[i].copyBytes(sortsIndex[i].get(doc));
+            if (sortsIndex[i].docID() == doc) {
+              sortOrds[i] = sortsIndex[i].ordValue();
+              sortValues[i].copyBytes(sortsIndex[i].binaryValue());
+            } else {
+              sortOrds[i] = -1;
+              sortValues[i].clear();
+            }
           }
         }
         this.doc = doc + readerContext.docBase;
@@ -396,7 +459,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
     private final List<GroupHead> collectedGroups;
     private final SortField[] fields;
 
-    SortedDocValues[] sortsIndex;
+    SortedDocValuesIterator[] sortsIndex;
     GroupHead[] segmentGroupHeads;
 
     OrdAllGroupHeadsCollector(String groupField, Sort sortWithinGroup, int initialSize) {
@@ -406,7 +469,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
       final SortField[] sortFields = sortWithinGroup.getSort();
       fields = new SortField[sortFields.length];
-      sortsIndex = new SortedDocValues[sortFields.length];
+      sortsIndex = new SortedDocValuesIterator[sortFields.length];
       for (int i = 0; i < sortFields.length; i++) {
         reversed[i] = sortFields[i].getReverse() ? -1 : 1;
         fields[i] = sortFields[i];
@@ -429,7 +492,17 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
     @Override
     protected void retrieveGroupHeadAndAddIfNotExist(int doc) throws IOException {
-      int key = groupIndex.getOrd(doc);
+      if (doc > groupIndex.docID()) {
+        groupIndex.advance(doc);
+      }
+      
+      int key;
+      if (doc == groupIndex.docID()) {
+        key = groupIndex.ordValue();
+      } else {
+        key = -1;
+      }
+      
       GroupHead groupHead;
       if (!ordSet.exists(key)) {
         ordSet.put(key);
@@ -485,38 +558,74 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
       }
     }
 
+    void setDoc(int docID) throws IOException {
+      for (int i = 0; i < sortsIndex.length; i++) {
+        SortedDocValuesIterator values = sortsIndex[i];
+        if (docID > values.docID()) {
+          values.advance(docID);
+        }
+      }
+    }
+
     class GroupHead extends AbstractAllGroupHeadsCollector.GroupHead<BytesRef> {
 
       BytesRefBuilder[] sortValues;
       int[] sortOrds;
 
-      GroupHead(int doc, BytesRef groupValue) {
+      GroupHead(int doc, BytesRef groupValue) throws IOException {
         super(groupValue, doc + readerContext.docBase);
         sortValues = new BytesRefBuilder[sortsIndex.length];
         sortOrds = new int[sortsIndex.length];
+        setDoc(doc);
         for (int i = 0; i < sortsIndex.length; i++) {
-          sortOrds[i] = sortsIndex[i].getOrd(doc);
+          if (doc == sortsIndex[i].docID()) {
+            sortOrds[i] = sortsIndex[i].ordValue();
+          } else {
+            sortOrds[i] = -1;
+          }
           sortValues[i] = new BytesRefBuilder();
-          sortValues[i].copyBytes(sortsIndex[i].get(doc));
+          if (sortOrds[i] != -1) {
+            sortValues[i].copyBytes(sortsIndex[i].binaryValue());
+          }
         }
       }
 
       @Override
       public int compare(int compIDX, int doc) throws IOException {
+        if (sortsIndex[compIDX].docID() < doc) {
+          sortsIndex[compIDX].advance(doc);
+        }
         if (sortOrds[compIDX] < 0) {
           // The current segment doesn't contain the sort value we encountered before. Therefore the ord is negative.
-          final BytesRef term = sortsIndex[compIDX].get(doc);
+          final BytesRef term;
+          if (sortsIndex[compIDX].docID() == doc) {
+            term = sortsIndex[compIDX].binaryValue();
+          } else {
+            term = new BytesRef(BytesRef.EMPTY_BYTES);
+          }
           return sortValues[compIDX].get().compareTo(term);
         } else {
-          return sortOrds[compIDX] - sortsIndex[compIDX].getOrd(doc);
+          int ord;
+          if (sortsIndex[compIDX].docID() == doc) {
+            ord = sortsIndex[compIDX].ordValue();
+          } else {
+            ord = -1;
+          }
+          return sortOrds[compIDX] - ord;
         }
       }
 
       @Override
       public void updateDocHead(int doc) throws IOException {
+        setDoc(doc);
         for (int i = 0; i < sortsIndex.length; i++) {
-          sortOrds[i] = sortsIndex[i].getOrd(doc);
-          sortValues[i].copyBytes(sortsIndex[i].get(doc));
+          if (sortsIndex[i].docID() == doc) {
+            sortOrds[i] = sortsIndex[i].ordValue();
+            sortValues[i].copyBytes(sortsIndex[i].binaryValue());
+          } else {
+            sortOrds[i] = -1;
+            sortValues[i].clear();
+          }
         }
         this.doc = doc + readerContext.docBase;
       }
@@ -566,7 +675,17 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
     @Override
     protected void retrieveGroupHeadAndAddIfNotExist(int doc) throws IOException {
-      int key = groupIndex.getOrd(doc);
+      if (doc > groupIndex.docID()) {
+        groupIndex.advance(doc);
+      }
+
+      int key;
+      if (doc == groupIndex.docID()) {
+        key = groupIndex.ordValue();
+      } else {
+        key = -1;
+      }
+        
       GroupHead groupHead;
       if (!ordSet.exists(key)) {
         ordSet.put(key);

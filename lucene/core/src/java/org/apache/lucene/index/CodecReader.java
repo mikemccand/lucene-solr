@@ -193,22 +193,14 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
 
   @Override
-  public final SortedDocValues getSortedDocValues(String field) throws IOException {
+  public final SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
     ensureOpen();
-    Map<String,Object> dvFields = docValuesLocal.get();
-    
-    Object previous = dvFields.get(field);
-    if (previous != null && previous instanceof SortedDocValues) {
-      return (SortedDocValues) previous;
-    } else {
-      FieldInfo fi = getDVField(field, DocValuesType.SORTED);
-      if (fi == null) {
-        return null;
-      }
-      SortedDocValues dv = getDocValuesReader().getSorted(fi);
-      dvFields.put(field, dv);
-      return dv;
+    FieldInfo fi = getDVField(field, DocValuesType.SORTED);
+    if (fi == null) {
+      return null;
     }
+    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
+    return getDocValuesReader().getSorted(fi);
   }
   
   @Override

@@ -67,6 +67,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -267,7 +268,7 @@ public class TestJoinUtil extends LuceneTestCase {
     w.close();
 
     IndexReader r = indexSearcher.getIndexReader();
-    SortedDocValues[] values = new SortedDocValues[r.leaves().size()];
+    SortedDocValuesIterator[] values = new SortedDocValuesIterator[r.leaves().size()];
     for (int i = 0; i < values.length; i++) {
       LeafReader leafReader =  r.leaves().get(i).reader();
       values[i] = DocValues.getSorted(leafReader, joinField);
@@ -372,7 +373,7 @@ public class TestJoinUtil extends LuceneTestCase {
 
     IndexReader r = DirectoryReader.open(w);
     IndexSearcher indexSearcher = new IndexSearcher(r);
-    SortedDocValues[] values = new SortedDocValues[r.leaves().size()];
+    SortedDocValuesIterator[] values = new SortedDocValuesIterator[r.leaves().size()];
     for (int i = 0; i < values.length; i++) {
       LeafReader leafReader =  r.leaves().get(i).reader();
       values[i] = DocValues.getSorted(leafReader, joinField);
@@ -553,7 +554,7 @@ public class TestJoinUtil extends LuceneTestCase {
 
 
     IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
-    SortedDocValues[] values = new SortedDocValues[searcher.getIndexReader().leaves().size()];
+    SortedDocValuesIterator[] values = new SortedDocValuesIterator[searcher.getIndexReader().leaves().size()];
     for (LeafReaderContext leadContext : searcher.getIndexReader().leaves()) {
       values[leadContext.ord] = DocValues.getSorted(leadContext.reader(), "join_field");
     }
@@ -618,7 +619,7 @@ public class TestJoinUtil extends LuceneTestCase {
     iw.close();
 
     IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(dir));
-    SortedDocValues[] values = new SortedDocValues[searcher.getIndexReader().leaves().size()];
+    SortedDocValuesIterator[] values = new SortedDocValuesIterator[searcher.getIndexReader().leaves().size()];
     for (LeafReaderContext leadContext : searcher.getIndexReader().leaves()) {
       values[leadContext.ord] = DocValues.getSorted(leadContext.reader(), "join_field");
     }
@@ -666,7 +667,7 @@ public class TestJoinUtil extends LuceneTestCase {
     w.addDocument(doc);
     IndexReader reader = w.getReader();
     IndexSearcher searcher = newSearcher(reader);
-    OrdinalMap ordMap = OrdinalMap.build(null, new SortedDocValues[0], 0f);
+    OrdinalMap ordMap = OrdinalMap.build(null, new SortedDocValuesIterator[0], 0f);
     Query joinQuery = JoinUtil.createJoinQuery("join_field", new MatchNoDocsQuery(), new MatchNoDocsQuery(), searcher, RandomPicks.randomFrom(random(), ScoreMode.values()), ordMap, 0, Integer.MAX_VALUE);
     searcher.search(joinQuery, 1); // no exception due to missing rewrites
     reader.close();
@@ -1333,7 +1334,7 @@ public class TestJoinUtil extends LuceneTestCase {
     }
 
     if (globalOrdinalJoin) {
-      SortedDocValues[] values = new SortedDocValues[topLevelReader.leaves().size()];
+      SortedDocValuesIterator[] values = new SortedDocValuesIterator[topLevelReader.leaves().size()];
       for (LeafReaderContext leadContext : topLevelReader.leaves()) {
         values[leadContext.ord] = DocValues.getSorted(leadContext.reader(), "join_field");
       }

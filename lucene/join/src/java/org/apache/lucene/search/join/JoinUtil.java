@@ -41,6 +41,7 @@ import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.Collector;
@@ -519,7 +520,7 @@ public final class JoinUtil {
       // No need to use the ordinal map, because there is just one segment.
       ordinalMap = null;
       LeafReader leafReader = searcher.getIndexReader().leaves().get(0).reader();
-      SortedDocValues joinSortedDocValues = leafReader.getSortedDocValues(joinField);
+      SortedDocValuesIterator joinSortedDocValues = leafReader.getSortedDocValues(joinField);
       if (joinSortedDocValues != null) {
         valueCount = joinSortedDocValues.getValueCount();
       } else {

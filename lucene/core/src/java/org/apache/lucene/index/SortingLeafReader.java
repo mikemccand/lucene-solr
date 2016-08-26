@@ -255,6 +255,8 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
+  private final Map<String,int[]> cachedSortedDVs = new HashMap<>();
+
   private static class SortingNumericDocValuesIterator extends NumericDocValuesIterator {
 
     private final CachedNumericDVs dvs;
@@ -265,6 +267,11 @@ class SortingLeafReader extends FilterLeafReader {
     }
 
     @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
     public int nextDoc() {
       if (docID+1 == dvs.docsWithField.length()) {
         docID = NO_MORE_DOCS;
@@ -272,11 +279,6 @@ class SortingLeafReader extends FilterLeafReader {
         docID = dvs.docsWithField.nextSetBit(docID+1);
       }
 
-      return docID;
-    }
-
-    @Override
-    public int docID() {
       return docID;
     }
 
@@ -406,19 +408,61 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingSortedDocValues extends SortedDocValues {
+  private static class SortingSortedDocValuesIterator extends SortedDocValuesIterator {
 
-    private final SortedDocValues in;
-    private final Sorter.DocMap docMap;
+    private final SortedDocValuesIterator in;
+    private final int[] ords;
+    private int docID = -1;
 
-    SortingSortedDocValues(SortedDocValues in, Sorter.DocMap docMap) {
+    SortingSortedDocValuesIterator(SortedDocValuesIterator in, int[] ords) {
       this.in = in;
-      this.docMap = docMap;
+      this.ords = ords;
+      assert ords != null;
     }
 
     @Override
-    public int getOrd(int docID) {
-      return in.getOrd(docMap.newToOld(docID));
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() {
+      while (true) {
+        docID++;
+        if (docID == ords.length) {
+          docID = NO_MORE_DOCS;
+          break;
+        }
+        if (ords[docID] != -1) {
+          break;
+        }
+        // skip missing docs
+      }
+
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) {
+      if (target >= ords.length) {
+        docID = NO_MORE_DOCS;
+      } else {
+        docID = target;
+        if (ords[docID] == -1) {
+          nextDoc();
+        }
+      }
+      return docID;
+    }
+
+    @Override
+    public int ordValue() {
+      return ords[docID];
+    }
+
+    @Override
+    public long cost() {
+      return 0;
     }
 
     @Override
@@ -429,16 +473,6 @@ class SortingLeafReader extends FilterLeafReader {
     @Override
     public int getValueCount() {
       return in.getValueCount();
-    }
-
-    @Override
-    public BytesRef get(int docID) {
-      return in.get(docMap.newToOld(docID));
-    }
-
-    @Override
-    public int lookupTerm(BytesRef key) {
-      return in.lookupTerm(key);
     }
   }
 
@@ -1047,13 +1081,29 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedDocValues getSortedDocValues(String field) throws IOException {
-    SortedDocValues sortedDV = in.getSortedDocValues(field);
-    if (sortedDV == null) {
+  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
+    SortedDocValuesIterator oldDocValues = in.getSortedDocValues(field);
+    if (oldDocValues == null) {
       return null;
-    } else {
-      return new SortingSortedDocValues(sortedDV, docMap);
     }
+
+    // nocommit this is horrible!!
+    int[] ords;
+    synchronized (cachedSortedDVs) {
+      ords = cachedSortedDVs.get(field);
+      if (ords == null) {
+        ords = new int[maxDoc()];
+        Arrays.fill(ords, -1);
+        int docID;
+        while ((docID = oldDocValues.nextDoc()) != NO_MORE_DOCS) {
+          int newDocID = docMap.oldToNew(docID);
+          ords[newDocID] = oldDocValues.ordValue();
+        }
+        cachedSortedDVs.put(field, ords);
+      }
+    }
+    
+    return new SortingSortedDocValuesIterator(oldDocValues, ords);
   }
 
   @Override

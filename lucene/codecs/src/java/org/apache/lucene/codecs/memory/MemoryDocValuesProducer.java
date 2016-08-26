@@ -40,10 +40,12 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -477,7 +479,12 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedDocValues getSorted(FieldInfo field) throws IOException {
+  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
+    // nocommit removeme
+    return new StupidSortedDocValuesIterator(getSortedNonIterator(field), maxDoc);
+  }
+  
+  private SortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
     final FSTEntry entry = fsts.get(field.name);
     if (entry.numOrds == 0) {
       return DocValues.emptySorted();
@@ -629,7 +636,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
     SortedSetEntry sortedSetEntry = sortedSets.get(field.name);
     if (sortedSetEntry.singleton) {
-      return DocValues.singleton(getSorted(field));
+      return DocValues.singleton(getSortedNonIterator(field));
     }
     
     final FSTEntry entry = fsts.get(field.name);

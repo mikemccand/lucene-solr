@@ -24,6 +24,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
@@ -112,12 +113,13 @@ public class TestICUCollationDocValuesField extends LuceneTestCase {
   }
   
   private void doTestRanges(IndexSearcher is, String startPoint, String endPoint, BytesRef startBR, BytesRef endBR, Collator collator) throws Exception { 
-    SortedDocValues dvs = MultiDocValues.getSortedValues(is.getIndexReader(), "collated");
+    SortedDocValuesIterator dvs = MultiDocValues.getSortedValues(is.getIndexReader(), "collated");
     for(int docID=0;docID<is.getIndexReader().maxDoc();docID++) {
       Document doc = is.doc(docID);
       String s = doc.getField("field").stringValue();
       boolean collatorAccepts = collator.compare(s, startPoint) >= 0 && collator.compare(s, endPoint) <= 0;
-      BytesRef br = dvs.get(docID);
+      assertEquals(docID, dvs.nextDoc());
+      BytesRef br = dvs.binaryValue();
       boolean luceneAccepts = br.compareTo(startBR) >= 0 && br.compareTo(endBR) <= 0;
       assertEquals(collatorAccepts, luceneAccepts);
     }

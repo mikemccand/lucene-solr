@@ -26,6 +26,7 @@ import org.apache.lucene.index.MergeState;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.PriorityQueue;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
@@ -147,13 +148,15 @@ final class MultiSorter {
     case STRING:
       {
         // this uses the efficient segment-local ordinal map:
-        MultiReader multiReader = new MultiReader(readers.toArray(new LeafReader[readers.size()]));
-        final SortedDocValues sorted = MultiDocValues.getSortedValues(multiReader, sortField.getField());
-        final int[] docStarts = new int[readers.size()];
-        List<LeafReaderContext> leaves = multiReader.leaves();
+        final SortedDocValuesIterator[] values = new SortedDocValuesIterator[readers.size()];
         for(int i=0;i<readers.size();i++) {
-          docStarts[i] = leaves.get(i).docBase;
+          SortedDocValuesIterator v = readers.get(i).getSortedDocValues(sortField.getField());
+          if (v == null) {
+            v = DocValues.emptySortedIterator();
+          }
+          values[i] = v;
         }
+        MultiDocValues.OrdinalMap ordinalMap = MultiDocValues.OrdinalMap.build(null, values, PackedInts.DEFAULT);
         final int missingOrd;
         if (sortField.getMissingValue() == SortField.STRING_LAST) {
           missingOrd = Integer.MAX_VALUE;
@@ -169,7 +172,8 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final int docStart = docStarts[readerIndex];
+          final SortedDocValuesIterator readerValues = values[readerIndex];
+          final LongValues globalOrds = ordinalMap.getGlobalOrds(readerIndex);
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
               int lastDocID = -1;
@@ -182,13 +186,18 @@ final class MultiSorter {
               }
               
               @Override
-              public Comparable getComparable(int docID) {
+              public Comparable getComparable(int docID) throws IOException {
                 assert docsInOrder(docID);
-                int ord = sorted.getOrd(docStart + docID);
-                if (ord == -1) {
-                  ord = missingOrd;
+                int readerDocID = readerValues.docID();
+                if (readerDocID < docID) {
+                  readerDocID = readerValues.advance(docID);
                 }
-                return reverseMul * ord;
+                if (readerDocID == docID) {
+                  // translate segment's ord to global ord space:
+                  return reverseMul * (int) globalOrds.get(readerValues.ordValue());
+                } else {
+                  return missingOrd;
+                }
               }
             };
         }

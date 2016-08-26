@@ -16,17 +16,18 @@
  */
 package org.apache.lucene.search.join;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.LongBitSet;
 import org.apache.lucene.util.LongValues;
-
-import java.io.IOException;
 
 /**
  * A collector that collects all ordinals from a specified field matching the query.
@@ -56,7 +57,7 @@ final class GlobalOrdinalsCollector implements Collector {
 
   @Override
   public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-    SortedDocValues docTermOrds = DocValues.getSorted(context.reader(), field);
+    SortedDocValuesIterator docTermOrds = DocValues.getSorted(context.reader(), field);
     if (ordinalMap != null) {
       LongValues segmentOrdToGlobalOrdLookup = ordinalMap.getGlobalOrds(context.ord);
       return new OrdinalMapCollector(docTermOrds, segmentOrdToGlobalOrdLookup);
@@ -67,19 +68,22 @@ final class GlobalOrdinalsCollector implements Collector {
 
   final class OrdinalMapCollector implements LeafCollector {
 
-    private final SortedDocValues docTermOrds;
+    private final SortedDocValuesIterator docTermOrds;
     private final LongValues segmentOrdToGlobalOrdLookup;
 
-    OrdinalMapCollector(SortedDocValues docTermOrds, LongValues segmentOrdToGlobalOrdLookup) {
+    OrdinalMapCollector(SortedDocValuesIterator docTermOrds, LongValues segmentOrdToGlobalOrdLookup) {
       this.docTermOrds = docTermOrds;
       this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
     }
 
     @Override
     public void collect(int doc) throws IOException {
-      final long segmentOrd = docTermOrds.getOrd(doc);
-      if (segmentOrd != -1) {
-        final long globalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
+      if (doc > docTermOrds.docID()) {
+        docTermOrds.advance(doc);
+      }
+      if (doc == docTermOrds.docID()) {
+        long segmentOrd = docTermOrds.ordValue();
+        long globalOrd = segmentOrdToGlobalOrdLookup.get(segmentOrd);
         collectedOrds.set(globalOrd);
       }
     }
@@ -91,17 +95,19 @@ final class GlobalOrdinalsCollector implements Collector {
 
   final class SegmentOrdinalCollector implements LeafCollector {
 
-    private final SortedDocValues docTermOrds;
+    private final SortedDocValuesIterator docTermOrds;
 
-    SegmentOrdinalCollector(SortedDocValues docTermOrds) {
+    SegmentOrdinalCollector(SortedDocValuesIterator docTermOrds) {
       this.docTermOrds = docTermOrds;
     }
 
     @Override
     public void collect(int doc) throws IOException {
-      final long segmentOrd = docTermOrds.getOrd(doc);
-      if (segmentOrd != -1) {
-        collectedOrds.set(segmentOrd);
+      if (doc > docTermOrds.docID()) {
+        docTermOrds.advance(doc);
+      }
+      if (doc == docTermOrds.docID()) {
+        collectedOrds.set(docTermOrds.ordValue());
       }
     }
 

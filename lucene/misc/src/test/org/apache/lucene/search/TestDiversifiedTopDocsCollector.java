@@ -37,6 +37,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.similarities.Similarity;
@@ -118,10 +119,10 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
   // from a top-level Reader
   private static final class DocValuesDiversifiedCollector extends
       DiversifiedTopDocsCollector {
-    private final SortedDocValues sdv;
+    private final SortedDocValuesIterator sdv;
 
     public DocValuesDiversifiedCollector(int size, int maxHitsPerKey,
-        SortedDocValues sdv) {
+        SortedDocValuesIterator sdv) {
       super(size, maxHitsPerKey);
       this.sdv = sdv;
     }
@@ -130,29 +131,20 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     protected NumericDocValuesIterator getKeys(final LeafReaderContext context) {
 
       return new NumericDocValuesIterator() {
-        int docID = -1;
 
         @Override
         public int docID() {
-          return docID;
+          return sdv.docID() - context.docBase;
         }
 
         @Override
-        public int nextDoc() {
-          docID++;
-          if (docID == context.reader().maxDoc()) {
-            docID = NO_MORE_DOCS;
-          }
-          return docID;
+        public int nextDoc() throws IOException {
+          return sdv.nextDoc() - context.docBase;
         }
 
         @Override
-        public int advance(int target) {
-          docID = target;
-          if (docID >= context.reader().maxDoc()) {
-            docID = NO_MORE_DOCS;
-          }
-          return docID;
+        public int advance(int target) throws IOException {
+          return sdv.advance(target + context.docBase);
         }
 
         @Override
@@ -164,7 +156,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
         public long longValue() {
           // Keys are always expressed as a long so we obtain the
           // ordinal for our String-based artist name here
-          return sdv.getOrd(context.docBase + docID);
+          return sdv.ordValue();
         }
       };
     }
@@ -296,7 +288,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
   private Directory dir;
   private IndexReader reader;
   private IndexSearcher searcher;
-  private SortedDocValues artistDocValues;
+  private SortedDocValuesIterator artistDocValues;
 
   static class Record {
     String year;
@@ -325,7 +317,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
 
   private DiversifiedTopDocsCollector doDiversifiedSearch(int numResults,
       int maxResultsPerArtist) throws IOException {
-    // Alternate between implementations used for key lookups 
+    // Alternate between implementations used for key lookups
     if (random().nextBoolean()) {
       // Faster key lookup but with potential for collisions on larger datasets
       return doFuzzyDiversifiedSearch(numResults, maxResultsPerArtist);

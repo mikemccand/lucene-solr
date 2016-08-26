@@ -257,7 +257,7 @@ public abstract class LeafReader extends IndexReader {
    *  null if no {@link SortedDocValues} were indexed for
    *  this field.  The returned instance should only be
    *  used by a single thread. */
-  public abstract SortedDocValues getSortedDocValues(String field) throws IOException;
+  public abstract SortedDocValuesIterator getSortedDocValues(String field) throws IOException;
   
   /** Returns {@link SortedNumericDocValues} for this field, or
    *  null if no {@link SortedNumericDocValues} were indexed for

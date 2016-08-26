@@ -35,7 +35,7 @@ public abstract class EmptyDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public SortedDocValues getSorted(FieldInfo field) {
+  public SortedDocValuesIterator getSorted(FieldInfo field) {
     throw new UnsupportedOperationException();
   }
 

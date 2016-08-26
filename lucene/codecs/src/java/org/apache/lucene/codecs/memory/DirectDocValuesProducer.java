@@ -40,10 +40,12 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Accountable;
@@ -422,7 +424,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedDocValues getSorted(FieldInfo field) throws IOException {
+  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
     final SortedEntry entry = sorteds.get(field.name);
     SortedRawValues instance;
     synchronized (this) {
@@ -436,9 +438,10 @@ class DirectDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    return newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count);
+    return new StupidSortedDocValuesIterator(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
   }
   
+  // nocommit removeme
   private SortedDocValues newSortedInstance(final NumericDocValues docToOrd, final BinaryDocValues values, final int count) {
     return new SortedDocValues() {
 

@@ -58,6 +58,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
@@ -209,8 +210,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       final LeafReader reader = context.reader();
       final NumericDocValuesIterator numeric = DocValues.getNumericIterator(reader, "numeric");
 
-      final SortedDocValues sorted = DocValues.getSorted(reader, "sorted");
-      final Bits sortedBits = DocValues.getDocsWithField(reader, "sorted");
+      final SortedDocValuesIterator sorted = DocValues.getSorted(reader, "sorted");
 
       final BinaryDocValuesIterator binary = DocValues.getBinaryIterator(reader, "binary");
 
@@ -227,17 +227,14 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
         if (value == null) {
           assertTrue(numeric.docID() + " vs " + i, numeric.docID() < i);
-          assertEquals(-1, sorted.getOrd(i));
-          assertFalse(sortedBits.get(i));
         } else {
           assertEquals(i, numeric.nextDoc());
           assertEquals(i, binary.nextDoc());
+          assertEquals(i, sorted.nextDoc());
           assertEquals(value.longValue(), numeric.longValue());
-          assertTrue(sorted.getOrd(i) >= 0);
-          assertEquals(new BytesRef(Long.toString(value)), sorted.lookupOrd(sorted.getOrd(i)));
+          assertTrue(sorted.ordValue() >= 0);
+          assertEquals(new BytesRef(Long.toString(value)), sorted.lookupOrd(sorted.ordValue()));
           assertEquals(new BytesRef(Long.toString(value)), binary.binaryValue());
-
-          assertTrue(sortedBits.get(i));
         }
 
         final IndexableField[] valuesFields = doc.getFields("values");

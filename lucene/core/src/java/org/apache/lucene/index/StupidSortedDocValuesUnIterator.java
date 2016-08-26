@@ -17,6 +17,8 @@
 
 package org.apache.lucene.index;
 
+import java.io.IOException;
+
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -27,58 +29,47 @@ import org.apache.lucene.util.FixedBitSet;
 /**
  * A dumb iterator implementation that does a linear scan of the wrapped {@link BinaryDocValues}
  */
-public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator {
-  private final Bits docsWithField;
-  private final BinaryDocValues values;
-  private final int maxDoc;
-  private int docID = -1;
+public final class StupidSortedDocValuesUnIterator extends SortedDocValues {
+  private final LeafReader reader;
+  private final String field;
+  private SortedDocValuesIterator current;
   
-  public StupidBinaryDocValuesIterator(Bits docsWithField, BinaryDocValues values) {
-    this.docsWithField = docsWithField;
-    this.values = values;
-    this.maxDoc = docsWithField.length();
+  public StupidSortedDocValuesUnIterator(LeafReader reader, String field) throws IOException {
+    this.reader = reader;
+    this.field = field;
+    resetCurrent();
+  }
+
+  private void resetCurrent() throws IOException {
+    current = reader.getSortedDocValues(field);
   }
 
   @Override
-  public int docID() {
-    return docID;
-  }
-
-  @Override
-  public int nextDoc() {
-    docID++;
-    while (docID < maxDoc) {
-      // nocommit if it's a FixedBitSet we can use nextSetBit?
-      if (docsWithField.get(docID)) {
-        return docID;
+  public int getOrd(int docID) {
+    try {
+      if (current.docID() > docID) {
+        resetCurrent();
       }
-      docID++;
+      if (current.docID() < docID) {
+        current.advance(docID);
+      }
+      if (current.docID() == docID) {
+        return current.ordValue();
+      } else {
+        return -1;
+      }
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
     }
-    docID = NO_MORE_DOCS;
-    return NO_MORE_DOCS;
   }
 
   @Override
-  public int advance(int target) {
-    if (target < docID) {
-      throw new IllegalArgumentException("cannot advance backwards: docID=" + docID + " target=" + target);
-    }
-    if (target == NO_MORE_DOCS) {
-      this.docID = NO_MORE_DOCS;
-    } else {
-      this.docID = target-1;
-      nextDoc();
-    }
-    return docID;
+  public int getValueCount() {
+    return current.getValueCount();
   }
 
   @Override
-  public long cost() {
-    return 0;
-  }
-
-  @Override
-  public BytesRef binaryValue() {
-    return values.get(docID);
+  public BytesRef lookupOrd(int ord) {
+    return current.lookupOrd(ord);
   }
 }

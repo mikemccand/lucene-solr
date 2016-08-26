@@ -42,10 +42,12 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -624,7 +626,11 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   @Override
-  public SortedDocValues getSorted(FieldInfo field) throws IOException {
+  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
+    return new StupidSortedDocValuesIterator(getSortedNoIterator(field), maxDoc);
+  }
+  
+  private SortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
     final BinaryDocValues binary = getBinary(field);
     NumericEntry entry = ords.get(field.name);
@@ -750,7 +756,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     SortedSetEntry ss = sortedSets.get(field.name);
     switch (ss.format) {
       case SORTED_SINGLE_VALUED:
-        final SortedDocValues values = getSorted(field);
+        final SortedDocValues values = getSortedNoIterator(field);
         return DocValues.singleton(values);
       case SORTED_WITH_ADDRESSES:
         return getSortedSetWithAddresses(field);

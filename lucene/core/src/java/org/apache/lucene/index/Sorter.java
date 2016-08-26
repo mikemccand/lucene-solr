@@ -221,13 +221,11 @@ final class Sorter {
         }
 
         final int[] ords = new int[reader.maxDoc()];
-        SortedDocValues sorted = DocValues.getSorted(reader, sortField.getField());
-        for(int docID=0;docID<maxDoc;docID++) {
-          int ord = sorted.getOrd(docID);
-          if (ord == -1) {
-            ord = missingOrd;
-          }
-          ords[docID] = ord;
+        Arrays.fill(ords, missingOrd);
+        SortedDocValuesIterator sorted = DocValues.getSorted(reader, sortField.getField());
+        int docID;
+        while ((docID = sorted.nextDoc()) != NO_MORE_DOCS) {
+          ords[docID] = sorted.ordValue();
         }
 
         final int reverseMul;

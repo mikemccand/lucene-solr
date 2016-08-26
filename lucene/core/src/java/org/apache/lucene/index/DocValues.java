@@ -22,6 +22,9 @@ import java.util.Arrays;
 
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.FixedBitSet;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /** 
  * This class contains utility methods and constants for DocValues
@@ -191,6 +194,58 @@ public final class DocValues {
     };
   }
 
+  /** 
+   * An empty SortedDocValuesIterator which returns {@link BytesRef#EMPTY_BYTES} for every document 
+   */
+  public static final SortedDocValuesIterator emptySortedIterator() {
+    final BytesRef empty = new BytesRef();
+    return new SortedDocValuesIterator() {
+      
+      private boolean exhausted = false;
+      
+      @Override
+      public int advance(int target) {
+        assert exhausted == false;
+        assert target >= 0;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public int docID() {
+        return exhausted ? NO_MORE_DOCS : -1;
+      }
+      
+      @Override
+      public int nextDoc() {
+        assert exhausted == false;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public long cost() {
+        return 0;
+      }
+
+      @Override
+      public int ordValue() {
+        assert false;
+        return -1;
+      }
+
+      @Override
+      public BytesRef lookupOrd(int ord) {
+        return empty;
+      }
+
+      @Override
+      public int getValueCount() {
+        return 0;
+      }
+    };
+  }
+
   /**
    * An empty SortedNumericDocValues which returns zero values for every document 
    */
@@ -259,18 +314,14 @@ public final class DocValues {
   /**
    * Returns a Bits representing all documents from <code>dv</code> that have a value.
    */
-  public static Bits docsWithValue(final SortedDocValues dv, final int maxDoc) {
-    return new Bits() {
-      @Override
-      public boolean get(int index) {
-        return dv.getOrd(index) >= 0;
-      }
-
-      @Override
-      public int length() {
-        return maxDoc;
-      }
-    };
+  public static Bits docsWithValue(final SortedDocValuesIterator dv, final int maxDoc) throws IOException {
+    // nocommit remove this entire method!!!
+    FixedBitSet bits = new FixedBitSet(maxDoc);
+    int docID;
+    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
+      bits.set(docID);
+    }
+    return bits;
   }
   
   /**
@@ -354,12 +405,10 @@ public final class DocValues {
   public static BinaryDocValuesIterator getBinaryIterator(LeafReader reader, String field) throws IOException {
     BinaryDocValuesIterator dv = reader.getBinaryDocValuesIterator(field);
     if (dv == null) {
-      BinaryDocValues dv2 = reader.getSortedDocValues(field);
-      if (dv2 == null) {
+      dv = reader.getSortedDocValues(field);
+      if (dv == null) {
         checkField(reader, field, DocValuesType.BINARY, DocValuesType.SORTED);
         return emptyBinaryIterator();
-      } else {
-        dv = new StupidBinaryDocValuesIterator(getDocsWithField(reader, field), dv2);
       }
     }
     return dv;
@@ -372,11 +421,11 @@ public final class DocValues {
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#SORTED}.
    * @throws IOException if an I/O error occurs.
    */
-  public static SortedDocValues getSorted(LeafReader reader, String field) throws IOException {
-    SortedDocValues dv = reader.getSortedDocValues(field);
+  public static SortedDocValuesIterator getSorted(LeafReader reader, String field) throws IOException {
+    SortedDocValuesIterator dv = reader.getSortedDocValues(field);
     if (dv == null) {
       checkField(reader, field, DocValuesType.SORTED);
-      return emptySorted();
+      return emptySortedIterator();
     } else {
       return dv;
     }
@@ -414,13 +463,14 @@ public final class DocValues {
    */
   public static SortedSetDocValues getSortedSet(LeafReader reader, String field) throws IOException {
     SortedSetDocValues dv = reader.getSortedSetDocValues(field);
+    // nocommit fixme!
     if (dv == null) {
-      SortedDocValues sorted = reader.getSortedDocValues(field);
+      SortedDocValuesIterator sorted = reader.getSortedDocValues(field);
       if (sorted == null) {
         checkField(reader, field, DocValuesType.SORTED, DocValuesType.SORTED_SET);
         return emptySortedSet();
       }
-      return singleton(sorted);
+      return singleton(new StupidSortedDocValuesUnIterator(reader, field));
     }
     return dv;
   }
