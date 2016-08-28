@@ -32,7 +32,7 @@ import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiDocValues.MultiSortedDocValues;
+import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.MultiDocValues;
@@ -42,6 +42,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
@@ -140,16 +141,16 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public SortedDocValues getSortedDocValues(String field) throws IOException {
+  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
     ensureOpen();
     OrdinalMap map = null;
     synchronized (cachedOrdMaps) {
       map = cachedOrdMaps.get(field);
       if (map == null) {
         // uncached, or not a multi dv
-        SortedDocValues dv = MultiDocValues.getSortedValues(in, field);
-        if (dv instanceof MultiSortedDocValues) {
-          map = ((MultiSortedDocValues)dv).mapping;
+        SortedDocValuesIterator dv = MultiDocValues.getSortedValues(in, field);
+        if (dv instanceof MultiSortedDocValuesIterator) {
+          map = ((MultiSortedDocValuesIterator)dv).mapping;
           if (map.owner == getCoreCacheKey() && merging == false) {
             cachedOrdMaps.put(field, map);
           }
@@ -158,8 +159,9 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
       }
     }
     int size = in.leaves().size();
-    final SortedDocValues[] values = new SortedDocValues[size];
+    final SortedDocValuesIterator[] values = new SortedDocValuesIterator[size];
     final int[] starts = new int[size+1];
+    long totalCost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = in.leaves().get(i);
       final LeafReader reader = context.reader();
@@ -167,15 +169,16 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
       if (fieldInfo != null && fieldInfo.getDocValuesType() != DocValuesType.SORTED) {
         return null;
       }
-      SortedDocValues v = reader.getSortedDocValues(field);
+      SortedDocValuesIterator v = reader.getSortedDocValues(field);
       if (v == null) {
-        v = DocValues.emptySorted();
+        v = DocValues.emptySortedIterator();
       }
+      totalCost += v.cost();
       values[i] = v;
       starts[i] = context.docBase;
     }
     starts[size] = maxDoc();
-    return new MultiSortedDocValues(values, starts, map);
+    return new MultiSortedDocValuesIterator(values, starts, map, totalCost);
   }
   
   @Override

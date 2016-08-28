@@ -53,7 +53,7 @@ public abstract class DocTermsIndexDocValues extends FunctionValues {
     this.termsIndex = termsIndex;
   }
 
-  private int getOrdForDoc(int doc) throws IOException {
+  protected int getOrdForDoc(int doc) throws IOException {
     if (doc < lastDocID) {
       throw new IllegalArgumentException("docs were sent out-of-order: lastDocID=" + lastDocID + " vs docID=" + doc);
     }
@@ -157,7 +157,7 @@ public abstract class DocTermsIndexDocValues extends FunctionValues {
           values.advance(doc);
         }
         if (doc == values.docID()) {
-          int ord = termsIndex.ordValue();
+          int ord = values.ordValue();
           return ord >= ll && ord <= uu;
         } else {
           return false;

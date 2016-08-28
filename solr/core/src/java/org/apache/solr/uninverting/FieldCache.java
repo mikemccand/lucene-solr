@@ -25,6 +25,7 @@ import org.apache.lucene.index.IndexReader; // javadocs
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -314,7 +315,7 @@ interface FieldCache {
    * @return The values in the given field for each document.
    * @throws IOException  If any error occurs.
    */
-  public SortedDocValues getTermsIndex(LeafReader reader, String field) throws IOException;
+  public SortedDocValuesIterator getTermsIndex(LeafReader reader, String field) throws IOException;
 
   /** Expert: just like {@link
    *  #getTermsIndex(org.apache.lucene.index.LeafReader,String)}, but you can specify
@@ -322,7 +323,7 @@ interface FieldCache {
    *  faster lookups (default is "true").  Note that the
    *  first call for a given reader and field "wins",
    *  subsequent calls will share the same cache entry. */
-  public SortedDocValues getTermsIndex(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException;
+  public SortedDocValuesIterator getTermsIndex(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException;
 
   /** Can be passed to {@link #getDocTermOrds} to filter for 32-bit numeric terms */
   public static final BytesRef INT32_TERM_PREFIX = new BytesRef(new byte[] { LegacyNumericUtils.SHIFT_START_INT });

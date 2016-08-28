@@ -21,11 +21,14 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiDocValues.MultiSortedDocValues;
+import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -74,10 +77,10 @@ public class DocValuesFacets {
         ordinalMap = ((MultiSortedSetDocValues)si).mapping;
       }
     } else {
-      SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
-      si = single == null ? null : DocValues.singleton(single);
-      if (single instanceof MultiSortedDocValues) {
-        ordinalMap = ((MultiSortedDocValues)single).mapping;
+      SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
+      si = single == null ? null : DocValues.singleton(new StupidSortedDocValuesUnIterator(searcher.getLeafReader(), fieldName));
+      if (single instanceof MultiSortedDocValuesIterator) {
+        ordinalMap = ((MultiSortedDocValuesIterator)single).mapping;
       }
     }
     if (si == null) {
@@ -138,7 +141,13 @@ public class DocValuesFacets {
             if (sub == null) {
               sub = DocValues.emptySortedSet();
             }
-            final SortedDocValues singleton = DocValues.unwrapSingleton(sub);
+            SortedDocValues dvs = DocValues.unwrapSingleton(sub);
+            final SortedDocValuesIterator singleton;
+            if (dvs == null) {
+              singleton = null;
+            } else {
+              singleton = new StupidSortedDocValuesIterator(dvs, leaf.reader().maxDoc());
+            }
             if (singleton != null) {
               // some codecs may optimize SORTED_SET storage for single-valued fields
               accumSingle(counts, startTermIndex, singleton, disi, subIndex, ordinalMap);
@@ -146,9 +155,9 @@ public class DocValuesFacets {
               accumMulti(counts, startTermIndex, sub, disi, subIndex, ordinalMap);
             }
           } else {
-            SortedDocValues sub = leaf.reader().getSortedDocValues(fieldName);
+            SortedDocValuesIterator sub = leaf.reader().getSortedDocValues(fieldName);
             if (sub == null) {
-              sub = DocValues.emptySorted();
+              sub = DocValues.emptySortedIterator();
             }
             accumSingle(counts, startTermIndex, sub, disi, subIndex, ordinalMap);
           }
@@ -256,7 +265,7 @@ public class DocValuesFacets {
   }
   
   /** accumulates per-segment single-valued facet counts */
-  static void accumSingle(int counts[], int startTermIndex, SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumSingle(int counts[], int startTermIndex, SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     if (startTermIndex == -1 && (map == null || si.getValueCount() < disi.cost()*10)) {
       // no prefixing, not too many unique values wrt matching docs (lucene/facets heuristic): 
       //   collect separately per-segment, then map to global ords
@@ -268,11 +277,19 @@ public class DocValuesFacets {
   }
   
   /** accumulates per-segment single-valued facet counts, mapping to global ordinal space on-the-fly */
-  static void accumSingleGeneric(int counts[], int startTermIndex, SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumSingleGeneric(int counts[], int startTermIndex, SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordmap = map == null ? null : map.getGlobalOrds(subIndex);
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      int term = si.getOrd(doc);
+      if (doc > si.docID()) {
+        si.advance(doc);
+      }
+      int term;
+      if (doc == si.docID()) {
+        term = si.ordValue();
+      } else {
+        term = -1;
+      }
       if (map != null && term >= 0) {
         term = (int) ordmap.get(term);
       }
@@ -282,7 +299,7 @@ public class DocValuesFacets {
   }
   
   /** "typical" single-valued faceting: not too many unique values, no prefixing. maps to global ordinals as a separate step */
-  static void accumSingleSeg(int counts[], SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumSingleSeg(int counts[], SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     // First count in seg-ord space:
     final int segCounts[];
     if (map == null) {
@@ -293,7 +310,14 @@ public class DocValuesFacets {
     
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      segCounts[1+si.getOrd(doc)]++;
+      if (doc > si.docID()) {
+        si.advance(doc);
+      }
+      if (doc == si.docID()) {
+        segCounts[1+si.ordValue()]++;
+      } else {
+        segCounts[0]++;
+      }
     }
     
     // migrate to global ords (if necessary)

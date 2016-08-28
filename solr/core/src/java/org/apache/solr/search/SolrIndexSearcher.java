@@ -56,6 +56,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor.Status;
 import org.apache.lucene.index.StoredFieldVisitor;
@@ -864,15 +865,14 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             doc.addField(fieldName, value);
             break;
           case SORTED:
-            SortedDocValues sdv = leafReader.getSortedDocValues(fieldName);
-            int ord = sdv.getOrd(docid);
-            if (ord >= 0) {
+            SortedDocValuesIterator sdv = leafReader.getSortedDocValues(fieldName);
+            if (sdv.advance(docid) == docid) {
+              final BytesRef bRef = sdv.binaryValue();
               // Special handling for Boolean fields since they're stored as 'T' and 'F'.
               if (schemaField.getType() instanceof BoolField) {
-                final BytesRef bRef = sdv.lookupOrd(ord);
                 doc.addField(fieldName, schemaField.getType().toObject(schemaField, bRef));
               } else {
-                doc.addField(fieldName, sdv.get(docid).utf8ToString());
+                doc.addField(fieldName, bRef.utf8ToString());
               }
             }
             break;

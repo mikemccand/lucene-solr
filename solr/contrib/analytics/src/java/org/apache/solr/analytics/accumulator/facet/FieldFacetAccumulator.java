@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -48,7 +49,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
   protected final boolean numField;
   protected final boolean dateField;
   protected SortedSetDocValues setValues;
-  protected SortedDocValues sortValues; 
+  protected SortedDocValuesIterator sortValues; 
   protected NumericDocValuesIterator numValues;
   
   public FieldFacetAccumulator(SolrIndexSearcher searcher, FacetValueAccumulator parent, SchemaField schemaField) throws IOException {  
@@ -122,11 +123,13 @@ public class FieldFacetAccumulator extends ValueAccumulator {
         }
       } else {
         if(sortValues != null) {
-          final int ord = sortValues.getOrd(doc);
-          if (ord < 0) {
-            parent.collectField(doc, name, FacetingAccumulator.MISSING_VALUE );
+          if (doc > sortValues.docID()) {
+            sortValues.advance(doc);
+          }
+          if (doc == sortValues.docID()) {
+            parent.collectField(doc, name, parser.parse(sortValues.lookupOrd(sortValues.ordValue())) );
           } else {
-            parent.collectField(doc, name, parser.parse(sortValues.lookupOrd(ord)) );
+            parent.collectField(doc, name, FacetingAccumulator.MISSING_VALUE );
           }
         } else {
           parent.collectField(doc, name, FacetingAccumulator.MISSING_VALUE );

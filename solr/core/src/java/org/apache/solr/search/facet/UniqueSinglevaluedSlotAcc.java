@@ -22,26 +22,27 @@ import java.io.IOException;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.LongValues;
 import org.apache.solr.search.SolrIndexSearcher;
 
 class UniqueSinglevaluedSlotAcc extends UniqueSlotAcc {
-  final SortedDocValues topLevel;
-  final SortedDocValues[] subDvs;
+  final SortedDocValuesIterator topLevel;
+  final SortedDocValuesIterator[] subDvs;
   final MultiDocValues.OrdinalMap ordMap;
   LongValues toGlobal;
-  SortedDocValues subDv;
+  SortedDocValuesIterator subDv;
 
   public UniqueSinglevaluedSlotAcc(FacetContext fcontext, String field, int numSlots, HLLAgg.HLLFactory factory) throws IOException {
     super(fcontext, field, numSlots, factory);
     SolrIndexSearcher searcher = fcontext.qcontext.searcher();
     topLevel = FieldUtil.getSortedDocValues(fcontext.qcontext, searcher.getSchema().getField(field), null);
     nTerms = topLevel.getValueCount();
-    if (topLevel instanceof MultiDocValues.MultiSortedDocValues) {
-      ordMap = ((MultiDocValues.MultiSortedDocValues)topLevel).mapping;
-      subDvs = ((MultiDocValues.MultiSortedDocValues)topLevel).values;
+    if (topLevel instanceof MultiDocValues.MultiSortedDocValuesIterator) {
+      ordMap = ((MultiDocValues.MultiSortedDocValuesIterator)topLevel).mapping;
+      subDvs = ((MultiDocValues.MultiSortedDocValuesIterator)topLevel).values;
     } else {
       ordMap = null;
       subDvs = null;
@@ -66,16 +67,20 @@ class UniqueSinglevaluedSlotAcc extends UniqueSlotAcc {
   }
 
   @Override
-  public void collect(int doc, int slotNum) {
-    int segOrd = subDv.getOrd(doc);
-    if (segOrd < 0) return;  // -1 means missing
-    int ord = toGlobal==null ? segOrd : (int)toGlobal.get(segOrd);
-
-    FixedBitSet bits = arr[slotNum];
-    if (bits == null) {
-      bits = new FixedBitSet(nTerms);
-      arr[slotNum] = bits;
+  public void collect(int doc, int slotNum) throws IOException {
+    if (doc > subDv.docID()) {
+      subDv.advance(doc);
     }
-    bits.set(ord);
+    if (doc == subDv.docID()) {
+      int segOrd = subDv.ordValue();
+      int ord = toGlobal==null ? segOrd : (int)toGlobal.get(segOrd);
+
+      FixedBitSet bits = arr[slotNum];
+      if (bits == null) {
+        bits = new FixedBitSet(nTerms);
+        arr[slotNum] = bits;
+      }
+      bits.set(ord);
+    }
   }
 }

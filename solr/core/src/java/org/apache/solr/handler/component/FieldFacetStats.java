@@ -22,10 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.util.BytesRef;
@@ -57,7 +58,7 @@ public class FieldFacetStats {
   LeafReaderContext context;
   FunctionValues values;
 
-  SortedDocValues topLevelSortedValues = null;
+  SortedDocValuesIterator topLevelSortedValues = null;
 
   public FieldFacetStats(SolrIndexSearcher searcher, SchemaField facet_sf, StatsField statsField) {
     this.statsField = statsField;
@@ -97,9 +98,17 @@ public class FieldFacetStats {
     if (topLevelSortedValues == null) {
       topLevelSortedValues = DocValues.getSorted(topLevelReader, name);
     }
+
+    if (docID > topLevelSortedValues.docID()) {
+      topLevelSortedValues.advance(docID);
+    }
  
-    
-    int term = topLevelSortedValues.getOrd(docID);
+    int term;
+    if (docID == topLevelSortedValues.docID()) {
+      term = topLevelSortedValues.ordValue();
+    } else {
+      term = -1;
+    }
     
     int arrIdx = term;
     if (arrIdx >= 0 && arrIdx < topLevelSortedValues.getValueCount()) {
@@ -162,8 +171,12 @@ public class FieldFacetStats {
       topLevelSortedValues = DocValues.getSorted(topLevelReader, name);
     }
     
-    int ord = topLevelSortedValues.getOrd(docID);
-    if (ord != -1) {
+    if (docID > topLevelSortedValues.docID()) {
+      topLevelSortedValues.advance(docID);
+    }
+ 
+    if (docID == topLevelSortedValues.docID()) {
+      int ord = topLevelSortedValues.ordValue();
       Integer missingCount = missingStats.get(ord);
       if (missingCount == null) {
         missingStats.put(ord, 1);

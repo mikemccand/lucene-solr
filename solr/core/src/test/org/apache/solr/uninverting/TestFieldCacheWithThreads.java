@@ -40,6 +40,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
@@ -86,7 +87,6 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           @Override
           public void run() {
             try {
-              SortedDocValues sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
               startingGun.await();
               int iters = atLeast(1000);
               for(int iter=0;iter<iters;iter++) {
@@ -123,10 +123,10 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
                 }
                 BinaryDocValuesIterator bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
                 assertEquals(docID, bdv.advance(docID));
-                BytesRef term = bdv.binaryValue();
-                assertEquals(binary.get(docID), term);
-                term = sdv.get(docID);
-                assertEquals(sorted.get(docID), term);
+                assertEquals(binary.get(docID), bdv.binaryValue());
+                SortedDocValuesIterator sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
+                assertEquals(docID, sdv.advance(docID));
+                assertEquals(sorted.get(docID), sdv.binaryValue());
               }
             } catch (Exception e) {
               throw new RuntimeException(e);
@@ -209,7 +209,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           @Override
           public void run() {
             Random random = random();            
-            final SortedDocValues stringDVDirect;
+            final SortedDocValuesIterator stringDVDirect;
             final NumericDocValuesIterator docIDToID;
             try {
               stringDVDirect = sr.getSortedDocValues("stringdv");
@@ -228,13 +228,15 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
               docIDToIDArray[i] = (int) docIDToID.longValue();
             }
             while(System.nanoTime() < END_TIME) {
-              final SortedDocValues source;
-              source = stringDVDirect;
-
               for(int iter=0;iter<100;iter++) {
                 final int docID = random.nextInt(sr.maxDoc());
-                BytesRef term = source.get(docID);
-                assertEquals(docValues.get(docIDToIDArray[docID]), term);
+                try {
+                  SortedDocValuesIterator dvs = sr.getSortedDocValues("stringdv");
+                  assertEquals(docID, dvs.advance(docID));
+                  assertEquals(docValues.get(docIDToIDArray[docID]), dvs.binaryValue());
+                } catch (IOException ioe) {
+                  throw new RuntimeException(ioe);
+                }
               }
             }
           }

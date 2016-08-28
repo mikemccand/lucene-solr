@@ -20,6 +20,7 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.QParser;
@@ -32,19 +33,19 @@ import org.apache.solr.search.SolrIndexSearcher;
 public class FieldUtil {
 
   /** Simpler method that creates a request context and looks up the field for you */
-  public static SortedDocValues getSortedDocValues(SolrIndexSearcher searcher, String field) throws IOException {
+  public static SortedDocValuesIterator getSortedDocValues(SolrIndexSearcher searcher, String field) throws IOException {
     SchemaField sf = searcher.getSchema().getField(field);
     QueryContext qContext = QueryContext.newContext(searcher);
     return getSortedDocValues( qContext, sf, null );
   }
 
 
-  public static SortedDocValues getSortedDocValues(QueryContext context, SchemaField field, QParser qparser) throws IOException {
-    SortedDocValues si = context.searcher().getLeafReader().getSortedDocValues( field.getName() );
+  public static SortedDocValuesIterator getSortedDocValues(QueryContext context, SchemaField field, QParser qparser) throws IOException {
+    SortedDocValuesIterator si = context.searcher().getLeafReader().getSortedDocValues( field.getName() );
     // if (!field.hasDocValues() && (field.getType() instanceof StrField || field.getType() instanceof TextField)) {
     // }
 
-    return si == null ? DocValues.emptySorted() : si;
+    return si == null ? DocValues.emptySortedIterator() : si;
   }
 
   public static SortedSetDocValues getSortedSetDocValues(QueryContext context, SchemaField field, QParser qparser) throws IOException {

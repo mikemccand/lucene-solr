@@ -21,10 +21,15 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.EmptyDocValuesProducer;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -58,10 +63,16 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
         ordinalMap = ((MultiDocValues.MultiSortedSetDocValues)si).mapping;
       }
     } else {
-      SortedDocValues single = FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
-      si = DocValues.singleton(single);  // multi-valued view
-      if (single instanceof MultiDocValues.MultiSortedDocValues) {
-        ordinalMap = ((MultiDocValues.MultiSortedDocValues)single).mapping;
+      // multi-valued view
+      SortedDocValuesIterator single = FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
+      si = DocValues.singleton(new StupidSortedDocValuesUnIterator(new EmptyDocValuesProducer() {
+          @Override
+          public SortedDocValuesIterator getSorted(FieldInfo fi) throws IOException {
+            return FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
+          }
+        }, null));
+      if (single instanceof MultiDocValues.MultiSortedDocValuesIterator) {
+        ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator)single).mapping;
       }
     }
 
@@ -127,7 +138,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
       DocIdSet dis = filter.getDocIdSet(subCtx, null); // solr docsets already exclude any deleted docs
       DocIdSetIterator disi = dis.iterator();
 
-      SortedDocValues singleDv = null;
+      SortedDocValuesIterator singleDv = null;
       SortedSetDocValues multiDv = null;
       if (multiValuedField) {
         // TODO: get sub from multi?
@@ -138,12 +149,15 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
         // some codecs may optimize SortedSet storage for single-valued fields
         // this will be null if this is not a wrapped single valued docvalues.
         if (unwrap_singleValued_multiDv) {
-          singleDv = DocValues.unwrapSingleton(multiDv);
+          SortedDocValues dvs = DocValues.unwrapSingleton(multiDv);
+          if (dvs != null) {
+            singleDv = new StupidSortedDocValuesIterator(dvs, subCtx.reader().maxDoc());
+          }
         }
       } else {
         singleDv = subCtx.reader().getSortedDocValues(sf.getName());
         if (singleDv == null) {
-          singleDv = DocValues.emptySorted();
+          singleDv = DocValues.emptySortedIterator();
         }
       }
 
@@ -187,13 +201,20 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     return reuse;
   }
 
-  private void collectPerSeg(SortedDocValues singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectPerSeg(SortedDocValuesIterator singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int segMax = singleDv.getValueCount() + 1;
     final int[] counts = getCountArr( segMax );
 
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      counts[ singleDv.getOrd(doc) + 1 ]++;
+      if (doc > singleDv.docID()) {
+        singleDv.advance(doc);
+      }
+      if (doc == singleDv.docID()) {
+        counts[ singleDv.ordValue() + 1 ]++;
+      } else {
+        counts[ 0 ]++;
+      }
     }
 
     for (int i=1; i<segMax; i++) {
@@ -229,22 +250,30 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     }
   }
 
-  private void collectDocs(SortedDocValues singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectDocs(SortedDocValuesIterator singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      int segOrd = singleDv.getOrd(doc);
-      if (segOrd < 0) continue;
-      collect(doc, segOrd, toGlobal);
+      if (doc > singleDv.docID()) {
+        singleDv.advance(doc);
+      }
+      if (doc == singleDv.docID()) {
+        int segOrd = singleDv.ordValue();
+        collect(doc, segOrd, toGlobal);
+      }
     }
   }
 
-  private void collectCounts(SortedDocValues singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectCounts(SortedDocValuesIterator singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      int segOrd = singleDv.getOrd(doc);
-      if (segOrd < 0) continue;
-      int ord = (int)toGlobal.get(segOrd);
-      countAcc.incrementCount(ord, 1);
+      if (doc > singleDv.docID()) {
+        singleDv.advance(doc);
+      }
+      if (doc == singleDv.docID()) {
+        int segOrd = singleDv.ordValue();
+        int ord = (int)toGlobal.get(segOrd);
+        countAcc.incrementCount(ord, 1);
+      }
     }
   }
 

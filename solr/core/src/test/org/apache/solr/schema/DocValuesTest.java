@@ -30,6 +30,7 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.solr.SolrTestCaseJ4;
@@ -97,8 +98,12 @@ public class DocValuesTest extends SolrTestCaseJ4 {
         dvs = reader.getNumericDocValuesIterator("longdv");
         assertEquals(0, dvs.nextDoc());
         assertEquals(4L, dvs.longValue());
-        assertEquals("solr", reader.getSortedDocValues("stringdv").get(0).utf8ToString());
-        assertEquals("T", reader.getSortedDocValues("booldv").get(0).utf8ToString());
+        SortedDocValuesIterator sdv = reader.getSortedDocValues("stringdv");
+        assertEquals(0, sdv.nextDoc());
+        assertEquals("solr", sdv.binaryValue().utf8ToString());
+        sdv = reader.getSortedDocValues("booldv");
+        assertEquals(0, sdv.nextDoc());
+        assertEquals("T", sdv.binaryValue().utf8ToString());
 
         final IndexSchema schema = core.getLatestSchema();
         final SchemaField floatDv = schema.getField("floatdv");

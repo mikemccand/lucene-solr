@@ -39,6 +39,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
@@ -52,6 +53,7 @@ import org.apache.lucene.util.TestUtil;
 import org.apache.solr.index.SlowCompositeReaderWrapper;
 
 import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 public class TestFieldCacheVsDocValues extends LuceneTestCase {
   
@@ -333,8 +335,8 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     DirectoryReader ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      SortedDocValues expected = FieldCache.DEFAULT.getTermsIndex(r, "indexed");
-      SortedDocValues actual = r.getSortedDocValues("dv");
+      SortedDocValuesIterator expected = FieldCache.DEFAULT.getTermsIndex(r, "indexed");
+      SortedDocValuesIterator actual = r.getSortedDocValues("dv");
       assertEquals(r.maxDoc(), expected, actual);
     }
     ir.close();
@@ -488,8 +490,36 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     }
   }
   
-  private void assertEquals(int maxDoc, SortedDocValues expected, SortedDocValues actual) throws Exception {
-    assertEquals(maxDoc, DocValues.singleton(expected), DocValues.singleton(actual));
+  private void assertEquals(int maxDoc, SortedDocValuesIterator expected, SortedDocValuesIterator actual) throws Exception {
+    // can be null for the segment if no docs actually had any SortedDocValues
+    // in this case FC.getDocTermsOrds returns EMPTY
+    if (actual == null) {
+      assertEquals(expected.getValueCount(), 0);
+      return;
+    }
+    assertEquals(expected.getValueCount(), actual.getValueCount());
+
+    // compare ord lists
+    while (true) {
+      int docID = expected.nextDoc();
+      if (docID == NO_MORE_DOCS) {
+        assertEquals(NO_MORE_DOCS, actual.nextDoc());
+        break;
+      }
+      assertEquals(docID, actual.nextDoc());
+      assertEquals(expected.ordValue(), actual.ordValue());
+      assertEquals(expected.binaryValue(), actual.binaryValue());
+    }
+    
+    // compare ord dictionary
+    for (long i = 0; i < expected.getValueCount(); i++) {
+      final BytesRef expectedBytes = BytesRef.deepCopyOf(expected.lookupOrd((int) i));
+      final BytesRef actualBytes = actual.lookupOrd((int) i);
+      assertEquals(expectedBytes, actualBytes);
+    }
+    
+    // compare termsenum
+    assertEquals(expected.getValueCount(), expected.termsEnum(), actual.termsEnum());
   }
   
   private void assertEquals(int maxDoc, SortedSetDocValues expected, SortedSetDocValues actual) throws Exception {

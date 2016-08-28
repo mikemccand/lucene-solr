@@ -19,6 +19,7 @@ package org.apache.lucene.index;
 
 import java.io.IOException;
 
+import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -32,16 +33,32 @@ import org.apache.lucene.util.FixedBitSet;
 public final class StupidSortedDocValuesUnIterator extends SortedDocValues {
   private final LeafReader reader;
   private final String field;
+  private final DocValuesProducer producer;
+  private final FieldInfo fieldInfo;
   private SortedDocValuesIterator current;
   
   public StupidSortedDocValuesUnIterator(LeafReader reader, String field) throws IOException {
     this.reader = reader;
     this.field = field;
+    producer = null;
+    fieldInfo = null;
+    resetCurrent();
+  }
+
+  public StupidSortedDocValuesUnIterator(DocValuesProducer producer, FieldInfo fieldInfo) throws IOException {
+    this.producer = producer;
+    this.fieldInfo = fieldInfo;
+    field = null;
+    reader = null;
     resetCurrent();
   }
 
   private void resetCurrent() throws IOException {
-    current = reader.getSortedDocValues(field);
+    if (reader != null) {
+      current = reader.getSortedDocValues(field);
+    } else {
+      current = producer.getSorted(fieldInfo);
+    }
   }
 
   @Override

@@ -26,6 +26,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.IndexSearcher;
@@ -274,7 +275,7 @@ public class HashQParserPlugin extends QParserPlugin {
 
   private class BytesHash implements HashKey {
 
-    private SortedDocValues values;
+    private SortedDocValuesIterator values;
     private String field;
     private FieldType fieldType;
     private CharsRefBuilder charsRefBuilder = new CharsRefBuilder();
@@ -288,8 +289,16 @@ public class HashQParserPlugin extends QParserPlugin {
       values = context.reader().getSortedDocValues(field);
     }
 
-    public long hashCode(int doc) {
-      BytesRef ref = values.get(doc);
+    public long hashCode(int doc) throws IOException {
+      if (doc > values.docID()) {
+        values.advance(doc);
+      }
+      BytesRef ref;
+      if (doc == values.docID()) {
+        ref = values.binaryValue();
+      } else {
+        ref = null;
+      }
       this.fieldType.indexedToReadable(ref, charsRefBuilder);
       CharsRef charsRef = charsRefBuilder.get();
       return charsRef.hashCode();

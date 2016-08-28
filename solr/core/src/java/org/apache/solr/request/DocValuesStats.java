@@ -20,13 +20,16 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.MultiDocValues.MultiSortedDocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -89,10 +92,10 @@ public class DocValuesStats {
         ordinalMap = ((MultiSortedSetDocValues)si).mapping;
       }
     } else {
-      SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
-      si = single == null ? null : DocValues.singleton(single);
-      if (single instanceof MultiSortedDocValues) {
-        ordinalMap = ((MultiSortedDocValues)single).mapping;
+      SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
+      si = single == null ? null : DocValues.singleton(new StupidSortedDocValuesUnIterator(searcher.getLeafReader(), fieldName));
+      if (single instanceof MultiSortedDocValuesIterator) {
+        ordinalMap = ((MultiSortedDocValuesIterator)single).mapping;
       }
     }
     if (si == null) {
@@ -127,17 +130,18 @@ public class DocValuesStats {
           if (sub == null) {
             sub = DocValues.emptySortedSet();
           }
-          final SortedDocValues singleton = DocValues.unwrapSingleton(sub);
-          if (singleton != null) {
+          SortedDocValues unwrapped = DocValues.unwrapSingleton(sub);
+          if (unwrapped != null) {
+            final SortedDocValuesIterator singleton = new StupidSortedDocValuesIterator(unwrapped, leaf.reader().maxDoc());
             // some codecs may optimize SORTED_SET storage for single-valued fields
             missingDocCountTotal += accumSingle(counts, docBase, facetStats, singleton, disi, subIndex, ordinalMap);
           } else {
             missingDocCountTotal += accumMulti(counts, docBase, facetStats, sub, disi, subIndex, ordinalMap);
           }
         } else {
-          SortedDocValues sub = leaf.reader().getSortedDocValues(fieldName);
+          SortedDocValuesIterator sub = leaf.reader().getSortedDocValues(fieldName);
           if (sub == null) {
-            sub = DocValues.emptySorted();
+            sub = DocValues.emptySortedIterator();
           }
           missingDocCountTotal += accumSingle(counts, docBase, facetStats, sub, disi, subIndex, ordinalMap);
         }
@@ -169,13 +173,16 @@ public class DocValuesStats {
   }
 
   /** accumulates per-segment single-valued stats */
-  static int accumSingle(int counts[], int docBase, FieldFacetStats[] facetStats, SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static int accumSingle(int counts[], int docBase, FieldFacetStats[] facetStats, SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordMap = map == null ? null : map.getGlobalOrds(subIndex);
     int missingDocCount = 0;
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      int term = si.getOrd(doc);
-      if (term >= 0) {
+      if (doc > si.docID()) {
+        si.advance(doc);
+      }
+      if (doc == si.docID()) {
+        int term = si.ordValue();
         if (map != null) {
           term = (int) ordMap.get(term);
         }

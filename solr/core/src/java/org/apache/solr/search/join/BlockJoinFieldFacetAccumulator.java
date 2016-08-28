@@ -20,11 +20,15 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.EmptyDocValuesProducer;
+import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
+import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRefBuilder;
@@ -65,10 +69,16 @@ class BlockJoinFieldFacetAccumulator {
         ordinalMap = ((MultiDocValues.MultiSortedSetDocValues) topSSDV).mapping;
       }
     } else {
-      SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
-      topSSDV = single == null ? null : DocValues.singleton(single);// npe friendly code
-      if (single instanceof MultiDocValues.MultiSortedDocValues) {
-        ordinalMap = ((MultiDocValues.MultiSortedDocValues) single).mapping;
+      SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
+      // npe friendly code
+      topSSDV = single == null ? null : DocValues.singleton(new StupidSortedDocValuesUnIterator(new EmptyDocValuesProducer() {
+          @Override
+          public SortedDocValuesIterator getSorted(FieldInfo fieldInfo) throws IOException {
+            return searcher.getLeafReader().getSortedDocValues(fieldName);
+          }
+        }, null));
+      if (single instanceof MultiDocValues.MultiSortedDocValuesIterator) {
+        ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator) single).mapping;
       }
     }
   }

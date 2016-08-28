@@ -51,6 +51,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.Directory;
@@ -179,14 +180,16 @@ public class TestFieldCache extends LuceneTestCase {
     }
 
     // getTermsIndex
-    SortedDocValues termsIndex = cache.getTermsIndex(reader, "theRandomUnicodeString");
+    SortedDocValuesIterator termsIndex = cache.getTermsIndex(reader, "theRandomUnicodeString");
     for (int i = 0; i < NUM_DOCS; i++) {
       final String s;
-      final int ord = termsIndex.getOrd(i);
-      if (ord == -1) {
-        s = null;
+      if (i > termsIndex.docID()) {
+        termsIndex.advance(i);
+      }
+      if (i == termsIndex.docID()) {
+        s = termsIndex.binaryValue().utf8ToString();
       } else {
-        s = termsIndex.lookupOrd(ord).utf8ToString();
+        s = null;
       }
       assertTrue("for doc " + i + ": " + s + " does not equal: " + unicodeStrings[i], unicodeStrings[i] == null || unicodeStrings[i].equals(s));
     }
@@ -447,10 +450,11 @@ public class TestFieldCache extends LuceneTestCase {
     BytesRef scratch = binary.binaryValue();
     assertEquals("sorted value", scratch.utf8ToString());
     
-    SortedDocValues sorted = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
-    assertEquals(0, sorted.getOrd(0));
+    SortedDocValuesIterator sorted = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
+    assertEquals(0, sorted.nextDoc());
+    assertEquals(0, sorted.ordValue());
     assertEquals(1, sorted.getValueCount());
-    scratch = sorted.get(0);
+    scratch = sorted.binaryValue();
     assertEquals("sorted value", scratch.utf8ToString());
     
     SortedSetDocValues sortedSet = FieldCache.DEFAULT.getDocTermOrds(ar, "sorted", null);
@@ -546,10 +550,8 @@ public class TestFieldCache extends LuceneTestCase {
     BinaryDocValuesIterator binaries = cache.getTerms(ar, "bogusterms");
     assertEquals(NO_MORE_DOCS, binaries.nextDoc());
     
-    SortedDocValues sorted = cache.getTermsIndex(ar, "bogustermsindex");
-    assertEquals(-1, sorted.getOrd(0));
-    BytesRef scratch = sorted.get(0);
-    assertEquals(0, scratch.length);
+    SortedDocValuesIterator sorted = cache.getTermsIndex(ar, "bogustermsindex");
+    assertEquals(NO_MORE_DOCS, sorted.nextDoc());
     
     SortedSetDocValues sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
     sortedSet.setDocument(0);
@@ -603,10 +605,8 @@ public class TestFieldCache extends LuceneTestCase {
     BinaryDocValuesIterator binaries = cache.getTerms(ar, "bogusterms");
     assertEquals(NO_MORE_DOCS, binaries.nextDoc());
     
-    SortedDocValues sorted = cache.getTermsIndex(ar, "bogustermsindex");
-    assertEquals(-1, sorted.getOrd(0));
-    BytesRef scratch = sorted.get(0);
-    assertEquals(0, scratch.length);
+    SortedDocValuesIterator sorted = cache.getTermsIndex(ar, "bogustermsindex");
+    assertEquals(NO_MORE_DOCS, sorted.nextDoc());
     
     SortedSetDocValues sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
     sortedSet.setDocument(0);

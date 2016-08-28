@@ -30,6 +30,7 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
+import org.apache.lucene.index.EmptyDocValuesProducer;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
@@ -40,8 +41,10 @@ import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
+import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -750,21 +753,61 @@ class FieldCacheImpl implements FieldCache {
       this.numOrd = numOrd;
     }
     
-    public SortedDocValues iterator() {
+    public SortedDocValuesIterator iterator() {
       final BytesRef term = new BytesRef();
-      return new SortedDocValues() {
+      return new SortedDocValuesIterator() {
+        private int docID = -1;
 
         @Override
-        public int getValueCount() {
-          return numOrd;
+        public int docID() {
+          return docID;
         }
 
         @Override
-        public int getOrd(int docID) {
+        public int nextDoc() {
+          while (true) {
+            docID++;
+            if (docID >= docToTermOrd.size()) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            if (docToTermOrd.get(docID) != 0) {
+              return docID;
+            }
+          }
+        }
+
+        @Override
+        public int advance(int target) {
+          if (target < docToTermOrd.size()) {
+            docID = target;
+            if (docToTermOrd.get(docID) != 0) {
+              return docID;
+            } else{
+              return nextDoc();
+            }
+          } else {
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+        }
+
+        @Override
+        public long cost() {
+          return 0;
+        }
+        
+        @Override
+        public int ordValue() {
           // Subtract 1, matching the 1+ord we did when
           // storing, so that missing values, which are 0 in the
           // packed ints, are returned as -1 ord:
           return (int) docToTermOrd.get(docID)-1;
+        }
+
+        @Override
+        public int getValueCount() {
+          return numOrd;
         }
 
         @Override
@@ -797,12 +840,12 @@ class FieldCacheImpl implements FieldCache {
     }
   }
 
-  public SortedDocValues getTermsIndex(LeafReader reader, String field) throws IOException {
+  public SortedDocValuesIterator getTermsIndex(LeafReader reader, String field) throws IOException {
     return getTermsIndex(reader, field, PackedInts.FAST);
   }
 
-  public SortedDocValues getTermsIndex(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
-    SortedDocValues valuesIn = reader.getSortedDocValues(field);
+  public SortedDocValuesIterator getTermsIndex(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
+    SortedDocValuesIterator valuesIn = reader.getSortedDocValues(field);
     if (valuesIn != null) {
       // Not cached here by FieldCacheImpl (cached instead
       // per-thread by SegmentReader):
@@ -810,13 +853,13 @@ class FieldCacheImpl implements FieldCache {
     } else {
       final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
       if (info == null) {
-        return DocValues.emptySorted();
+        return DocValues.emptySortedIterator();
       } else if (info.getDocValuesType() != DocValuesType.NONE) {
         // we don't try to build a sorted instance from numeric/binary doc
         // values because dedup can be very costly
         throw new IllegalStateException("Type mismatch: " + field + " was indexed as " + info.getDocValuesType());
       } else if (info.getIndexOptions() == IndexOptions.NONE) {
-        return DocValues.emptySorted();
+        return DocValues.emptySortedIterator();
       }
       SortedDocValuesImpl impl = (SortedDocValuesImpl) caches.get(SortedDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
       return impl.iterator();
@@ -952,7 +995,7 @@ class FieldCacheImpl implements FieldCache {
 
         @Override
         public long cost() {
-          return docToOffset.size();
+          return 0;
         }
 
         @Override
@@ -991,10 +1034,7 @@ class FieldCacheImpl implements FieldCache {
   public BinaryDocValuesIterator getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
     BinaryDocValuesIterator valuesIn = reader.getBinaryDocValuesIterator(field);
     if (valuesIn == null) {
-      BinaryDocValues sortedValues = reader.getSortedDocValues(field);
-      if (sortedValues != null) {
-        valuesIn = new StupidBinaryDocValuesIterator(getDocsWithField(reader, field, null), sortedValues);
-      }
+      valuesIn = reader.getSortedDocValues(field);
     }
 
     if (valuesIn != null) {
@@ -1119,9 +1159,9 @@ class FieldCacheImpl implements FieldCache {
       return dv;
     }
     
-    SortedDocValues sdv = reader.getSortedDocValues(field);
+    SortedDocValuesIterator sdv = reader.getSortedDocValues(field);
     if (sdv != null) {
-      return DocValues.singleton(sdv);
+      return DocValues.singleton(new StupidSortedDocValuesUnIterator(reader, field));
     }
     
     final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
@@ -1144,7 +1184,12 @@ class FieldCacheImpl implements FieldCache {
       // it's still ok with filtering (which we limit to numerics), it just means precisionStep = Inf
       long numPostings = terms.getSumDocFreq();
       if (numPostings != -1 && numPostings == terms.getDocCount()) {
-        return DocValues.singleton(getTermsIndex(reader, field));
+        return DocValues.singleton(new StupidSortedDocValuesUnIterator(new EmptyDocValuesProducer() {
+            @Override
+            public SortedDocValuesIterator getSorted(FieldInfo fieldInfo) throws IOException {
+              return getTermsIndex(reader, field);
+            }
+          }, info));
       }
     }
     
