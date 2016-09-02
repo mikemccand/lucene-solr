@@ -43,9 +43,11 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.store.BufferedChecksumIndexInput;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -406,7 +408,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
 
   @Override
-  public SortedSetDocValues getSortedSet(FieldInfo fieldInfo) throws IOException {
+  public SortedSetDocValuesIterator getSortedSet(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
 
     // SegmentCoreReaders already verifies this field is
@@ -417,7 +419,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final BytesRefBuilder scratch = new BytesRefBuilder();
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
     
-    return new SortedSetDocValues() {
+    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
       String[] currentOrds = new String[0];
       int currentIndex = 0;
       final BytesRefBuilder term = new BytesRefBuilder();
@@ -479,7 +481,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
       public long getValueCount() {
         return field.numValues;
       }
-    };
+      }, maxDoc);
   }
   
   @Override

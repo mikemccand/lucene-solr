@@ -37,15 +37,16 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Accountable;
@@ -528,7 +529,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
+  public synchronized SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
     SortedSetRawValues instance = sortedSetInstances.get(field.name);
     final SortedSetEntry entry = sortedSets.get(field.name);
     if (instance == null) {
@@ -542,14 +543,14 @@ class DirectDocValuesProducer extends DocValuesProducer {
 
     if (instance.docToOrdAddress == null) {
       SortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
-      return DocValues.singleton(sorted);
+      return DocValues.singleton(new StupidSortedDocValuesIterator(sorted, maxDoc));
     } else {
       final NumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
       final NumericDocValues ords = instance.ords.numerics;
       final BinaryDocValues values = getBinary(field);
       
       // Must make a new instance since the iterator has state:
-      return new RandomAccessOrds() {
+      return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
         int ordStart;
         int ordUpto;
         int ordLimit;
@@ -579,20 +580,10 @@ class DirectDocValuesProducer extends DocValuesProducer {
           return entry.values.count;
         }
         
-        @Override
-        public long ordAt(int index) {
-          return ords.get(ordStart + index);
-        }
-        
-        @Override
-        public int cardinality() {
-          return ordLimit - ordStart;
-        }
-        
         // Leave lookupTerm to super's binary search
         
         // Leave termsEnum to super
-      };
+        }, maxDoc);
     }
   }
   

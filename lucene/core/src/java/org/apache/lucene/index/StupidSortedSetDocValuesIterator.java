@@ -25,15 +25,15 @@ import org.apache.lucene.util.FixedBitSet;
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedSetDocValues}
  */
-public final class StupidSortedDocValuesIterator extends SortedDocValuesIterator {
-  private final SortedDocValues values;
+public final class StupidSortedSetDocValuesIterator extends SortedSetDocValuesIterator {
+  private final SortedSetDocValues values;
   private final int maxDoc;
   private int docID = -1;
-  private int ord;
+  private long ord;
   
-  public StupidSortedDocValuesIterator(SortedDocValues values, int maxDoc) {
+  public StupidSortedSetDocValuesIterator(SortedSetDocValues values, int maxDoc) {
     this.values = values;
     this.maxDoc = maxDoc;
   }
@@ -48,8 +48,9 @@ public final class StupidSortedDocValuesIterator extends SortedDocValuesIterator
     assert docID != NO_MORE_DOCS;
     docID++;
     while (docID < maxDoc) {
-      ord = values.getOrd(docID);
-      if (ord != -1) {
+      values.setDocument(docID);
+      ord = values.nextOrd();
+      if (ord != NO_MORE_ORDS) {
         return docID;
       }
       docID++;
@@ -78,17 +79,21 @@ public final class StupidSortedDocValuesIterator extends SortedDocValuesIterator
   }
 
   @Override
-  public int ordValue() {
-    return ord;
+  public long nextOrd() {
+    long result = ord;
+    if (result != NO_MORE_ORDS) {
+      ord = values.nextOrd();
+    }
+    return result;
   }
 
   @Override
-  public BytesRef lookupOrd(int ord) {
-    return values.lookupOrd(ord);
+  public BytesRef lookupOrd(long ord) {
+    return values.lookupOrd((int) ord);
   }
 
   @Override
-  public int getValueCount() {
+  public long getValueCount() {
     return values.getValueCount();
   }
 }

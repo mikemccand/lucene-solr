@@ -455,7 +455,7 @@ public abstract class FilterLeafReader extends LeafReader {
   }
 
   @Override
-  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
     ensureOpen();
     return in.getSortedSetDocValues(field);
   }

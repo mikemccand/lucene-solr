@@ -16,16 +16,20 @@
  */
 package org.apache.lucene.search.join;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.LuceneTestCase;
+
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 public class TestBlockJoinSelector extends LuceneTestCase {
 
@@ -61,7 +65,7 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     assertFalse(docsWithValue.get(19));
   }
 
-  public void testSortedSelector() {
+  public void testSortedSelector() throws IOException {
     final BitSet parents = new FixedBitSet(20);
     parents.set(0);
     parents.set(5);
@@ -84,40 +88,88 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     ords[4] = 3;
     ords[12] = 10;
     ords[18] = 10;
-    final SortedDocValues values = new SortedDocValues() {
 
-      @Override
-      public int getOrd(int docID) {
-        return ords[docID];
+    final SortedDocValuesIterator mins = BlockJoinSelector.wrap(DocValues.singleton(new CannedSortedDocValuesIterator(ords)), BlockJoinSelector.Type.MIN, parents, children);
+    assertEquals(5, mins.nextDoc());
+    assertEquals(3, mins.ordValue());
+    assertEquals(15, mins.nextDoc());
+    assertEquals(10, mins.ordValue());
+    assertEquals(19, mins.nextDoc());
+    assertEquals(10, mins.ordValue());
+    assertEquals(NO_MORE_DOCS, mins.nextDoc());
+
+    final SortedDocValuesIterator maxs = BlockJoinSelector.wrap(DocValues.singleton(new CannedSortedDocValuesIterator(ords)), BlockJoinSelector.Type.MAX, parents, children);
+    assertEquals(5, maxs.nextDoc());
+    assertEquals(7, maxs.ordValue());
+    assertEquals(15, maxs.nextDoc());
+    assertEquals(10, maxs.ordValue());
+    assertEquals(19, maxs.nextDoc());
+    assertEquals(10, maxs.ordValue());
+    assertEquals(NO_MORE_DOCS, maxs.nextDoc());
+  }
+
+  private static class CannedSortedDocValuesIterator extends SortedDocValuesIterator {
+    private final int[] ords;
+    int docID = -1;
+
+    public CannedSortedDocValuesIterator(int[] ords) {
+      this.ords = ords;
+    }
+
+
+    @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() {
+      while (true) {
+        docID++;
+        if (docID == ords.length) {
+          docID = NO_MORE_DOCS;
+          break;
+        }
+        if (ords[docID] != -1) {
+          break;
+        }
       }
+      return docID;
+    }
 
-      @Override
-      public BytesRef lookupOrd(int ord) {
-        throw new UnsupportedOperationException();
+    @Override
+    public int advance(int target) {
+      if (target >= ords.length) {
+        docID = NO_MORE_DOCS;
+      } else {
+        docID = target;
+        if (ords[docID] == -1) {
+          nextDoc();
+        }
       }
+      return docID;
+    }
 
-      @Override
-      public int getValueCount() {
-        return 11;
-      }
+    @Override
+    public int ordValue() {
+      assert ords[docID] != -1;
+      return ords[docID];
+    }
 
-    };
+    @Override
+    public long cost() {
+      return 5;
+    }
+        
+    @Override
+    public BytesRef lookupOrd(int ord) {
+      throw new UnsupportedOperationException();
+    }
 
-    final SortedDocValues mins = BlockJoinSelector.wrap(DocValues.singleton(values), BlockJoinSelector.Type.MIN, parents, children);
-    assertEquals(-1, mins.getOrd(0));
-    assertEquals(3, mins.getOrd(5));
-    assertEquals(-1, mins.getOrd(6));
-    assertEquals(-1, mins.getOrd(10));
-    assertEquals(10, mins.getOrd(15));
-    assertEquals(-1, mins.getOrd(19));
-
-    final SortedDocValues maxs = BlockJoinSelector.wrap(DocValues.singleton(values), BlockJoinSelector.Type.MAX, parents, children);
-    assertEquals(-1, maxs.getOrd(0));
-    assertEquals(7, maxs.getOrd(5));
-    assertEquals(-1, maxs.getOrd(6));
-    assertEquals(-1, maxs.getOrd(10));
-    assertEquals(10, maxs.getOrd(15));
-    assertEquals(-1, maxs.getOrd(19));
+    @Override
+    public int getValueCount() {
+      return 11;
+    }
   }
 
   public void testNumericSelector() {

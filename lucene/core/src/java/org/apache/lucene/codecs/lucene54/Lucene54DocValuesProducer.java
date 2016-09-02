@@ -39,15 +39,16 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -920,12 +921,11 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   }
 
   @Override
-  public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
     SortedSetEntry ss = sortedSets.get(field.name);
     switch (ss.format) {
       case SORTED_SINGLE_VALUED:
-        final SortedDocValues values = getSortedNonIterator(field);
-        return DocValues.singleton(values);
+        return DocValues.singleton(getSorted(field));
       case SORTED_WITH_ADDRESSES:
         return getSortedSetWithAddresses(field);
       case SORTED_SET_TABLE:
@@ -935,7 +935,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     }
   }
 
-  private SortedSetDocValues getSortedSetWithAddresses(FieldInfo field) throws IOException {
+  private SortedSetDocValuesIterator getSortedSetWithAddresses(FieldInfo field) throws IOException {
     final long valueCount = binaries.get(field.name).count;
     // we keep the byte[]s and list of ords on disk, these could be large
     final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
@@ -943,7 +943,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     // but the addresses to the ord stream are in RAM
     final LongValues ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
 
-    return new RandomAccessOrds() {
+    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
       long startOffset;
       long offset;
       long endOffset;
@@ -992,20 +992,10 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
           return super.termsEnum();
         }
       }
-
-      @Override
-      public long ordAt(int index) {
-        return ordinals.get(startOffset + index);
-      }
-
-      @Override
-      public int cardinality() {
-        return (int) (endOffset - startOffset);
-      }
-    };
+      }, maxDoc);
   }
 
-  private SortedSetDocValues getSortedSetTable(FieldInfo field, SortedSetEntry ss) throws IOException {
+  private SortedSetDocValuesIterator getSortedSetTable(FieldInfo field, SortedSetEntry ss) throws IOException {
     final long valueCount = binaries.get(field.name).count;
     final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
     final LongValues ordinals = getNumeric(ords.get(field.name));
@@ -1013,7 +1003,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     final long[] table = ss.table;
     final int[] offsets = ss.tableOffsets;
 
-    return new RandomAccessOrds() {
+    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
 
       int offset, startOffset, endOffset;
 
@@ -1025,22 +1015,12 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
       }
 
       @Override
-      public long ordAt(int index) {
-        return table[startOffset + index];
-      }
-
-      @Override
       public long nextOrd() {
         if (offset == endOffset) {
           return NO_MORE_ORDS;
         } else {
           return table[offset++];
         }
-      }
-
-      @Override
-      public int cardinality() {
-        return endOffset - startOffset;
       }
 
       @Override
@@ -1070,8 +1050,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
           return super.termsEnum();
         }
       }
-
-    };
+      }, maxDoc);
   }
 
   private Bits getLiveBits(final long offset, final int count) throws IOException {

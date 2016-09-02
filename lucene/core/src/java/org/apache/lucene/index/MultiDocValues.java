@@ -521,7 +521,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getSortedSetDocValues(String)}
    * </p>  
    */
-  public static SortedSetDocValues getSortedSetValues(final IndexReader r, final String field) throws IOException {
+  public static SortedSetDocValuesIterator getSortedSetValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     
@@ -532,15 +532,17 @@ public class MultiDocValues {
     }
     
     boolean anyReal = false;
-    final SortedSetDocValues[] values = new SortedSetDocValues[size];
+    final SortedSetDocValuesIterator[] values = new SortedSetDocValuesIterator[size];
     final int[] starts = new int[size+1];
+    long totalCost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      SortedSetDocValues v = context.reader().getSortedSetDocValues(field);
+      SortedSetDocValuesIterator v = context.reader().getSortedSetDocValues(field);
       if (v == null) {
         v = DocValues.emptySortedSet();
       } else {
         anyReal = true;
+        totalCost += v.cost();
       }
       values[i] = v;
       starts[i] = context.docBase;
@@ -551,7 +553,7 @@ public class MultiDocValues {
       return null;
     } else {
       OrdinalMap mapping = OrdinalMap.build(r.getCoreCacheKey(), values, PackedInts.DEFAULT);
-      return new MultiSortedSetDocValues(values, starts, mapping);
+      return new MultiSortedSetDocValuesIterator(values, starts, mapping, totalCost);
     }
   }
 
@@ -637,7 +639,7 @@ public class MultiDocValues {
      * {@link SortedSetDocValues} instance as a weight.
      * @see #build(Object, TermsEnum[], long[], float)
      */
-    public static OrdinalMap build(Object owner, SortedSetDocValues[] values, float acceptableOverheadRatio) throws IOException {
+    public static OrdinalMap build(Object owner, SortedSetDocValuesIterator[] values, float acceptableOverheadRatio) throws IOException {
       final TermsEnum[] subs = new TermsEnum[values.length];
       final long[] weights = new long[values.length];
       for (int i = 0; i < values.length; ++i) {
@@ -944,41 +946,97 @@ public class MultiDocValues {
    * Implements MultiSortedSetDocValues over n subs, using an OrdinalMap 
    * @lucene.internal
    */
-  public static class MultiSortedSetDocValues extends SortedSetDocValues {
+  public static class MultiSortedSetDocValuesIterator extends SortedSetDocValuesIterator {
     /** docbase for each leaf: parallel with {@link #values} */
     public final int docStarts[];
     /** leaf values */
-    public final SortedSetDocValues values[];
+    public final SortedSetDocValuesIterator values[];
     /** ordinal map mapping ords from <code>values</code> to global ord space */
     public final OrdinalMap mapping;
-    int currentSubIndex;
-    LongValues currentGlobalOrds;
-    
+    private final long totalCost;
+
+    private int nextLeaf;
+    private SortedSetDocValuesIterator currentValues;
+    private int currentDocStart;
+    private int docID = -1;    
+
     /** Creates a new MultiSortedSetDocValues over <code>values</code> */
-    public MultiSortedSetDocValues(SortedSetDocValues values[], int docStarts[], OrdinalMap mapping) throws IOException {
+    public MultiSortedSetDocValuesIterator(SortedSetDocValuesIterator values[], int docStarts[], OrdinalMap mapping, long totalCost) throws IOException {
       assert docStarts.length == values.length + 1;
       this.values = values;
       this.docStarts = docStarts;
       this.mapping = mapping;
+      this.totalCost = totalCost;
     }
     
     @Override
-    public long nextOrd() {
-      long segmentOrd = values[currentSubIndex].nextOrd();
-      if (segmentOrd == NO_MORE_ORDS) {
-        return segmentOrd;
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      while (true) {
+        while (currentValues == null) {
+          if (nextLeaf == values.length) {
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+          currentDocStart = docStarts[nextLeaf];
+          currentValues = values[nextLeaf];
+          nextLeaf++;
+        }
+
+        int newDocID = currentValues.nextDoc();
+
+        if (newDocID == NO_MORE_DOCS) {
+          currentValues = null;
+          continue;
+        } else {
+          docID = currentDocStart + newDocID;
+          return docID;
+        }
+      }
+    }
+
+    // nocommit we needs better tests of DV-as-iterator, e.g. that advance in multi case is really working:
+
+    @Override
+    public int advance(int targetDocID) throws IOException {
+      if (targetDocID <= docID) {
+        throw new IllegalArgumentException("can only advance beyond current document: on docID=" + docID + " but targetDocID=" + targetDocID);
+      }
+      int readerIndex = ReaderUtil.subIndex(targetDocID, docStarts);
+      if (readerIndex >= nextLeaf) {
+        if (readerIndex == values.length) {
+          currentValues = null;
+          docID = NO_MORE_DOCS;
+          return docID;
+        }
+        currentDocStart = docStarts[readerIndex];
+        currentValues = values[readerIndex];
+        nextLeaf = readerIndex+1;
+      }
+      int newDocID = currentValues.advance(targetDocID - currentDocStart);
+      if (newDocID == NO_MORE_DOCS) {
+        currentValues = null;
+        return nextDoc();
       } else {
-        return currentGlobalOrds.get(segmentOrd);
+        docID = currentDocStart + newDocID;
+        return docID;
       }
     }
 
     @Override
-    public void setDocument(int docID) {
-      currentSubIndex = ReaderUtil.subIndex(docID, docStarts);
-      currentGlobalOrds = mapping.getGlobalOrds(currentSubIndex);
-      values[currentSubIndex].setDocument(docID - docStarts[currentSubIndex]);
+    public long nextOrd() throws IOException {
+      long segmentOrd = currentValues.nextOrd();
+      if (segmentOrd == NO_MORE_ORDS) {
+        return segmentOrd;
+      } else {
+        return mapping.getGlobalOrds(nextLeaf-1).get(segmentOrd);
+      }
     }
- 
+
     @Override
     public BytesRef lookupOrd(long ord) {
       int subIndex = mapping.getFirstSegmentNumber(ord);
@@ -989,6 +1047,11 @@ public class MultiDocValues {
     @Override
     public long getValueCount() {
       return mapping.getValueCount();
+    }
+
+    @Override
+    public long cost() {
+      return totalCost;
     }
   }
 }

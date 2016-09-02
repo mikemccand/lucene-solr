@@ -30,6 +30,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
@@ -58,7 +59,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
     return (ctx) -> DocValues.getBinaryIterator(ctx, field);
   }
 
-  static Function<SortedSetDocValues> sortedSetDocValues(String field) {
+  static Function<SortedSetDocValuesIterator> sortedSetDocValues(String field) {
     return (ctx) -> DocValues.getSortedSet(ctx, field);
   }
   
@@ -114,26 +115,48 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   }
   
   /** this adapter is quite weird. ords are per doc index, don't use ords across different docs*/
-  static Function<SortedSetDocValues> sortedNumericAsSortedSetDocValues(String field, FieldType.LegacyNumericType numTyp) {
+  static Function<SortedSetDocValuesIterator> sortedNumericAsSortedSetDocValues(String field, FieldType.LegacyNumericType numTyp) {
     return (ctx) -> {
       final SortedNumericDocValues numerics = DocValues.getSortedNumeric(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);
       
-      return new SortedSetDocValues() {
+      return new SortedSetDocValuesIterator() {
+        private int docID = -1;
+        private int index = -1;
+        
+        @Override
+        public int docID() {
+          return docID;
+        }
 
-        private int index = Integer.MIN_VALUE;
+        @Override
+        public int nextDoc() {
+          docID++;
+          if (docID == ctx.maxDoc()) {
+            docID = NO_MORE_DOCS;
+          } else {
+            numerics.setDocument(docID);
+            index = -1;
+          }
+          return docID;
+        }
+
+        @Override
+        public int advance(int target) {
+          docID = target-1;
+          return nextDoc();
+        }
+
+        @Override
+        public long cost() {
+          return 0;
+        }
 
         @Override
         public long nextOrd() {
           return index < numerics.count()-1 ? ++index : NO_MORE_ORDS;
-        }
-
-        @Override
-        public void setDocument(int docID) {
-          numerics.setDocument(docID);
-          index=-1;
         }
 
         @Override

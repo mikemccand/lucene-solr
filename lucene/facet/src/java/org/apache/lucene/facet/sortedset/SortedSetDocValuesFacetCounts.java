@@ -25,18 +25,19 @@ import java.util.Map;
 
 import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
-import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsCollector.MatchingDocs;
+import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.LabelAndValue;
 import org.apache.lucene.facet.TopOrdAndIntQueue;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState.OrdRange;
-import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongValues;
@@ -61,7 +62,7 @@ import org.apache.lucene.util.LongValues;
 public class SortedSetDocValuesFacetCounts extends Facets {
 
   final SortedSetDocValuesReaderState state;
-  final SortedSetDocValues dv;
+  final SortedSetDocValuesIterator dv;
   final String field;
   final int[] counts;
 
@@ -151,8 +152,8 @@ public class SortedSetDocValuesFacetCounts extends Facets {
     // TODO: is this right?  really, we need a way to
     // verify that this ordinalMap "matches" the leaves in
     // matchingDocs...
-    if (dv instanceof MultiSortedSetDocValues && matchingDocs.size() > 1) {
-      ordinalMap = ((MultiSortedSetDocValues) dv).mapping;
+    if (dv instanceof MultiSortedSetDocValuesIterator && matchingDocs.size() > 1) {
+      ordinalMap = ((MultiSortedSetDocValuesIterator) dv).mapping;
     } else {
       ordinalMap = null;
     }
@@ -171,7 +172,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
         throw new IllegalStateException("the SortedSetDocValuesReaderState provided to this class does not match the reader being searched; you must create a new SortedSetDocValuesReaderState every time you open a new IndexReader");
       }
       
-      SortedSetDocValues segValues = reader.getSortedSetDocValues(field);
+      SortedSetDocValuesIterator segValues = reader.getSortedSetDocValues(field);
       if (segValues == null) {
         continue;
       }
@@ -199,12 +200,16 @@ public class SortedSetDocValuesFacetCounts extends Facets {
           int doc;
           while ((doc = docs.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
             //System.out.println("    doc=" + doc);
-            segValues.setDocument(doc);
-            int term = (int) segValues.nextOrd();
-            while (term != SortedSetDocValues.NO_MORE_ORDS) {
-              //System.out.println("      segOrd=" + segOrd + " ord=" + term + " globalOrd=" + ordinalMap.getGlobalOrd(segOrd, term));
-              counts[(int) ordMap.get(term)]++;
-              term = (int) segValues.nextOrd();
+            if (doc > segValues.docID()) {
+              segValues.advance(doc);
+            }
+            if (doc == segValues.docID()) {
+              int term = (int) segValues.nextOrd();
+              while (term != SortedSetDocValues.NO_MORE_ORDS) {
+                //System.out.println("      segOrd=" + segOrd + " ord=" + term + " globalOrd=" + ordinalMap.getGlobalOrd(segOrd, term));
+                counts[(int) ordMap.get(term)]++;
+                term = (int) segValues.nextOrd();
+              }
             }
           }
         } else {
@@ -215,12 +220,16 @@ public class SortedSetDocValuesFacetCounts extends Facets {
           int doc;
           while ((doc = docs.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
             //System.out.println("    doc=" + doc);
-            segValues.setDocument(doc);
-            int term = (int) segValues.nextOrd();
-            while (term != SortedSetDocValues.NO_MORE_ORDS) {
-              //System.out.println("      ord=" + term);
-              segCounts[term]++;
-              term = (int) segValues.nextOrd();
+            if (doc > segValues.docID()) {
+              segValues.advance(doc);
+            }
+            if (doc == segValues.docID()) {
+              int term = (int) segValues.nextOrd();
+              while (term != SortedSetDocValues.NO_MORE_ORDS) {
+                //System.out.println("      ord=" + term);
+                segCounts[term]++;
+                term = (int) segValues.nextOrd();
+              }
             }
           }
 
@@ -238,11 +247,15 @@ public class SortedSetDocValuesFacetCounts extends Facets {
         // just aggregate directly into counts:
         int doc;
         while ((doc = docs.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-          segValues.setDocument(doc);
-          int term = (int) segValues.nextOrd();
-          while (term != SortedSetDocValues.NO_MORE_ORDS) {
-            counts[term]++;
-            term = (int) segValues.nextOrd();
+          if (doc > segValues.docID()) {
+            segValues.advance(doc);
+          }
+          if (doc == segValues.docID()) {
+            int term = (int) segValues.nextOrd();
+            while (term != SortedSetDocValues.NO_MORE_ORDS) {
+              counts[term]++;
+              term = (int) segValues.nextOrd();
+            }
           }
         }
       }

@@ -24,6 +24,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 
 /** 
@@ -124,8 +125,7 @@ public class SortedSetSortField extends SortField {
     return new FieldComparator.TermOrdValComparator(numHits, getField(), missingValue == STRING_LAST) {
       @Override
       protected SortedDocValuesIterator getSortedDocValues(LeafReaderContext context, String field) throws IOException {
-        SortedSetDocValues sortedSet = DocValues.getSortedSet(context.reader(), field);
-        return new StupidSortedDocValuesIterator(SortedSetSelector.wrap(sortedSet, selector), context.reader().maxDoc());
+        return SortedSetSelector.wrap(DocValues.getSortedSet(context.reader(), field), selector);
       }
     };
   }

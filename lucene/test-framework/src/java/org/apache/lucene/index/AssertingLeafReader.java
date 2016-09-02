@@ -742,85 +742,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     } 
   }
   
-  /** Wraps a RandomAccessOrds but with additional asserts */
-  public static class AssertingRandomAccessOrds extends RandomAccessOrds {
-    private final Thread creationThread = Thread.currentThread();
-    private final RandomAccessOrds in;
-    private final int maxDoc;
-    private final long valueCount;
-    long lastOrd = NO_MORE_ORDS;
-    
-    public AssertingRandomAccessOrds(RandomAccessOrds in, int maxDoc) {
-      this.in = in;
-      this.maxDoc = maxDoc;
-      this.valueCount = in.getValueCount();
-      assert valueCount >= 0;
-    }
-    
-    @Override
-    public long nextOrd() {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert lastOrd != NO_MORE_ORDS;
-      long ord = in.nextOrd();
-      assert ord < valueCount;
-      assert ord == NO_MORE_ORDS || ord > lastOrd;
-      lastOrd = ord;
-      return ord;
-    }
-
-    @Override
-    public void setDocument(int docID) {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert docID >= 0 && docID < maxDoc : "docid=" + docID + ",maxDoc=" + maxDoc;
-      in.setDocument(docID);
-      lastOrd = -2;
-    }
-
-    @Override
-    public BytesRef lookupOrd(long ord) {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert ord >= 0 && ord < valueCount;
-      final BytesRef result = in.lookupOrd(ord);
-      assert result.isValid();
-      return result;
-    }
-
-    @Override
-    public long getValueCount() {
-      assertThread("Sorted numeric doc values", creationThread);
-      long valueCount = in.getValueCount();
-      assert valueCount == this.valueCount; // should not change
-      return valueCount;
-    }
-
-    @Override
-    public long lookupTerm(BytesRef key) {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert key.isValid();
-      long result = in.lookupTerm(key);
-      assert result < valueCount;
-      assert key.isValid();
-      return result;
-    }
-
-    @Override
-    public long ordAt(int index) {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert index < in.cardinality();
-      long ord = in.ordAt(index);
-      assert ord >= 0 && ord < valueCount;
-      return ord;
-    }
-
-    @Override
-    public int cardinality() {
-      assertThread("Sorted numeric doc values", creationThread);
-      int cardinality = in.cardinality();
-      assert cardinality >= 0;
-      return cardinality;
-    }
-  }
-  
   /** Wraps a SortedSetDocValues but with additional asserts */
   public static class AssertingSortedSetDocValues extends SortedSetDocValues {
     private final Thread creationThread = Thread.currentThread();
@@ -875,6 +796,100 @@ public class AssertingLeafReader extends FilterLeafReader {
     @Override
     public long lookupTerm(BytesRef key) {
       assertThread("Sorted numeric doc values", creationThread);
+      assert key.isValid();
+      long result = in.lookupTerm(key);
+      assert result < valueCount;
+      assert key.isValid();
+      return result;
+    }
+  }
+
+  /** Wraps a SortedSetDocValuesIterator but with additional asserts */
+  public static class AssertingSortedSetDocValuesIterator extends SortedSetDocValuesIterator {
+    private final Thread creationThread = Thread.currentThread();
+    private final SortedSetDocValuesIterator in;
+    private final int maxDoc;
+    private final long valueCount;
+    private int lastDocID = -1;
+    long lastOrd = NO_MORE_ORDS;
+    
+    public AssertingSortedSetDocValuesIterator(SortedSetDocValuesIterator in, int maxDoc) {
+      this.in = in;
+      this.maxDoc = maxDoc;
+      this.valueCount = in.getValueCount();
+      assert valueCount >= 0;
+    }
+
+    @Override
+    public int docID() {
+      assertThread("Sorted set doc values iterator", creationThread);
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      assertThread("Sorted set doc values iterator", creationThread);
+      int docID = in.nextDoc();
+      assert docID > lastDocID;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      assert docID == in.docID();
+      lastDocID = docID;
+      lastOrd = -2;
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      assertThread("Sorted set doc values iterator", creationThread);
+      assert target >= 0;
+      assert target >= in.docID();
+      int docID = in.advance(target);
+      assert docID >= target;
+      assert docID == NO_MORE_DOCS || docID < maxDoc;
+      lastDocID = docID;
+      lastOrd = -2;
+      return docID;
+    }
+
+    @Override
+    public long cost() {
+      assertThread("Sorted set doc values iterator", creationThread);
+      long cost = in.cost();
+      assert cost >= 0;
+      return cost;
+    }
+    
+    @Override
+    public long nextOrd() throws IOException {
+      assertThread("Sorted set doc values iterator", creationThread);
+      assert lastOrd != NO_MORE_ORDS;
+      long ord = in.nextOrd();
+      assert ord < valueCount;
+      assert ord == NO_MORE_ORDS || ord > lastOrd;
+      lastOrd = ord;
+      return ord;
+    }
+
+    @Override
+    public BytesRef lookupOrd(long ord) {
+      assertThread("Sorted set doc values iterator", creationThread);
+      assert ord >= 0 && ord < valueCount;
+      final BytesRef result = in.lookupOrd(ord);
+      assert result.isValid();
+      return result;
+    }
+
+    @Override
+    public long getValueCount() {
+      assertThread("Sorted set doc values iterator", creationThread);
+      long valueCount = in.getValueCount();
+      assert valueCount == this.valueCount; // should not change
+      return valueCount;
+    }
+
+    @Override
+    public long lookupTerm(BytesRef key) {
+      assertThread("Sorted set doc values iterator", creationThread);
       assert key.isValid();
       long result = in.lookupTerm(key);
       assert result < valueCount;
@@ -940,17 +955,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
-    SortedSetDocValues dv = super.getSortedSetDocValues(field);
+  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
+    SortedSetDocValuesIterator dv = super.getSortedSetDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.SORTED_SET;
-      if (dv instanceof RandomAccessOrds) {
-        return new AssertingRandomAccessOrds((RandomAccessOrds) dv, maxDoc());
-      } else {
-        return new AssertingSortedSetDocValues(dv, maxDoc());
-      }
+      return new AssertingSortedSetDocValuesIterator(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_SET;
       return null;

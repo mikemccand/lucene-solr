@@ -38,6 +38,7 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.util.Bits;
@@ -244,7 +245,7 @@ public class QueryUtils {
       }
 
       @Override
-      public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+      public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
         return null;
       }
 

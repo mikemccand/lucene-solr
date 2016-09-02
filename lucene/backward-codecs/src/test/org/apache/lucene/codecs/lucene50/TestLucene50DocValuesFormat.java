@@ -38,10 +38,11 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
+import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.TestUtil;
@@ -185,7 +186,7 @@ public class TestLucene50DocValuesFormat extends BaseCompressingDocValuesFormatT
       LeafReader r = context.reader();
       Terms terms = r.terms("indexed");
       if (terms != null) {
-        SortedSetDocValues ssdv = r.getSortedSetDocValues("dv");
+        SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("dv");
         assertEquals(terms.size(), ssdv.getValueCount());
         TermsEnum expected = terms.iterator();
         TermsEnum actual = r.getSortedSetDocValues("dv").termsEnum();

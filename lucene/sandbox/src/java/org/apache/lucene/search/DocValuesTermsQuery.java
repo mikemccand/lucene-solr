@@ -26,6 +26,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -153,7 +154,7 @@ public class DocValuesTermsQuery extends Query {
 
       @Override
       protected Bits getMatchingDocs(LeafReaderContext context) throws IOException {
-        final SortedSetDocValues values = DocValues.getSortedSet(context.reader(), field);
+        final SortedSetDocValuesIterator values = DocValues.getSortedSet(context.reader(), field);
         final LongBitSet bits = new LongBitSet(values.getValueCount());
         for (BytesRef term : terms) {
           final long ord = values.lookupTerm(term);
@@ -165,11 +166,19 @@ public class DocValuesTermsQuery extends Query {
 
           @Override
           public boolean get(int doc) {
-            values.setDocument(doc);
-            for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
-              if (bits.get(ord)) {
-                return true;
+            try {
+              if (doc > values.docID()) {
+                values.advance(doc);
               }
+              if (doc == values.docID()) {
+                for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+                  if (bits.get(ord)) {
+                    return true;
+                  }
+                }
+              }
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
             }
             return false;
           }

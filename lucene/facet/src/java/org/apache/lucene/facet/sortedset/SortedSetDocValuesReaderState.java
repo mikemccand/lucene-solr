@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 
 /** Wraps a {@link IndexReader} and resolves ords
  *  using existing {@link SortedSetDocValues} APIs without a
@@ -61,7 +62,7 @@ public abstract class SortedSetDocValuesReaderState {
   }
   
   /** Return top-level doc values. */
-  public abstract SortedSetDocValues getDocValues() throws IOException;
+  public abstract SortedSetDocValuesIterator getDocValues() throws IOException;
   
   /** Indexed field we are reading. */
   public abstract String getField();

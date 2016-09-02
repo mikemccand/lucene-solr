@@ -17,11 +17,17 @@
 package org.apache.lucene.search;
 
 
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
+
+import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
 
 /** Selects a value from the document's set to use as the representative value */
 public class SortedSetSelector {
@@ -62,47 +68,65 @@ public class SortedSetSelector {
   }
   
   /** Wraps a multi-valued SortedSetDocValues as a single-valued view, using the specified selector */
-  public static SortedDocValues wrap(SortedSetDocValues sortedSet, Type selector) {
+  public static SortedDocValuesIterator wrap(SortedSetDocValuesIterator sortedSet, Type selector) {
     if (sortedSet.getValueCount() >= Integer.MAX_VALUE) {
       throw new UnsupportedOperationException("fields containing more than " + (Integer.MAX_VALUE-1) + " unique terms are unsupported");
     }
     
-    SortedDocValues singleton = DocValues.unwrapSingleton(sortedSet);
+    SortedDocValuesIterator singleton = DocValues.unwrapSingleton(sortedSet);
     if (singleton != null) {
       // it's actually single-valued in practice, but indexed as multi-valued,
       // so just sort on the underlying single-valued dv directly.
       // regardless of selector type, this optimization is safe!
       return singleton;
-    } else if (selector == Type.MIN) {
-      return new MinValue(sortedSet);
     } else {
-      if (sortedSet instanceof RandomAccessOrds == false) {
-        throw new UnsupportedOperationException("codec does not support random access ordinals, cannot use selector: " + selector + " docValsImpl: " + sortedSet.toString());
-      }
-      RandomAccessOrds randomOrds = (RandomAccessOrds) sortedSet;
       switch(selector) {
-        case MAX: return new MaxValue(randomOrds);
-        case MIDDLE_MIN: return new MiddleMinValue(randomOrds);
-        case MIDDLE_MAX: return new MiddleMaxValue(randomOrds);
-        case MIN: 
+        case MIN: return new MinValue(sortedSet);
+        case MAX: return new MaxValue(sortedSet);
+        case MIDDLE_MIN: return new MiddleMinValue(sortedSet);
+        case MIDDLE_MAX: return new MiddleMaxValue(sortedSet);
         default: 
           throw new AssertionError();
       }
     }
   }
   
-  /** Wraps a SortedSetDocValues and returns the first ordinal (min) */
-  static class MinValue extends SortedDocValues {
-    final SortedSetDocValues in;
+  /** Wraps a SortedSetDocValuesIterator and returns the first ordinal (min) */
+  static class MinValue extends SortedDocValuesIterator {
+    final SortedSetDocValuesIterator in;
+    private int ord;
     
-    MinValue(SortedSetDocValues in) {
+    MinValue(SortedSetDocValuesIterator in) {
       this.in = in;
     }
 
     @Override
-    public int getOrd(int docID) {
-      in.setDocument(docID);
-      return (int) in.nextOrd();
+    public int docID() {
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      in.nextDoc();
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      in.advance(target);
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+    
+    @Override
+    public int ordValue() {
+      return ord;
     }
 
     @Override
@@ -118,26 +142,53 @@ public class SortedSetSelector {
     @Override
     public int lookupTerm(BytesRef key) {
       return (int) in.lookupTerm(key);
+    }
+
+    private void setOrd() throws IOException {
+      if (docID() != NO_MORE_DOCS) {
+        ord = (int) in.nextOrd();
+      } else {
+        ord = (int) NO_MORE_ORDS;
+      }
     }
   }
   
-  /** Wraps a SortedSetDocValues and returns the last ordinal (max) */
-  static class MaxValue extends SortedDocValues {
-    final RandomAccessOrds in;
+  /** Wraps a SortedSetDocValuesIterator and returns the last ordinal (max) */
+  static class MaxValue extends SortedDocValuesIterator {
+    final SortedSetDocValuesIterator in;
+    private int ord;
     
-    MaxValue(RandomAccessOrds in) {
+    MaxValue(SortedSetDocValuesIterator in) {
       this.in = in;
     }
 
     @Override
-    public int getOrd(int docID) {
-      in.setDocument(docID);
-      final int count = in.cardinality();
-      if (count == 0) {
-        return -1;
-      } else {
-        return (int) in.ordAt(count-1);
-      }
+    public int docID() {
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      in.nextDoc();
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      in.advance(target);
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+    
+    @Override
+    public int ordValue() {
+      return ord;
     }
 
     @Override
@@ -149,30 +200,64 @@ public class SortedSetSelector {
     public int getValueCount() {
       return (int) in.getValueCount();
     }
-    
+
     @Override
     public int lookupTerm(BytesRef key) {
       return (int) in.lookupTerm(key);
+    }
+
+    private void setOrd() throws IOException {
+      if (docID() != NO_MORE_DOCS) {
+        while(true) {
+          long nextOrd = in.nextOrd();
+          if (nextOrd == NO_MORE_ORDS) {
+            break;
+          }
+          ord = (int) nextOrd;
+        }
+      } else {
+        ord = (int) NO_MORE_ORDS;
+      }
     }
   }
   
-  /** Wraps a SortedSetDocValues and returns the middle ordinal (or min of the two) */
-  static class MiddleMinValue extends SortedDocValues {
-    final RandomAccessOrds in;
+  /** Wraps a SortedSetDocValuesIterator and returns the middle ordinal (or min of the two) */
+  static class MiddleMinValue extends SortedDocValuesIterator {
+    final SortedSetDocValuesIterator in;
+    private int ord;
+    private int[] ords = new int[8];
     
-    MiddleMinValue(RandomAccessOrds in) {
+    MiddleMinValue(SortedSetDocValuesIterator in) {
       this.in = in;
     }
 
     @Override
-    public int getOrd(int docID) {
-      in.setDocument(docID);
-      final int count = in.cardinality();
-      if (count == 0) {
-        return -1;
-      } else {
-        return (int) in.ordAt((count-1) >>> 1);
-      }
+    public int docID() {
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      in.nextDoc();
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      in.advance(target);
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+    
+    @Override
+    public int ordValue() {
+      return ord;
     }
 
     @Override
@@ -184,30 +269,76 @@ public class SortedSetSelector {
     public int getValueCount() {
       return (int) in.getValueCount();
     }
-    
+
     @Override
     public int lookupTerm(BytesRef key) {
       return (int) in.lookupTerm(key);
+    }
+
+    private void setOrd() throws IOException {
+      if (docID() != NO_MORE_DOCS) {
+        int upto = 0;
+        while (true) {
+          long nextOrd = in.nextOrd();
+          if (nextOrd == NO_MORE_ORDS) {
+            break;
+          }
+          if (upto == ords.length) {
+            ords = ArrayUtil.grow(ords);
+          }
+          ords[upto++] = (int) nextOrd;
+        }
+
+        if (upto == 0) {
+          // iterator should not have returned this docID if it has no ords:
+          assert false;
+          ord = (int) NO_MORE_ORDS;
+        } else {
+          ord = ords[(upto-1) >>> 1];
+        }
+      } else {
+        ord = (int) NO_MORE_ORDS;
+      }
     }
   }
   
-  /** Wraps a SortedSetDocValues and returns the middle ordinal (or max of the two) */
-  static class MiddleMaxValue extends SortedDocValues {
-    final RandomAccessOrds in;
+  /** Wraps a SortedSetDocValuesIterator and returns the middle ordinal (or max of the two) */
+  static class MiddleMaxValue extends SortedDocValuesIterator {
+    final SortedSetDocValuesIterator in;
+    private int ord;
+    private int[] ords = new int[8];
     
-    MiddleMaxValue(RandomAccessOrds in) {
+    MiddleMaxValue(SortedSetDocValuesIterator in) {
       this.in = in;
     }
 
     @Override
-    public int getOrd(int docID) {
-      in.setDocument(docID);
-      final int count = in.cardinality();
-      if (count == 0) {
-        return -1;
-      } else {
-        return (int) in.ordAt(count >>> 1);
-      }
+    public int docID() {
+      return in.docID();
+    }
+
+    @Override
+    public int nextDoc() throws IOException {
+      in.nextDoc();
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      in.advance(target);
+      setOrd();
+      return docID();
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+    
+    @Override
+    public int ordValue() {
+      return ord;
     }
 
     @Override
@@ -219,10 +350,36 @@ public class SortedSetSelector {
     public int getValueCount() {
       return (int) in.getValueCount();
     }
-    
+
     @Override
     public int lookupTerm(BytesRef key) {
       return (int) in.lookupTerm(key);
+    }
+
+    private void setOrd() throws IOException {
+      if (docID() != NO_MORE_DOCS) {
+        int upto = 0;
+        while (true) {
+          long nextOrd = in.nextOrd();
+          if (nextOrd == NO_MORE_ORDS) {
+            break;
+          }
+          if (upto == ords.length) {
+            ords = ArrayUtil.grow(ords);
+          }
+          ords[upto++] = (int) nextOrd;
+        }
+
+        if (upto == 0) {
+          // iterator should not have returned this docID if it has no ords:
+          assert false;
+          ord = (int) NO_MORE_ORDS;
+        } else {
+          ord = ords[upto >>> 1];
+        }
+      } else {
+        ord = (int) NO_MORE_ORDS;
+      }
     }
   }
 }

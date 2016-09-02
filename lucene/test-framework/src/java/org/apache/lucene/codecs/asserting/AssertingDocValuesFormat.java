@@ -23,8 +23,7 @@ import java.util.Iterator;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.AssertingLeafReader.AssertingRandomAccessOrds;
-import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValues;
+import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValuesIterator;
 import org.apache.lucene.index.AssertingLeafReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
@@ -32,13 +31,13 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -267,15 +266,11 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
+    public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.SORTED_SET;
-      SortedSetDocValues values = in.getSortedSet(field);
+      SortedSetDocValuesIterator values = in.getSortedSet(field);
       assert values != null;
-      if (values instanceof RandomAccessOrds) {
-        return new AssertingRandomAccessOrds((RandomAccessOrds) values, maxDoc);
-      } else {
-        return new AssertingSortedSetDocValues(values, maxDoc);
-      }
+      return new AssertingSortedSetDocValuesIterator(values, maxDoc);
     }
     
     @Override

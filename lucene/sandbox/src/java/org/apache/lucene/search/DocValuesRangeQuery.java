@@ -25,6 +25,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 
@@ -203,7 +204,7 @@ public final class DocValuesRangeQuery extends Query {
 
         } else if (lowerVal instanceof BytesRef || upperVal instanceof BytesRef) {
 
-          final SortedSetDocValues values = DocValues.getSortedSet(context.reader(), field);
+          final SortedSetDocValuesIterator values = DocValues.getSortedSet(context.reader(), field);
 
           final long minOrd;
           if (lowerVal == null) {
@@ -241,11 +242,19 @@ public final class DocValuesRangeQuery extends Query {
 
             @Override
             public boolean get(int doc) {
-              values.setDocument(doc);
-              for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
-                if (ord >= minOrd && ord <= maxOrd) {
-                  return true;
+              try {
+                if (doc > values.docID()) {
+                  values.advance(doc);
                 }
+                if (doc == values.docID()) {
+                  for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+                    if (ord >= minOrd && ord <= maxOrd) {
+                      return true;
+                    }
+                  }
+                }
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
               }
               return false;
             }

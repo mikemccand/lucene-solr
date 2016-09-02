@@ -2491,8 +2491,8 @@ public abstract class LuceneTestCase extends Assert {
       }
       
       {
-        SortedSetDocValues leftValues = MultiDocValues.getSortedSetValues(leftReader, field);
-        SortedSetDocValues rightValues = MultiDocValues.getSortedSetValues(rightReader, field);
+        SortedSetDocValuesIterator leftValues = MultiDocValues.getSortedSetValues(leftReader, field);
+        SortedSetDocValuesIterator rightValues = MultiDocValues.getSortedSetValues(rightReader, field);
         if (leftValues != null && rightValues != null) {
           // numOrds
           assertEquals(info, leftValues.getValueCount(), rightValues.getValueCount());
@@ -2503,9 +2503,12 @@ public abstract class LuceneTestCase extends Assert {
             assertEquals(info, left, right);
           }
           // ord lists
-          for(int docID=0;docID<leftReader.maxDoc();docID++) {
-            leftValues.setDocument(docID);
-            rightValues.setDocument(docID);
+          while (true) {
+            int docID = leftValues.nextDoc();
+            assertEquals(docID, rightValues.nextDoc());
+            if (docID == NO_MORE_DOCS) {
+              break;
+            }
             long ord;
             while ((ord = leftValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
               assertEquals(info, ord, rightValues.nextOrd());

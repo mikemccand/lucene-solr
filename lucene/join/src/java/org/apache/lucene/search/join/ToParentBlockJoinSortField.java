@@ -27,6 +27,7 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
@@ -113,7 +114,7 @@ public class ToParentBlockJoinSortField extends SortField {
 
       @Override
       protected SortedDocValuesIterator getSortedDocValues(LeafReaderContext context, String field) throws IOException {
-        SortedSetDocValues sortedSet = DocValues.getSortedSet(context.reader(), field);
+        SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
             : BlockJoinSelector.Type.MIN;
@@ -122,7 +123,7 @@ public class ToParentBlockJoinSortField extends SortField {
         if (children == null) {
           return DocValues.emptySortedIterator();
         }
-        return new StupidSortedDocValuesIterator(BlockJoinSelector.wrap(sortedSet, type, parents, children), context.reader().maxDoc());
+        return BlockJoinSelector.wrap(sortedSet, type, parents, children);
       }
 
     };

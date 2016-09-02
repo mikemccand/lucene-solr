@@ -38,6 +38,7 @@ import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.TimSorter;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 
+import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
@@ -462,7 +463,7 @@ class SortingLeafReader extends FilterLeafReader {
 
     @Override
     public long cost() {
-      return 0;
+      return in.cost();
     }
 
     @Override
@@ -476,25 +477,70 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingSortedSetDocValues extends SortedSetDocValues {
+  // TODO: pack long[][] into an int[] (offset) and long[] instead:
+  private final Map<String,long[][]> cachedSortedSetDVs = new HashMap<>();
 
-    private final SortedSetDocValues in;
-    private final Sorter.DocMap docMap;
+  private static class SortingSortedSetDocValues extends SortedSetDocValuesIterator {
 
-    SortingSortedSetDocValues(SortedSetDocValues in, Sorter.DocMap docMap) {
+    private final SortedSetDocValuesIterator in;
+    private final long[][] ords;
+    private int docID = -1;
+    private int ordUpto;
+
+    SortingSortedSetDocValues(SortedSetDocValuesIterator in, long[][] ords) {
       this.in = in;
-      this.docMap = docMap;
+      this.ords = ords;
+    }
+
+    @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() {
+      while (true) {
+        docID++;
+        if (docID == ords.length) {
+          docID = NO_MORE_DOCS;
+          break;
+        }
+        if (ords[docID] != null) {
+          break;
+        }
+        // skip missing docs
+      }
+      ordUpto = 0;
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) {
+      if (target >= ords.length) {
+        docID = NO_MORE_DOCS;
+      } else {
+        docID = target;
+        if (ords[docID] == null) {
+          nextDoc();
+        } else {
+          ordUpto = 0;
+        }
+      }
+      return docID;
     }
 
     @Override
     public long nextOrd() {
-      return in.nextOrd();
+      if (ordUpto == ords[docID].length) {
+        return NO_MORE_ORDS;
+      } else {
+        return ords[docID][ordUpto++];
+      }
     }
 
     @Override
-    public void setDocument(int docID) {
-      //System.out.println("  slr.sssdv.setDocument docID=" + docID + " this=" + this);
-      in.setDocument(docMap.newToOld(docID));
+    public long cost() {
+      return in.cost();
     }
 
     @Override
@@ -505,11 +551,6 @@ class SortingLeafReader extends FilterLeafReader {
     @Override
     public long getValueCount() {
       return in.getValueCount();
-    }
-
-    @Override
-    public long lookupTerm(BytesRef key) {
-      return in.lookupTerm(key);
     }
   }
 
@@ -1107,13 +1148,39 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
-    SortedSetDocValues sortedSetDV = in.getSortedSetDocValues(field);
-    if (sortedSetDV == null) {
+  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
+    SortedSetDocValuesIterator oldDocValues = in.getSortedSetDocValues(field);
+    if (oldDocValues == null) {
       return null;
-    } else {
-      return new SortingSortedSetDocValues(sortedSetDV, docMap);
     }
+
+    long[][] ords;
+    synchronized (cachedSortedSetDVs) {
+      ords = cachedSortedSetDVs.get(field);
+      if (ords == null) {
+        ords = new long[maxDoc()][];
+        int docID;
+        while ((docID = oldDocValues.nextDoc()) != NO_MORE_DOCS) {
+          int newDocID = docMap.oldToNew(docID);
+          long[] docOrds = new long[1];
+          int upto = 0;
+          while (true) {
+            long ord = oldDocValues.nextOrd();
+            if (ord == NO_MORE_ORDS) {
+              break;
+            }
+            if (upto == docOrds.length) {
+              docOrds = ArrayUtil.grow(docOrds);
+            }
+            docOrds[upto++] = ord;
+          }
+          ords[newDocID] = Arrays.copyOfRange(docOrds, 0, upto);
+        }
+        cachedSortedSetDVs.put(field, ords);
+      }
+    }
+
+    return new SortingSortedSetDocValues(oldDocValues, ords);
   }
 
   @Override

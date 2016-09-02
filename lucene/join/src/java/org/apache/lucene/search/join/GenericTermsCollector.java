@@ -23,6 +23,7 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.join.DocValuesTermsCollector.Function;
@@ -37,32 +38,50 @@ interface GenericTermsCollector extends Collector {
   
   float[] getScoresPerTerm();
   
-  static GenericTermsCollector createCollectorMV(Function<SortedSetDocValues> mvFunction,
+  static GenericTermsCollector createCollectorMV(Function<SortedSetDocValuesIterator> mvFunction,
       ScoreMode mode) {
     
     switch (mode) {
       case None:
         return wrap(new TermsCollector.MV(mvFunction));
       case Avg:
-          return new MV.Avg(mvFunction);
+        return new MV.Avg(mvFunction);
       default:
-          return new MV(mvFunction, mode);
+        return new MV(mvFunction, mode);
     }
   }
 
-  static Function<SortedSetDocValues> verbose(PrintStream out, Function<SortedSetDocValues> mvFunction){
+  static Function<SortedSetDocValuesIterator> verbose(PrintStream out, Function<SortedSetDocValuesIterator> mvFunction){
     return (ctx) -> {
-      final SortedSetDocValues target = mvFunction.apply(ctx);
-      return new SortedSetDocValues() {
+      final SortedSetDocValuesIterator target = mvFunction.apply(ctx);
+      return new SortedSetDocValuesIterator() {
         
         @Override
-        public void setDocument(int docID) {
-          target.setDocument(docID);
-          out.println("\ndoc# "+docID);
+        public int docID() {
+          return target.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          int docID = target.nextDoc();
+          out.println("\nnextDoc doc# "+docID);
+          return docID;
+        }
+
+        @Override
+        public int advance(int dest) throws IOException {
+          int docID = target.advance(dest);
+          out.println("\nadvance(" + dest + ") -> doc# "+docID);
+          return docID;
+        }
+
+        @Override
+        public long cost() {
+          return target.cost();
         }
         
         @Override
-        public long nextOrd() {
+        public long nextOrd() throws IOException {
           return target.nextOrd();
         }
         

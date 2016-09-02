@@ -146,7 +146,7 @@ class MergeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (fi == null) {

@@ -25,6 +25,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.grouping.AbstractGroupFacetCollector;
 import org.apache.lucene.util.BytesRef;
@@ -216,7 +217,7 @@ public abstract class TermGroupFacetCollector extends AbstractGroupFacetCollecto
   // Implementation for multi valued facet fields.
   static class MV extends TermGroupFacetCollector {
 
-    private SortedSetDocValues facetFieldDocTermOrds;
+    private SortedSetDocValuesIterator facetFieldDocTermOrds;
     private TermsEnum facetOrdTermsEnum;
     private int facetFieldNumTerms;
 
@@ -257,12 +258,16 @@ public abstract class TermGroupFacetCollector extends AbstractGroupFacetCollecto
         return;
       }
 
-      facetFieldDocTermOrds.setDocument(doc);
-      long ord;
+      if (doc > facetFieldDocTermOrds.docID()) {
+        facetFieldDocTermOrds.advance(doc);
+      }
       boolean empty = true;
-      while ((ord = facetFieldDocTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-        process(groupOrd, (int) ord);
-        empty = false;
+      if (doc == facetFieldDocTermOrds.docID()) {
+        long ord;
+        while ((ord = facetFieldDocTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+          process(groupOrd, (int) ord);
+          empty = false;
+        }
       }
       
       if (empty) {

@@ -122,7 +122,7 @@ class SegmentDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
     DocValuesProducer dvProducer = dvProducersByField.get(field.name);
     assert dvProducer != null;
     return dvProducer.getSortedSet(field);

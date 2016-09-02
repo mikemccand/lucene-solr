@@ -1162,10 +1162,10 @@ public class MemoryIndex {
     }
     
     @Override
-    public SortedSetDocValues getSortedSetDocValues(String field) {
+    public SortedSetDocValuesIterator getSortedSetDocValues(String field) {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.SORTED_SET);
       if (info != null) {
-        return new SortedSetDocValues() {
+        return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
 
           int index = 0;
 
@@ -1191,7 +1191,7 @@ public class MemoryIndex {
           public long getValueCount() {
             return info.binaryProducer.dvBytesValuesSet.size();
           }
-        };
+          }, 1);
       } else {
         return null;
       }

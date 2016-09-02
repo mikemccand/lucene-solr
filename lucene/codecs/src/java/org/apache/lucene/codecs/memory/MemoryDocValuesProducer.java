@@ -43,9 +43,11 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -633,10 +635,10 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
     SortedSetEntry sortedSetEntry = sortedSets.get(field.name);
     if (sortedSetEntry.singleton) {
-      return DocValues.singleton(getSortedNonIterator(field));
+      return DocValues.singleton(getSorted(field));
     }
     
     final FSTEntry entry = fsts.get(field.name);
@@ -666,7 +668,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     final IntsRefBuilder scratchInts = new IntsRefBuilder();
     final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
     final ByteArrayDataInput input = new ByteArrayDataInput();
-    return new SortedSetDocValues() {
+    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
       BytesRef ref;
       long currentOrd;
@@ -725,7 +727,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
       public TermsEnum termsEnum() {
         return new FSTTermsEnum(fst);
       }
-    };
+      }, maxDoc);
   }
   
   private Bits getMissingBits(FieldInfo field, final long offset, final long length) throws IOException {

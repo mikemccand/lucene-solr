@@ -30,6 +30,9 @@ import org.apache.lucene.util.BytesRef;
  * dictionary value (ordinal) can be retrieved for each document. Ordinals
  * are dense and in increasing sorted order.
  */
+
+// nocommit don't extend binary anymore?
+
 public abstract class SortedDocValuesIterator extends BinaryDocValuesIterator {
 
   /** Sole constructor. (For invocation by subclass 

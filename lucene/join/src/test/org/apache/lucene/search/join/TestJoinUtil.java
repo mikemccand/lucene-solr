@@ -69,6 +69,7 @@ import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -1189,19 +1190,23 @@ public class TestJoinUtil extends LuceneTestCase {
         searcher.search(new TermQuery(new Term("value", uniqueRandomValue)), new SimpleCollector() {
 
           private Scorer scorer;
-          private SortedSetDocValues docTermOrds;
+          private SortedSetDocValuesIterator docTermOrds;
 
           @Override
           public void collect(int doc) throws IOException {
-            docTermOrds.setDocument(doc);
-            long ord;
-            while ((ord = docTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-              final BytesRef joinValue = docTermOrds.lookupOrd(ord);
-              JoinScore joinScore = joinValueToJoinScores.get(joinValue);
-              if (joinScore == null) {
-                joinValueToJoinScores.put(BytesRef.deepCopyOf(joinValue), joinScore = new JoinScore());
+            if (doc > docTermOrds.docID()) {
+              docTermOrds.advance(doc);
+            }
+            if (doc == docTermOrds.docID()) {
+              long ord;
+              while ((ord = docTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+                final BytesRef joinValue = docTermOrds.lookupOrd(ord);
+                JoinScore joinScore = joinValueToJoinScores.get(joinValue);
+                if (joinScore == null) {
+                  joinValueToJoinScores.put(BytesRef.deepCopyOf(joinValue), joinScore = new JoinScore());
+                }
+                joinScore.addScore(scorer.score());
               }
-              joinScore.addScore(scorer.score());
             }
           }
 

@@ -339,7 +339,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
     BinaryDocValuesIterator bdv = r.getBinaryDocValuesIterator("bdv");
     SortedDocValuesIterator sdv = r.getSortedDocValues("sdv");
-    SortedSetDocValues ssdv = r.getSortedSetDocValues("ssdv");
+    SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("ssdv");
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(i, ndv.longValue());
@@ -348,7 +348,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
       assertEquals(i, sdv.nextDoc());
       BytesRef term = sdv.binaryValue();
       assertEquals(new BytesRef(Integer.toString(i)), term);
-      ssdv.setDocument(i);
+      assertEquals(i, ssdv.nextDoc());
       long ord = ssdv.nextOrd();
       term = ssdv.lookupOrd(ord);
       assertEquals(i, Integer.parseInt(term.utf8ToString()));

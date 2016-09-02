@@ -2123,54 +2123,29 @@ public final class CheckIndex implements Closeable {
     }
   }
   
-  private static void checkSortedSetDocValues(String fieldName, int maxDoc, SortedSetDocValues dv, Bits docsWithField) {
+  private static void checkSortedSetDocValues(String fieldName, int maxDoc, SortedSetDocValuesIterator dv) throws IOException {
     final long maxOrd = dv.getValueCount()-1;
     LongBitSet seenOrds = new LongBitSet(dv.getValueCount());
     long maxOrd2 = -1;
-    for (int i = 0; i < maxDoc; i++) {
-      dv.setDocument(i);
+    int docID;
+    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
       long lastOrd = -1;
       long ord;
-      if (docsWithField.get(i)) {
-        int ordCount = 0;
-        while ((ord = dv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-          if (ord <= lastOrd) {
-            throw new RuntimeException("ords out of order: " + ord + " <= " + lastOrd + " for doc: " + i);
-          }
-          if (ord < 0 || ord > maxOrd) {
-            throw new RuntimeException("ord out of bounds: " + ord);
-          }
-          if (dv instanceof RandomAccessOrds) {
-            long ord2 = ((RandomAccessOrds)dv).ordAt(ordCount);
-            if (ord != ord2) {
-              throw new RuntimeException("ordAt(" + ordCount + ") inconsistent, expected=" + ord + ",got=" + ord2 + " for doc: " + i);
-            }
-          }
-          lastOrd = ord;
-          maxOrd2 = Math.max(maxOrd2, ord);
-          seenOrds.set(ord);
-          ordCount++;
+      int ordCount = 0;
+      while ((ord = dv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        if (ord <= lastOrd) {
+          throw new RuntimeException("ords out of order: " + ord + " <= " + lastOrd + " for doc: " + docID);
         }
-        if (ordCount == 0) {
-          throw new RuntimeException("dv for field: " + fieldName + " has no ordinals but is not marked missing for doc: " + i);
+        if (ord < 0 || ord > maxOrd) {
+          throw new RuntimeException("ord out of bounds: " + ord);
         }
-        if (dv instanceof RandomAccessOrds) {
-          long ordCount2 = ((RandomAccessOrds)dv).cardinality();
-          if (ordCount != ordCount2) {
-            throw new RuntimeException("cardinality inconsistent, expected=" + ordCount + ",got=" + ordCount2 + " for doc: " + i);
-          }
-        }
-      } else {
-        long o = dv.nextOrd();
-        if (o != SortedSetDocValues.NO_MORE_ORDS) {
-          throw new RuntimeException("dv for field: " + fieldName + " is marked missing but has ord=" + o + " for doc: " + i);
-        }
-        if (dv instanceof RandomAccessOrds) {
-          long ordCount2 = ((RandomAccessOrds)dv).cardinality();
-          if (ordCount2 != 0) {
-            throw new RuntimeException("dv for field: " + fieldName + " is marked missing but has cardinality " + ordCount2 + " for doc: " + i);
-          }
-        }
+        lastOrd = ord;
+        maxOrd2 = Math.max(maxOrd2, ord);
+        seenOrds.set(ord);
+        ordCount++;
+      }
+      if (ordCount == 0) {
+        throw new RuntimeException("dv for field: " + fieldName + " returned docID=" + docID + " yet has no ordinals");
       }
     }
     if (maxOrd != maxOrd2) {
@@ -2248,7 +2223,7 @@ public final class CheckIndex implements Closeable {
         break;
       case SORTED_SET:
         status.totalSortedSetFields++;
-        checkSortedSetDocValues(fi.name, maxDoc, dvReader.getSortedSet(fi), docsWithField);
+        checkSortedSetDocValues(fi.name, maxDoc, dvReader.getSortedSet(fi));
         break;
       case BINARY:
         status.totalBinaryFields++;

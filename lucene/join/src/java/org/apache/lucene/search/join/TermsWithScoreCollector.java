@@ -21,7 +21,7 @@ import java.util.Arrays;
 
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
@@ -200,33 +200,36 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
   }
 
   // impl that works with multiple values per document
-  static class MV extends TermsWithScoreCollector<SortedSetDocValues> {
+  static class MV extends TermsWithScoreCollector<SortedSetDocValuesIterator> {
 
-    MV(Function<SortedSetDocValues> docValuesCall, ScoreMode scoreMode) {
+    MV(Function<SortedSetDocValuesIterator> docValuesCall, ScoreMode scoreMode) {
       super(docValuesCall, scoreMode);
     }
 
     @Override
     public void collect(int doc) throws IOException {
-      docValues.setDocument(doc);
-      long ord;
-      while ((ord = docValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-        int termID = collectedTerms.add(docValues.lookupOrd(ord));
-        if (termID < 0) {
-          termID = -termID - 1;
-        } else {
-          if (termID >= scoreSums.length) {
-            int begin = scoreSums.length;
-            scoreSums = ArrayUtil.grow(scoreSums);
-            if (scoreMode == ScoreMode.Min) {
-              Arrays.fill(scoreSums, begin, scoreSums.length, Float.POSITIVE_INFINITY);
-            } else if (scoreMode == ScoreMode.Max) {
-              Arrays.fill(scoreSums, begin, scoreSums.length, Float.NEGATIVE_INFINITY);
+      if (doc > docValues.docID()) {
+        docValues.advance(doc);
+      }
+      if (doc == docValues.docID()) {
+        long ord;
+        while ((ord = docValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+          int termID = collectedTerms.add(docValues.lookupOrd(ord));
+          if (termID < 0) {
+            termID = -termID - 1;
+          } else {
+            if (termID >= scoreSums.length) {
+              int begin = scoreSums.length;
+              scoreSums = ArrayUtil.grow(scoreSums);
+              if (scoreMode == ScoreMode.Min) {
+                Arrays.fill(scoreSums, begin, scoreSums.length, Float.POSITIVE_INFINITY);
+              } else if (scoreMode == ScoreMode.Max) {
+                Arrays.fill(scoreSums, begin, scoreSums.length, Float.NEGATIVE_INFINITY);
+              }
             }
           }
-        }
         
-        switch (scoreMode) {
+          switch (scoreMode) {
           case Total:
             scoreSums[termID] += scorer.score();
             break;
@@ -238,6 +241,7 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
             break;
           default:
             throw new AssertionError("unexpected: " + scoreMode);
+          }
         }
       }
     }
@@ -246,27 +250,31 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
 
       int[] scoreCounts = new int[INITIAL_ARRAY_SIZE];
 
-      Avg(Function<SortedSetDocValues> docValuesCall) {
+      Avg(Function<SortedSetDocValuesIterator> docValuesCall) {
         super(docValuesCall, ScoreMode.Avg);
       }
 
       @Override
       public void collect(int doc) throws IOException {
-        docValues.setDocument(doc);
-        long ord;
-        while ((ord = docValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-          int termID = collectedTerms.add(docValues.lookupOrd(ord));
-          if (termID < 0) {
-            termID = -termID - 1;
-          } else {
-            if (termID >= scoreSums.length) {
-              scoreSums = ArrayUtil.grow(scoreSums);
-              scoreCounts = ArrayUtil.grow(scoreCounts);
+        if (doc > docValues.docID()) {
+          docValues.advance(doc);
+        }
+        if (doc == docValues.docID()) {
+          long ord;
+          while ((ord = docValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+            int termID = collectedTerms.add(docValues.lookupOrd(ord));
+            if (termID < 0) {
+              termID = -termID - 1;
+            } else {
+              if (termID >= scoreSums.length) {
+                scoreSums = ArrayUtil.grow(scoreSums);
+                scoreCounts = ArrayUtil.grow(scoreCounts);
+              }
             }
-          }
           
-          scoreSums[termID] += scorer.score();
-          scoreCounts[termID]++;
+            scoreSums[termID] += scorer.score();
+            scoreCounts[termID]++;
+          }
         }
       }
 

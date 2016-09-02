@@ -306,7 +306,7 @@ public class ParallelLeafReader extends LeafReader {
   }
 
   @Override
-  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
     ensureOpen();
     LeafReader reader = fieldToReader.get(field);
     return reader == null ? null : reader.getSortedSetDocValues(field);

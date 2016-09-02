@@ -119,6 +119,8 @@ class SortedDocValuesWriter extends DocValuesWriter {
       ordMap[sortedValues[ord]] = ord;
     }
 
+    // nocommit switch to dvp?
+
     // nocommit how to fix this API?
     dvConsumer.addSortedField(fieldInfo,
 

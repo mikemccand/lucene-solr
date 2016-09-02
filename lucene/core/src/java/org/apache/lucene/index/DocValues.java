@@ -254,26 +254,71 @@ public final class DocValues {
   }
 
   /** 
-   * An empty SortedDocValues which returns {@link SortedSetDocValues#NO_MORE_ORDS} for every document 
+   * An empty SortedDocValuesIterator which returns {@link BytesRef#EMPTY_BYTES} for every document 
    */
-  public static final RandomAccessOrds emptySortedSet() {
-    return singleton(emptySorted());
+  public static final SortedSetDocValuesIterator emptySortedSet() {
+    final BytesRef empty = new BytesRef();
+    return new SortedSetDocValuesIterator() {
+      
+      private boolean exhausted = false;
+      
+      @Override
+      public int advance(int target) {
+        assert exhausted == false;
+        assert target >= 0;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public int docID() {
+        return exhausted ? NO_MORE_DOCS : -1;
+      }
+      
+      @Override
+      public int nextDoc() {
+        assert exhausted == false;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public long cost() {
+        return 0;
+      }
+
+      @Override
+      public long nextOrd() {
+        assert false;
+        return NO_MORE_ORDS;
+      }
+
+      @Override
+      public BytesRef lookupOrd(long ord) {
+        return empty;
+      }
+
+      @Override
+      public long getValueCount() {
+        return 0;
+      }
+    };
+  }
+
+  /** 
+   * Returns a multi-valued iterator view over the provided SortedDocValues 
+   */
+  public static SortedSetDocValuesIterator singleton(SortedDocValuesIterator dv) {
+    return new SingletonSortedSetDocValuesIterator(dv);
   }
   
   /** 
-   * Returns a multi-valued view over the provided SortedDocValues 
+   * Returns a single-valued view of the SortedSetDocValuesIterator, if it was previously
+   * wrapped with {@link #singleton(SortedDocValuesIterator)}, or null. 
    */
-  public static RandomAccessOrds singleton(SortedDocValues dv) {
-    return new SingletonSortedSetDocValues(dv);
-  }
-  
-  /** 
-   * Returns a single-valued view of the SortedSetDocValues, if it was previously
-   * wrapped with {@link #singleton(SortedDocValues)}, or null. 
-   */
-  public static SortedDocValues unwrapSingleton(SortedSetDocValues dv) {
-    if (dv instanceof SingletonSortedSetDocValues) {
-      return ((SingletonSortedSetDocValues)dv).getSortedDocValues();
+  public static SortedDocValuesIterator unwrapSingleton(SortedSetDocValuesIterator dv) {
+    if (dv instanceof SingletonSortedSetDocValuesIterator) {
+      return ((SingletonSortedSetDocValuesIterator)dv).getSortedDocValues();
     } else {
       return null;
     }
@@ -327,19 +372,14 @@ public final class DocValues {
   /**
    * Returns a Bits representing all documents from <code>dv</code> that have a value.
    */
-  public static Bits docsWithValue(final SortedSetDocValues dv, final int maxDoc) {
-    return new Bits() {
-      @Override
-      public boolean get(int index) {
-        dv.setDocument(index);
-        return dv.nextOrd() != SortedSetDocValues.NO_MORE_ORDS;
-      }
-
-      @Override
-      public int length() {
-        return maxDoc;
-      }
-    };
+  public static Bits docsWithValue(final SortedSetDocValuesIterator dv, final int maxDoc) throws IOException {
+    // nocommit remove this entire method!!!
+    FixedBitSet bits = new FixedBitSet(maxDoc);
+    int docID;
+    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
+      bits.set(docID);
+    }
+    return bits;
   }
   
   /**
@@ -461,8 +501,8 @@ public final class DocValues {
    *                               or {@link DocValuesType#SORTED}.
    * @throws IOException if an I/O error occurs.
    */
-  public static SortedSetDocValues getSortedSet(LeafReader reader, String field) throws IOException {
-    SortedSetDocValues dv = reader.getSortedSetDocValues(field);
+  public static SortedSetDocValuesIterator getSortedSet(LeafReader reader, String field) throws IOException {
+    SortedSetDocValuesIterator dv = reader.getSortedSetDocValues(field);
     // nocommit fixme!
     if (dv == null) {
       SortedDocValuesIterator sorted = reader.getSortedDocValues(field);
@@ -470,7 +510,7 @@ public final class DocValues {
         checkField(reader, field, DocValuesType.SORTED, DocValuesType.SORTED_SET);
         return emptySortedSet();
       }
-      return singleton(new StupidSortedDocValuesUnIterator(reader, field));
+      dv = singleton(sorted);
     }
     return dv;
   }
