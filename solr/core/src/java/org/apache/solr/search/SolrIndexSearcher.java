@@ -58,6 +58,7 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StoredFieldVisitor.Status;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Term;
@@ -819,15 +820,17 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
       }
 
       if (schemaField.multiValued()) {
-        final SortedSetDocValues values = reader.getSortedSetDocValues(fieldName);
+        final SortedSetDocValuesIterator values = reader.getSortedSetDocValues(fieldName);
         if (values != null && values.getValueCount() > 0) {
-          values.setDocument(docid);
-          final List<Object> outValues = new LinkedList<Object>();
-          for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
-            final BytesRef value = values.lookupOrd(ord);
-            outValues.add(schemaField.getType().toObject(schemaField, value));
+          if (values.advance(docid) == docid) {
+            final List<Object> outValues = new LinkedList<Object>();
+            for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+              final BytesRef value = values.lookupOrd(ord);
+              outValues.add(schemaField.getType().toObject(schemaField, value));
+            }
+            assert outValues.size() > 0;
+            doc.addField(fieldName, outValues);
           }
-          if (outValues.size() > 0) doc.addField(fieldName, outValues);
         }
       } else {
         final DocValuesType dvType = fieldInfos.fieldInfo(fieldName).getDocValuesType();

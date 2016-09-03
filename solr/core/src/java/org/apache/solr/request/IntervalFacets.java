@@ -34,6 +34,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -248,14 +249,14 @@ public class IntervalFacets implements Iterable<FacetInterval> {
       DocIdSetIterator disi = dis.iterator();
       if (disi != null) {
         if (schemaField.multiValued()) {
-          SortedSetDocValues sub = leaf.reader().getSortedSetDocValues(schemaField.getName());
+          SortedSetDocValuesIterator sub = leaf.reader().getSortedSetDocValues(schemaField.getName());
           if (sub == null) {
             continue;
           }
-          final SortedDocValues singleton = DocValues.unwrapSingleton(sub);
+          final SortedDocValuesIterator singleton = DocValues.unwrapSingleton(sub);
           if (singleton != null) {
             // some codecs may optimize SORTED_SET storage for single-valued fields
-            accumIntervalsSingle(new StupidSortedDocValuesIterator(singleton, leaf.reader().maxDoc()), disi, dis.bits());
+            accumIntervalsSingle(singleton, disi, dis.bits());
           } else {
             accumIntervalsMulti(sub, disi, dis.bits());
           }
@@ -270,7 +271,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
     }
   }
 
-  private void accumIntervalsMulti(SortedSetDocValues ssdv,
+  private void accumIntervalsMulti(SortedSetDocValuesIterator ssdv,
                                    DocIdSetIterator disi, Bits bits) throws IOException {
     // First update the ordinals in the intervals for this segment
     for (FacetInterval interval : intervals) {
@@ -282,14 +283,17 @@ public class IntervalFacets implements Iterable<FacetInterval> {
       if (bits != null && bits.get(doc) == false) {
         continue;
       }
-      ssdv.setDocument(doc);
-      long currOrd;
-      int currentInterval = 0;
-      while ((currOrd = ssdv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-        boolean evaluateNextInterval = true;
-        while (evaluateNextInterval && currentInterval < intervals.length) {
-          IntervalCompareResult result = intervals[currentInterval].includes(currOrd);
-          switch (result) {
+      if (doc > ssdv.docID()) {
+        ssdv.advance(doc);
+      }
+      if (doc == ssdv.docID()) {
+        long currOrd;
+        int currentInterval = 0;
+        while ((currOrd = ssdv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+          boolean evaluateNextInterval = true;
+          while (evaluateNextInterval && currentInterval < intervals.length) {
+            IntervalCompareResult result = intervals[currentInterval].includes(currOrd);
+            switch (result) {
             case INCLUDED:
               /*
                * Increment the current interval and move to the next one using
@@ -311,6 +315,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
                */
               currentInterval++;
               break;
+            }
           }
         }
       }
@@ -400,7 +405,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
      * is multivalued and/or non-numeric, then this number will be the lower limit
      * ordinal for a value to be included in this interval. In this case,
      * {@link #startLimit} needs to be set using either {@link #updateContext(SortedDocValuesIterator)} or
-     * {@link #updateContext(SortedSetDocValues)} (depending on the field type) for
+     * {@link #updateContext(SortedSetDocValuesIterator)} (depending on the field type) for
      * every segment before calling {@link #includes(long)} for any document in the
      * segment.
      */
@@ -415,7 +420,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
      * is multivalued and/or non-numeric, then this number will be the upper limit
      * ordinal for a value to be included in this interval. In this case,
      * {@link #endLimit} needs to be set using either {@link #updateContext(SortedDocValuesIterator)} or
-     * {@link #updateContext(SortedSetDocValues)} (depending on the field type) for
+     * {@link #updateContext(SortedSetDocValuesIterator)} (depending on the field type) for
      * every segment before calling {@link #includes(long)} for any document in the
      * segment.
      */
@@ -619,7 +624,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
 
     /**
      * Update the ordinals based on the current reader. This method
-     * (or {@link #updateContext(SortedSetDocValues)} depending on the
+     * (or {@link #updateContext(SortedSetDocValuesIterator)} depending on the
      * DocValues type) needs to be called for every reader before
      * {@link #includes(long)} is called on any document of the reader.
      *
@@ -688,7 +693,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
      *
      * @param sdv DocValues for the current reader
      */
-    public void updateContext(SortedSetDocValues sdv) {
+    public void updateContext(SortedSetDocValuesIterator sdv) {
       if (start == null) {
         /*
          * Unset start. All ordinals will be greater than -1.
@@ -746,7 +751,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
      * Method to use to check whether a document should be counted for
      * an interval or not. Before calling this method on a multi-valued
      * and/or non-numeric field make sure you call {@link #updateContext(SortedDocValuesIterator)}
-     * or {@link #updateContext(SortedSetDocValues)} (depending on the DV type). It
+     * or {@link #updateContext(SortedSetDocValuesIterator)} (depending on the DV type). It
      * is OK to call this method without other previous calls on numeric fields
      * (with {@link NumericDocValuesIterator})
      *

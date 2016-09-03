@@ -27,6 +27,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.docvalues.IntDocValues;
@@ -95,13 +96,20 @@ public class ReverseOrdFieldSource extends ValueSource {
       r = SlowCompositeReaderWrapper.wrap(topReader);
     }
     // if it's e.g. tokenized/multivalued, emulate old behavior of single-valued fc
-    final SortedDocValues sindex = SortedSetSelector.wrap(DocValues.getSortedSet(r, field), SortedSetSelector.Type.MIN);
+    final SortedDocValuesIterator sindex = SortedSetSelector.wrap(DocValues.getSortedSet(r, field), SortedSetSelector.Type.MIN);
     final int end = sindex.getValueCount();
 
     return new IntDocValues(this) {
-     @Override
-      public int intVal(int doc) {
-        return (end - sindex.getOrd(doc+off) - 1);
+      @Override
+      public int intVal(int doc) throws IOException {
+        if (doc+off > sindex.docID()) {
+          sindex.advance(doc+off);
+        }
+        if (doc+off == sindex.docID()) {
+          return (end - sindex.ordValue() - 1);
+        } else {
+          return end;
+        }
       }
     };
   }

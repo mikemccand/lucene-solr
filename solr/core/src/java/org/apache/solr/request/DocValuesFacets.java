@@ -22,11 +22,12 @@ import java.util.List;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
-import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
+import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.search.DocIdSet;
@@ -69,16 +70,16 @@ public class DocValuesFacets {
     // TODO: remove multiValuedFieldCache(), check dv type / uninversion type?
     final boolean multiValued = schemaField.multiValued() || ft.multiValuedFieldCache();
 
-    final SortedSetDocValues si; // for term lookups only
+    final SortedSetDocValuesIterator si; // for term lookups only
     OrdinalMap ordinalMap = null; // for mapping per-segment ords to global ones
     if (multiValued) {
       si = searcher.getLeafReader().getSortedSetDocValues(fieldName);
-      if (si instanceof MultiSortedSetDocValues) {
-        ordinalMap = ((MultiSortedSetDocValues)si).mapping;
+      if (si instanceof MultiSortedSetDocValuesIterator) {
+        ordinalMap = ((MultiSortedSetDocValuesIterator)si).mapping;
       }
     } else {
       SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
-      si = single == null ? null : DocValues.singleton(new StupidSortedDocValuesUnIterator(searcher.getLeafReader(), fieldName));
+      si = single == null ? null : DocValues.singleton(single);
       if (single instanceof MultiSortedDocValuesIterator) {
         ordinalMap = ((MultiSortedDocValuesIterator)single).mapping;
       }
@@ -137,17 +138,11 @@ public class DocValuesFacets {
         }
         if (disi != null) {
           if (multiValued) {
-            SortedSetDocValues sub = leaf.reader().getSortedSetDocValues(fieldName);
+            SortedSetDocValuesIterator sub = leaf.reader().getSortedSetDocValues(fieldName);
             if (sub == null) {
               sub = DocValues.emptySortedSet();
             }
-            SortedDocValues dvs = DocValues.unwrapSingleton(sub);
-            final SortedDocValuesIterator singleton;
-            if (dvs == null) {
-              singleton = null;
-            } else {
-              singleton = new StupidSortedDocValuesIterator(dvs, leaf.reader().maxDoc());
-            }
+            final SortedDocValuesIterator singleton = DocValues.unwrapSingleton(sub);
             if (singleton != null) {
               // some codecs may optimize SORTED_SET storage for single-valued fields
               accumSingle(counts, startTermIndex, singleton, disi, subIndex, ordinalMap);
@@ -327,7 +322,7 @@ public class DocValuesFacets {
   }
   
   /** accumulates per-segment multi-valued facet counts */
-  static void accumMulti(int counts[], int startTermIndex, SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumMulti(int counts[], int startTermIndex, SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     if (startTermIndex == -1 && (map == null || si.getValueCount() < disi.cost()*10)) {
       // no prefixing, not too many unique values wrt matching docs (lucene/facets heuristic): 
       //   collect separately per-segment, then map to global ords
@@ -339,32 +334,31 @@ public class DocValuesFacets {
   }
     
   /** accumulates per-segment multi-valued facet counts, mapping to global ordinal space on-the-fly */
-  static void accumMultiGeneric(int counts[], int startTermIndex, SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumMultiGeneric(int counts[], int startTermIndex, SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordMap = map == null ? null : map.getGlobalOrds(subIndex);
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      si.setDocument(doc);
-      // strange do-while to collect the missing count (first ord is NO_MORE_ORDS)
-      int term = (int) si.nextOrd();
-      if (term < 0) {
-        if (startTermIndex == -1) {
-          counts[0]++; // missing count
-        }
-        continue;
+      if (doc > si.docID()) {
+        si.advance(doc);
       }
-      
-      do {
-        if (map != null) {
-          term = (int) ordMap.get(term);
-        }
-        int arrIdx = term-startTermIndex;
-        if (arrIdx>=0 && arrIdx<counts.length) counts[arrIdx]++;
-      } while ((term = (int) si.nextOrd()) >= 0);
+      if (doc == si.docID()) {
+        // strange do-while to collect the missing count (first ord is NO_MORE_ORDS)
+        int term = (int) si.nextOrd();
+        do {
+          if (map != null) {
+            term = (int) ordMap.get(term);
+          }
+          int arrIdx = term-startTermIndex;
+          if (arrIdx>=0 && arrIdx<counts.length) counts[arrIdx]++;
+        } while ((term = (int) si.nextOrd()) >= 0);
+      } else if (startTermIndex == -1) {
+        counts[0]++; // missing count
+      }
     }
   }
   
   /** "typical" multi-valued faceting: not too many unique values, no prefixing. maps to global ordinals as a separate step */
-  static void accumMultiSeg(int counts[], SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumMultiSeg(int counts[], SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     // First count in seg-ord space:
     final int segCounts[];
     if (map == null) {
@@ -375,14 +369,16 @@ public class DocValuesFacets {
     
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      si.setDocument(doc);
-      int term = (int) si.nextOrd();
-      if (term < 0) {
-        counts[0]++; // missing
-      } else {
+      if (doc > si.docID()) {
+        si.advance(doc);
+      }
+      if (doc == si.docID()) {
+        int term = (int) si.nextOrd();
         do {
           segCounts[1+term]++;
         } while ((term = (int)si.nextOrd()) >= 0);
+      } else {
+        counts[0]++; // missing
       }
     }
     

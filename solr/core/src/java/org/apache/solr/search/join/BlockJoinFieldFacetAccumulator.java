@@ -28,6 +28,7 @@ import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
@@ -48,15 +49,15 @@ class BlockJoinFieldFacetAccumulator {
   private FieldType fieldType;
   private int currentSegment = -1;
   // for term lookups only
-  private SortedSetDocValues topSSDV;
+  private SortedSetDocValuesIterator topSSDV;
   private int[] globalCounts;
-  private SortedSetDocValues segmentSSDV;
+  private SortedSetDocValuesIterator segmentSSDV;
   // elems are : facet value counter<<32 | last parent doc num 
   private long[] segmentAccums = new long[0];
   // for mapping per-segment ords to global ones
   private MultiDocValues.OrdinalMap ordinalMap;
   private SchemaField schemaField;
-  private SortedDocValues segmentSDV;
+  private SortedDocValuesIterator segmentSDV;
   
   BlockJoinFieldFacetAccumulator(String fieldName, SolrIndexSearcher searcher) throws IOException {
     this.fieldName = fieldName;
@@ -65,20 +66,16 @@ class BlockJoinFieldFacetAccumulator {
     ordinalMap = null;
     if (schemaField.multiValued()) {
       topSSDV = searcher.getLeafReader().getSortedSetDocValues(fieldName);
-      if (topSSDV instanceof MultiDocValues.MultiSortedSetDocValues) {
-        ordinalMap = ((MultiDocValues.MultiSortedSetDocValues) topSSDV).mapping;
+      if (topSSDV instanceof MultiDocValues.MultiSortedSetDocValuesIterator) {
+        ordinalMap = ((MultiDocValues.MultiSortedSetDocValuesIterator) topSSDV).mapping;
       }
     } else {
       SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
-      // npe friendly code
-      topSSDV = single == null ? null : DocValues.singleton(new StupidSortedDocValuesUnIterator(new EmptyDocValuesProducer() {
-          @Override
-          public SortedDocValuesIterator getSorted(FieldInfo fieldInfo) throws IOException {
-            return searcher.getLeafReader().getSortedDocValues(fieldName);
-          }
-        }, null));
       if (single instanceof MultiDocValues.MultiSortedDocValuesIterator) {
         ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator) single).mapping;
+      }
+      if (single != null) {
+        topSSDV = DocValues.singleton(single);
       }
     }
   }
@@ -145,18 +142,31 @@ class BlockJoinFieldFacetAccumulator {
       // some codecs may optimize SORTED_SET storage for single-valued fields
       for (iter.reset(); iter.hasNext(); ) {
         final int docNum = iter.nextDoc();
-        int term = segmentSDV.getOrd(docNum);
+        if (docNum > segmentSDV.docID()) {
+          segmentSDV.advance(docNum);
+        }
+        
+        int term;
+        if (docNum == segmentSDV.docID()) {
+          term = segmentSDV.ordValue();
+        } else {
+          term = -1;
+        }
         accumulateTermOrd(term, iter.getAggKey());
         //System.out.println("doc# "+docNum+" "+fieldName+" term# "+term+" tick "+Long.toHexString(segmentAccums[1+term]));
       }
     } else {
       for (iter.reset(); iter.hasNext(); ) {
         final int docNum = iter.nextDoc();
-        segmentSSDV.setDocument(docNum);
-        int term = (int) segmentSSDV.nextOrd();
-        do { // absent values are designated by term=-1, first iteration counts [0] as "missing", and exit, otherwise it spins 
-          accumulateTermOrd(term, iter.getAggKey());
-        } while (term>=0 && (term = (int) segmentSSDV.nextOrd()) >= 0);
+        if (docNum > segmentSSDV.docID()) {
+          segmentSSDV.advance(docNum);
+        }
+        if (docNum == segmentSSDV.docID()) {
+          int term = (int) segmentSSDV.nextOrd();
+          do { // absent values are designated by term=-1, first iteration counts [0] as "missing", and exit, otherwise it spins 
+            accumulateTermOrd(term, iter.getAggKey());
+          } while (term>=0 && (term = (int) segmentSSDV.nextOrd()) >= 0);
+        }
       }
     }
   }

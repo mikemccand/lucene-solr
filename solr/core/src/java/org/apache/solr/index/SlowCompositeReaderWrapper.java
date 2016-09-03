@@ -33,7 +33,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
-import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
+import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
@@ -45,6 +45,7 @@ import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
@@ -182,16 +183,16 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   }
   
   @Override
-  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
     ensureOpen();
     OrdinalMap map = null;
     synchronized (cachedOrdMaps) {
       map = cachedOrdMaps.get(field);
       if (map == null) {
         // uncached, or not a multi dv
-        SortedSetDocValues dv = MultiDocValues.getSortedSetValues(in, field);
-        if (dv instanceof MultiSortedSetDocValues) {
-          map = ((MultiSortedSetDocValues)dv).mapping;
+        SortedSetDocValuesIterator dv = MultiDocValues.getSortedSetValues(in, field);
+        if (dv instanceof MultiSortedSetDocValuesIterator) {
+          map = ((MultiSortedSetDocValuesIterator)dv).mapping;
           if (map.owner == getCoreCacheKey() && merging == false) {
             cachedOrdMaps.put(field, map);
           }
@@ -202,8 +203,9 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
    
     assert map != null;
     int size = in.leaves().size();
-    final SortedSetDocValues[] values = new SortedSetDocValues[size];
+    final SortedSetDocValuesIterator[] values = new SortedSetDocValuesIterator[size];
     final int[] starts = new int[size+1];
+    long cost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = in.leaves().get(i);
       final LeafReader reader = context.reader();
@@ -211,15 +213,16 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
       if(fieldInfo != null && fieldInfo.getDocValuesType() != DocValuesType.SORTED_SET){
         return null;
       }
-      SortedSetDocValues v = reader.getSortedSetDocValues(field);
+      SortedSetDocValuesIterator v = reader.getSortedSetDocValues(field);
       if (v == null) {
         v = DocValues.emptySortedSet();
       }
       values[i] = v;
       starts[i] = context.docBase;
+      cost += v.cost();
     }
     starts[size] = maxDoc();
-    return new MultiSortedSetDocValues(values, starts, map);
+    return new MultiSortedSetDocValuesIterator(values, starts, map, cost);
   }
   
   // TODO: this could really be a weak map somewhere else on the coreCacheKey,

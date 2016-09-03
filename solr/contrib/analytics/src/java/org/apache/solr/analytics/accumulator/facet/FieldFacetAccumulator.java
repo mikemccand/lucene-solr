@@ -23,6 +23,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.analytics.accumulator.FacetingAccumulator;
@@ -48,7 +49,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
   protected final boolean multiValued;
   protected final boolean numField;
   protected final boolean dateField;
-  protected SortedSetDocValues setValues;
+  protected SortedSetDocValuesIterator setValues;
   protected SortedDocValuesIterator sortValues; 
   protected NumericDocValuesIterator numValues;
   
@@ -95,12 +96,16 @@ public class FieldFacetAccumulator extends ValueAccumulator {
     if (multiValued) {
       boolean exists = false;
       if (setValues!=null) {
-        setValues.setDocument(doc);
-        int term;
-        while ((term = (int)setValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-          exists = true;
-          final BytesRef value = setValues.lookupOrd(term);
-          parent.collectField(doc, name, parser.parse(value) );
+        if (doc > setValues.docID()) {
+          setValues.advance(doc);
+        }
+        if (doc == setValues.docID()) {
+          int term;
+          while ((term = (int)setValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+            exists = true;
+            final BytesRef value = setValues.lookupOrd(term);
+            parent.collectField(doc, name, parser.parse(value) );
+          }
         }
       }
       if (!exists) {

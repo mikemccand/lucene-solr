@@ -43,6 +43,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
@@ -114,21 +115,21 @@ public class TestDocTermOrds extends LuceneTestCase {
     final LeafReader ar = SlowCompositeReaderWrapper.wrap(r);
     TestUtil.checkReader(ar);
     final DocTermOrds dto = new DocTermOrds(ar, ar.getLiveDocs(), "field");
-    SortedSetDocValues iter = dto.iterator(ar);
+    SortedSetDocValuesIterator iter = dto.iterator(ar);
     
-    iter.setDocument(0);
+    assertEquals(0, iter.nextDoc());
     assertEquals(0, iter.nextOrd());
     assertEquals(1, iter.nextOrd());
     assertEquals(2, iter.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, iter.nextOrd());
     
-    iter.setDocument(1);
+    assertEquals(1, iter.nextDoc());
     assertEquals(3, iter.nextOrd());
     assertEquals(4, iter.nextOrd());
     assertEquals(5, iter.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, iter.nextOrd());
 
-    iter.setDocument(2);
+    assertEquals(2, iter.nextDoc());
     assertEquals(0, iter.nextOrd());
     assertEquals(5, iter.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, iter.nextOrd());
@@ -404,13 +405,21 @@ public class TestDocTermOrds extends LuceneTestCase {
       }
     }
 
-    SortedSetDocValues iter = dto.iterator(r);
+    SortedSetDocValuesIterator iter = dto.iterator(r);
     for(int docID=0;docID<r.maxDoc();docID++) {
       assertEquals(docID, docIDToID.nextDoc());
+      if (docID > iter.docID()) {
+        iter.nextDoc();
+      }
+      if (docID < iter.docID()) {
+        int[] answers = idToOrds[(int) docIDToID.longValue()];
+        assertEquals(0, answers.length);
+        continue;
+      }
+      
       if (VERBOSE) {
         System.out.println("TEST: docID=" + docID + " of " + r.maxDoc() + " (id=" + docIDToID.longValue() + ")");
       }
-      iter.setDocument(docID);
       final int[] answers = idToOrds[(int) docIDToID.longValue()];
       int upto = 0;
       long ord;
@@ -447,9 +456,9 @@ public class TestDocTermOrds extends LuceneTestCase {
     
     FieldCache.DEFAULT.getDocTermOrds(getOnlyLeafReader(r2), "foo", null);
     
-    SortedSetDocValues v = FieldCache.DEFAULT.getDocTermOrds(getOnlyLeafReader(r1), "foo", null);
+    SortedSetDocValuesIterator v = FieldCache.DEFAULT.getDocTermOrds(getOnlyLeafReader(r1), "foo", null);
     assertEquals(3, v.getValueCount());
-    v.setDocument(1);
+    assertEquals(1, v.advance(1));
     assertEquals(1, v.nextOrd());
     
     iw.close();
@@ -477,17 +486,17 @@ public class TestDocTermOrds extends LuceneTestCase {
     DirectoryReader ir = DirectoryReader.open(dir);
     LeafReader ar = getOnlyLeafReader(ir);
     
-    SortedSetDocValues v = FieldCache.DEFAULT.getDocTermOrds(ar, "foo", FieldCache.INT32_TERM_PREFIX);
+    SortedSetDocValuesIterator v = FieldCache.DEFAULT.getDocTermOrds(ar, "foo", FieldCache.INT32_TERM_PREFIX);
     assertEquals(2, v.getValueCount());
-    
-    v.setDocument(0);
+
+    assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals(-3, LegacyNumericUtils.prefixCodedToInt(value));
@@ -518,17 +527,17 @@ public class TestDocTermOrds extends LuceneTestCase {
     DirectoryReader ir = DirectoryReader.open(dir);
     LeafReader ar = getOnlyLeafReader(ir);
     
-    SortedSetDocValues v = FieldCache.DEFAULT.getDocTermOrds(ar, "foo", FieldCache.INT64_TERM_PREFIX);
+    SortedSetDocValuesIterator v = FieldCache.DEFAULT.getDocTermOrds(ar, "foo", FieldCache.INT64_TERM_PREFIX);
     assertEquals(2, v.getValueCount());
     
-    v.setDocument(0);
+    assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals(-3, LegacyNumericUtils.prefixCodedToLong(value));
@@ -566,7 +575,7 @@ public class TestDocTermOrds extends LuceneTestCase {
     iwriter.close();
 
     LeafReader ar = getOnlyLeafReader(ireader);
-    SortedSetDocValues dv = FieldCache.DEFAULT.getDocTermOrds(ar, "field", null);
+    SortedSetDocValuesIterator dv = FieldCache.DEFAULT.getDocTermOrds(ar, "field", null);
     assertEquals(3, dv.getValueCount());
     
     TermsEnum termsEnum = dv.termsEnum();
@@ -652,22 +661,19 @@ public class TestDocTermOrds extends LuceneTestCase {
     DirectoryReader ir = DirectoryReader.open(dir);
     LeafReader ar = getOnlyLeafReader(ir);
     
-    SortedSetDocValues v = FieldCache.DEFAULT.getDocTermOrds(ar, "foo", null);
+    SortedSetDocValuesIterator v = FieldCache.DEFAULT.getDocTermOrds(ar, "foo", null);
     assertNotNull(DocValues.unwrapSingleton(v)); // actually a single-valued field
     assertEquals(2, v.getValueCount());
     
-    v.setDocument(0);
+    assertEquals(0, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(1, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(2);
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
-    
-    v.setDocument(3);
+    assertEquals(3, v.nextDoc());
     assertEquals(1, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
     

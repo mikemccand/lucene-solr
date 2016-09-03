@@ -43,8 +43,10 @@ import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
+import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -1150,18 +1152,18 @@ class FieldCacheImpl implements FieldCache {
 
   // TODO: this if DocTermsIndex was already created, we
   // should share it...
-  public SortedSetDocValues getDocTermOrds(LeafReader reader, String field, BytesRef prefix) throws IOException {
+  public SortedSetDocValuesIterator getDocTermOrds(LeafReader reader, String field, BytesRef prefix) throws IOException {
     // not a general purpose filtering mechanism...
     assert prefix == null || prefix == INT32_TERM_PREFIX || prefix == INT64_TERM_PREFIX;
     
-    SortedSetDocValues dv = reader.getSortedSetDocValues(field);
+    SortedSetDocValuesIterator dv = reader.getSortedSetDocValues(field);
     if (dv != null) {
       return dv;
     }
     
     SortedDocValuesIterator sdv = reader.getSortedDocValues(field);
     if (sdv != null) {
-      return DocValues.singleton(new StupidSortedDocValuesUnIterator(reader, field));
+      return DocValues.singleton(sdv);
     }
     
     final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
@@ -1184,12 +1186,7 @@ class FieldCacheImpl implements FieldCache {
       // it's still ok with filtering (which we limit to numerics), it just means precisionStep = Inf
       long numPostings = terms.getSumDocFreq();
       if (numPostings != -1 && numPostings == terms.getDocCount()) {
-        return DocValues.singleton(new StupidSortedDocValuesUnIterator(new EmptyDocValuesProducer() {
-            @Override
-            public SortedDocValuesIterator getSorted(FieldInfo fieldInfo) throws IOException {
-              return getTermsIndex(reader, field);
-            }
-          }, info));
+        return DocValues.singleton(getTermsIndex(reader, field));
       }
     }
     

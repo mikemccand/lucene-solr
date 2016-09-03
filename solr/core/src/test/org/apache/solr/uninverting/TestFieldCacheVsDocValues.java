@@ -41,6 +41,7 @@ import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
 import org.apache.lucene.index.TermsEnum;
@@ -393,8 +394,8 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     DirectoryReader ir = writer.getReader();
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      SortedSetDocValues expected = FieldCache.DEFAULT.getDocTermOrds(r, "indexed", null);
-      SortedSetDocValues actual = r.getSortedSetDocValues("dv");
+      SortedSetDocValuesIterator expected = FieldCache.DEFAULT.getDocTermOrds(r, "indexed", null);
+      SortedSetDocValuesIterator actual = r.getSortedSetDocValues("dv");
       assertEquals(r.maxDoc(), expected, actual);
     }
     ir.close();
@@ -404,8 +405,8 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     // now compare again after the merge
     ir = writer.getReader();
     LeafReader ar = getOnlyLeafReader(ir);
-    SortedSetDocValues expected = FieldCache.DEFAULT.getDocTermOrds(ar, "indexed", null);
-    SortedSetDocValues actual = ar.getSortedSetDocValues("dv");
+    SortedSetDocValuesIterator expected = FieldCache.DEFAULT.getDocTermOrds(ar, "indexed", null);
+    SortedSetDocValuesIterator actual = ar.getSortedSetDocValues("dv");
     assertEquals(ir.maxDoc(), expected, actual);
     ir.close();
     
@@ -522,7 +523,7 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     assertEquals(expected.getValueCount(), expected.termsEnum(), actual.termsEnum());
   }
   
-  private void assertEquals(int maxDoc, SortedSetDocValues expected, SortedSetDocValues actual) throws Exception {
+  private void assertEquals(int maxDoc, SortedSetDocValuesIterator expected, SortedSetDocValuesIterator actual) throws Exception {
     // can be null for the segment if no docs actually had any SortedDocValues
     // in this case FC.getDocTermsOrds returns EMPTY
     if (actual == null) {
@@ -530,10 +531,12 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
       return;
     }
     assertEquals(expected.getValueCount(), actual.getValueCount());
-    // compare ord lists
-    for (int i = 0; i < maxDoc; i++) {
-      expected.setDocument(i);
-      actual.setDocument(i);
+    while (true) {
+      int docID = expected.nextDoc();
+      assertEquals(docID, actual.nextDoc());
+      if (docID == NO_MORE_DOCS) {
+        break;
+      }
       long expectedOrd;
       while ((expectedOrd = expected.nextOrd()) != NO_MORE_ORDS) {
         assertEquals(expectedOrd, actual.nextOrd());

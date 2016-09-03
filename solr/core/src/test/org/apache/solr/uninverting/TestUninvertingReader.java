@@ -43,6 +43,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LegacyNumericUtils;
@@ -72,14 +73,14 @@ public class TestUninvertingReader extends LuceneTestCase {
     DirectoryReader ir = UninvertingReader.wrap(DirectoryReader.open(dir), 
                          Collections.singletonMap("foo", Type.SORTED_SET_INTEGER));
     LeafReader ar = ir.leaves().get(0).reader();
-    SortedSetDocValues v = ar.getSortedSetDocValues("foo");
+    SortedSetDocValuesIterator v = ar.getSortedSetDocValues("foo");
     assertEquals(2, v.getValueCount());
     
-    v.setDocument(0);
+    assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
@@ -114,14 +115,14 @@ public class TestUninvertingReader extends LuceneTestCase {
                          Collections.singletonMap("foo", Type.SORTED_SET_FLOAT));
     LeafReader ar = ir.leaves().get(0).reader();
     
-    SortedSetDocValues v = ar.getSortedSetDocValues("foo");
+    SortedSetDocValuesIterator v = ar.getSortedSetDocValues("foo");
     assertEquals(2, v.getValueCount());
     
-    v.setDocument(0);
+    assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
     assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
@@ -155,17 +156,17 @@ public class TestUninvertingReader extends LuceneTestCase {
     DirectoryReader ir = UninvertingReader.wrap(DirectoryReader.open(dir), 
         Collections.singletonMap("foo", Type.SORTED_SET_LONG));
     LeafReader ar = ir.leaves().get(0).reader();
-    SortedSetDocValues v = ar.getSortedSetDocValues("foo");
+    SortedSetDocValuesIterator v = ar.getSortedSetDocValues("foo");
     assertEquals(2, v.getValueCount());
     
-    v.setDocument(0);
+    assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals(-3, LegacyNumericUtils.prefixCodedToLong(value));
@@ -196,17 +197,17 @@ public class TestUninvertingReader extends LuceneTestCase {
     DirectoryReader ir = UninvertingReader.wrap(DirectoryReader.open(dir), 
         Collections.singletonMap("foo", Type.SORTED_SET_DOUBLE));
     LeafReader ar = ir.leaves().get(0).reader();
-    SortedSetDocValues v = ar.getSortedSetDocValues("foo");
+    SortedSetDocValuesIterator v = ar.getSortedSetDocValues("foo");
     assertEquals(2, v.getValueCount());
     
-    v.setDocument(0);
+    assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
-    v.setDocument(1);
+    assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals(Double.doubleToRawLongBits(-3d), LegacyNumericUtils.prefixCodedToLong(value));
@@ -281,7 +282,7 @@ public class TestUninvertingReader extends LuceneTestCase {
     for (LeafReaderContext rc : ir.leaves()) {
       final LeafReader ar = rc.reader();
       for (String f : UNINVERT_MAP.keySet()) {
-        final SortedSetDocValues v = DocValues.getSortedSet(ar, f);
+        final SortedSetDocValuesIterator v = DocValues.getSortedSet(ar, f);
         final long valSetSize = v.getValueCount();
         assertTrue(f + ": Expected no more then " + EXPECTED_VALSET_SIZE + " values per segment, got " +
                    valSetSize + " from: " + ar.toString(),
@@ -300,7 +301,7 @@ public class TestUninvertingReader extends LuceneTestCase {
     TestUtil.checkReader(composite);
     
     for (String f : MULTI_VALUES) {
-      final SortedSetDocValues v = composite.getSortedSetDocValues(f);
+      final SortedSetDocValuesIterator v = composite.getSortedSetDocValues(f);
       final long valSetSize = v.getValueCount();
       assertEquals(f + ": Composite reader value set should have had exactly expected size",
                    EXPECTED_VALSET_SIZE, valSetSize);

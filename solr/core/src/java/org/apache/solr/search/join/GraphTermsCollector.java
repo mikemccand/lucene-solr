@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.util.BitSet;
@@ -43,7 +44,7 @@ class GraphTermsCollector extends SimpleCollector implements Collector {
   private String field;
   // all the collected terms
   private BytesRefHash collectorTerms;
-  private SortedSetDocValues docTermOrds;
+  private SortedSetDocValuesIterator docTermOrds;
   // the result set that is being collected.
   private Bits currentResult;
   // known leaf nodes
@@ -89,14 +90,18 @@ class GraphTermsCollector extends SimpleCollector implements Collector {
   
   private void addEdgeIdsToResult(int doc) throws IOException {
     // set the doc to pull the edges ids for.
-    docTermOrds.setDocument(doc);
-    BytesRef edgeValue = new BytesRef();
-    long ord;
-    while ((ord = docTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-      // TODO: handle non string type fields.
-      edgeValue = docTermOrds.lookupOrd(ord);
-      // add the edge id to the collector terms.
-      collectorTerms.add(edgeValue);
+    if (doc > docTermOrds.docID()) {
+      docTermOrds.advance(doc);
+    }
+    if (doc == docTermOrds.docID()) {
+      BytesRef edgeValue = new BytesRef();
+      long ord;
+      while ((ord = docTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        // TODO: handle non string type fields.
+        edgeValue = docTermOrds.lookupOrd(ord);
+        // add the edge id to the collector terms.
+        collectorTerms.add(edgeValue);
+      }
     }
   }
   

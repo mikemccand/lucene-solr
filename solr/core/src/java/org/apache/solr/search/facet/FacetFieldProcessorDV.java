@@ -28,6 +28,7 @@ import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.search.DocIdSet;
@@ -43,7 +44,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
   static boolean unwrap_singleValued_multiDv = true;  // only set to false for test coverage
 
   boolean multiValuedField;
-  SortedSetDocValues si;  // only used for term lookups (for both single and multi-valued)
+  SortedSetDocValuesIterator si;  // only used for term lookups (for both single and multi-valued)
   MultiDocValues.OrdinalMap ordinalMap = null; // maps per-segment ords to global ords
 
 
@@ -59,18 +60,13 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
   protected void findStartAndEndOrds() throws IOException {
     if (multiValuedField) {
       si = FieldUtil.getSortedSetDocValues(fcontext.qcontext, sf, null);
-      if (si instanceof MultiDocValues.MultiSortedSetDocValues) {
-        ordinalMap = ((MultiDocValues.MultiSortedSetDocValues)si).mapping;
+      if (si instanceof MultiDocValues.MultiSortedSetDocValuesIterator) {
+        ordinalMap = ((MultiDocValues.MultiSortedSetDocValuesIterator)si).mapping;
       }
     } else {
       // multi-valued view
       SortedDocValuesIterator single = FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
-      si = DocValues.singleton(new StupidSortedDocValuesUnIterator(new EmptyDocValuesProducer() {
-          @Override
-          public SortedDocValuesIterator getSorted(FieldInfo fi) throws IOException {
-            return FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
-          }
-        }, null));
+      si = DocValues.singleton(single);
       if (single instanceof MultiDocValues.MultiSortedDocValuesIterator) {
         ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator)single).mapping;
       }
@@ -139,7 +135,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
       DocIdSetIterator disi = dis.iterator();
 
       SortedDocValuesIterator singleDv = null;
-      SortedSetDocValues multiDv = null;
+      SortedSetDocValuesIterator multiDv = null;
       if (multiValuedField) {
         // TODO: get sub from multi?
         multiDv = subCtx.reader().getSortedSetDocValues(sf.getName());
@@ -149,10 +145,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
         // some codecs may optimize SortedSet storage for single-valued fields
         // this will be null if this is not a wrapped single valued docvalues.
         if (unwrap_singleValued_multiDv) {
-          SortedDocValues dvs = DocValues.unwrapSingleton(multiDv);
-          if (dvs != null) {
-            singleDv = new StupidSortedDocValuesIterator(dvs, subCtx.reader().maxDoc());
-          }
+          singleDv = DocValues.unwrapSingleton(multiDv);
         }
       } else {
         singleDv = subCtx.reader().getSortedDocValues(sf.getName());
@@ -227,17 +220,21 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
   }
 
 
-  private void collectPerSeg(SortedSetDocValues multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectPerSeg(SortedSetDocValuesIterator multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int segMax = (int)multiDv.getValueCount();
     final int[] counts = getCountArr( segMax );
 
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      multiDv.setDocument(doc);
-      for(;;) {
-        int segOrd = (int)multiDv.nextOrd();
-        if (segOrd < 0) break;
-        counts[segOrd]++;
+      if (doc > multiDv.docID()) {
+        multiDv.advance(doc);
+      }
+      if (doc == multiDv.docID()) {
+        for(;;) {
+          int segOrd = (int)multiDv.nextOrd();
+          if (segOrd < 0) break;
+          counts[segOrd]++;
+        }
       }
     }
 
@@ -277,27 +274,35 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     }
   }
 
-  private void collectDocs(SortedSetDocValues multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectDocs(SortedSetDocValuesIterator multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      multiDv.setDocument(doc);
-      for(;;) {
-        int segOrd = (int)multiDv.nextOrd();
-        if (segOrd < 0) break;
-        collect(doc, segOrd, toGlobal);
+      if (doc > multiDv.docID()) {
+        multiDv.advance(doc);
+      }
+      if (doc == multiDv.docID()) {
+        for(;;) {
+          int segOrd = (int)multiDv.nextOrd();
+          if (segOrd < 0) break;
+          collect(doc, segOrd, toGlobal);
+        }
       }
     }
   }
 
-  private void collectCounts(SortedSetDocValues multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectCounts(SortedSetDocValuesIterator multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-      multiDv.setDocument(doc);
-      for(;;) {
-        int segOrd = (int)multiDv.nextOrd();
-        if (segOrd < 0) break;
-        int ord = (int)toGlobal.get(segOrd);
-        countAcc.incrementCount(ord, 1);
+      if (doc > multiDv.docID()) {
+        multiDv.advance(doc);
+      }
+      if (doc == multiDv.docID()) {
+        for(;;) {
+          int segOrd = (int)multiDv.nextOrd();
+          if (segOrd < 0) break;
+          int ord = (int)toGlobal.get(segOrd);
+          countAcc.incrementCount(ord, 1);
+        }
       }
     }
   }

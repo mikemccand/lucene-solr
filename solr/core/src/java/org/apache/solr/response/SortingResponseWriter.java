@@ -33,6 +33,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
@@ -1336,15 +1337,16 @@ public class SortingResponseWriter implements QueryResponseWriter {
       this.numeric = numeric;
     }
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      SortedSetDocValues vals = DocValues.getSortedSet(reader, this.field);
-      vals.setDocument(docId);
-      List<Long> ords = new ArrayList();
-      long o = -1;
-      while((o = vals.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-        ords.add(o);
-      }
-
-      if(ords.size()== 0) {
+      SortedSetDocValuesIterator vals = DocValues.getSortedSet(reader, this.field);
+      List<Long> ords;
+      if (vals.advance(docId) == docId) {
+        ords = new ArrayList();
+        long o = -1;
+        while((o = vals.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+          ords.add(o);
+        }
+        assert ords.size() > 0;
+      } else {
         return false;
       }
 

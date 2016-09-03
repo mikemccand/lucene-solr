@@ -26,7 +26,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Accountable;
@@ -343,7 +343,7 @@ interface FieldCache {
    * @return a {@link DocTermOrds} instance
    * @throws IOException  If any error occurs.
    */
-  public SortedSetDocValues getDocTermOrds(LeafReader reader, String field, BytesRef prefix) throws IOException;
+  public SortedSetDocValuesIterator getDocTermOrds(LeafReader reader, String field, BytesRef prefix) throws IOException;
 
   /**
    * EXPERT: A unique Identifier/Description for each item in the FieldCache. 
