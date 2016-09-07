@@ -28,6 +28,8 @@ import java.util.Set;
 
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.SortedDocValuesDocOrdsIterable;
+import org.apache.lucene.codecs.SortedDocValuesValuesIterable;
 import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.DocValuesType;
@@ -203,7 +205,10 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   }
   
   @Override
-  public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
+  public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    Iterable<BytesRef> values = new SortedDocValuesValuesIterable(valuesProducer, field);
+    Iterable<Number> docToOrd = new SortedDocValuesDocOrdsIterable(valuesProducer, field, numDocs);
+    
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.SORTED;
     writeFieldEntry(field, DocValuesType.SORTED);

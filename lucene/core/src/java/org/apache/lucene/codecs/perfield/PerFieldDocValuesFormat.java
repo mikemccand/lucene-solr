@@ -110,18 +110,18 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addNumericField(FieldInfo field, DocValuesProducer values) throws IOException {
-      getInstance(field).addNumericField(field, values);
+    public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      getInstance(field).addNumericField(field, valuesProducer);
     }
 
     @Override
-    public void addBinaryField(FieldInfo field, DocValuesProducer values) throws IOException {
-      getInstance(field).addBinaryField(field, values);
+    public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      getInstance(field).addBinaryField(field, valuesProducer);
     }
 
     @Override
-    public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
-      getInstance(field).addSortedField(field, values, docToOrd);
+    public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      getInstance(field).addSortedField(field, valuesProducer);
     }
 
     @Override

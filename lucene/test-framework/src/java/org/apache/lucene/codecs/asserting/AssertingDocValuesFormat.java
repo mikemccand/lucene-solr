@@ -46,6 +46,8 @@ import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.LongBitSet;
 import org.apache.lucene.util.TestUtil;
 
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
+
 /**
  * Just like the default but with additional asserts.
  */
@@ -110,38 +112,36 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
-      int valueCount = 0;
+    public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      SortedDocValuesIterator values = valuesProducer.getSorted(field);
+      int valueCount = values.getValueCount();
+      assert valueCount <= maxDoc;
       BytesRef lastValue = null;
-      for (BytesRef b : values) {
+      for (int ord=0;ord<valueCount;ord++) {
+        BytesRef b = values.lookupOrd(ord);
         assert b != null;
         assert b.isValid();
-        if (valueCount > 0) {
+        if (ord > 0) {
           assert b.compareTo(lastValue) > 0;
         }
         lastValue = BytesRef.deepCopyOf(b);
-        valueCount++;
       }
-      assert valueCount <= maxDoc;
       
       FixedBitSet seenOrds = new FixedBitSet(valueCount);
       
-      int count = 0;
-      for (Number v : docToOrd) {
-        assert v != null;
-        int ord = v.intValue();
-        assert ord >= -1 && ord < valueCount;
-        if (ord >= 0) {
-          seenOrds.set(ord);
-        }
-        count++;
+      int docID;
+      int lastDocID = -1;
+      while ((docID = values.nextDoc()) != NO_MORE_DOCS) {
+        assert docID >= 0 && docID < maxDoc;
+        assert docID > lastDocID;
+        lastDocID = docID;
+        int ord = values.ordValue();
+        assert ord >= 0 && ord < valueCount;
+        seenOrds.set(ord);
       }
       
-      assert count == maxDoc;
       assert seenOrds.cardinality() == valueCount;
-      TestUtil.checkIterator(values.iterator(), valueCount, false);
-      TestUtil.checkIterator(docToOrd.iterator(), maxDoc, false);
-      in.addSortedField(field, values, docToOrd);
+      in.addSortedField(field, valuesProducer);
     }
     
     @Override

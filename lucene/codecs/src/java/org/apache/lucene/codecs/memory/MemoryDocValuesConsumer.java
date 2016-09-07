@@ -26,6 +26,8 @@ import java.util.NoSuchElementException;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.SortedDocValuesDocOrdsIterable;
+import org.apache.lucene.codecs.SortedDocValuesValuesIterable;
 import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
@@ -403,7 +405,13 @@ class MemoryDocValuesConsumer extends DocValuesConsumer {
   }
 
   @Override
-  public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
+  public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addSortedField(field,
+                   new SortedDocValuesValuesIterable(valuesProducer, field),
+                   new SortedDocValuesDocOrdsIterable(valuesProducer, field, maxDoc));
+  }
+  
+  private void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
     // write the ordinals as numerics
     addNumericField(field, docToOrd, false);
     

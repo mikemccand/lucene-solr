@@ -33,11 +33,14 @@ import java.util.stream.StreamSupport;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.SortedDocValuesDocOrdsIterable;
+import org.apache.lucene.codecs.SortedDocValuesValuesIterable;
 import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
+import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMOutputStream;
 import org.apache.lucene.util.BytesRef;
@@ -515,7 +518,6 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
       addReverseTermIndex(field, values, maxLength);
     }
   }
-  
   // writes term dictionary "block"
   // first term is absolute encoded as vint length + bytes.
   // lengths of subsequent N terms are encoded as either N bytes or N shorts.
@@ -579,11 +581,19 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
   }
 
   @Override
-  public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
+  public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    meta.writeVInt(field.number);
+    meta.writeByte(Lucene54DocValuesFormat.SORTED);
+    addTermsDict(field, new SortedDocValuesValuesIterable(valuesProducer, field));
+    addNumericField(field, new SortedDocValuesDocOrdsIterable(valuesProducer, field, maxDoc), NumberType.ORDINAL);
+  }
+
+  // nocommit removeme
+  private void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> ords) throws IOException {
     meta.writeVInt(field.number);
     meta.writeByte(Lucene54DocValuesFormat.SORTED);
     addTermsDict(field, values);
-    addNumericField(field, docToOrd, NumberType.ORDINAL);
+    addNumericField(field, ords, NumberType.ORDINAL);
   }
 
   @Override
