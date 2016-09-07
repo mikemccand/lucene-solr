@@ -29,6 +29,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.SimpleCollector;
@@ -117,36 +118,32 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   /** this adapter is quite weird. ords are per doc index, don't use ords across different docs*/
   static Function<SortedSetDocValuesIterator> sortedNumericAsSortedSetDocValues(String field, FieldType.LegacyNumericType numTyp) {
     return (ctx) -> {
-      final SortedNumericDocValues numerics = DocValues.getSortedNumeric(ctx, field);
+      final SortedNumericDocValuesIterator numerics = DocValues.getSortedNumeric(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);
       
       return new SortedSetDocValuesIterator() {
-        private int docID = -1;
-        private int index = -1;
+
+        int index = -1;
         
         @Override
         public int docID() {
+          return numerics.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          int docID = numerics.nextDoc();
+          index = -1;
           return docID;
         }
 
         @Override
-        public int nextDoc() {
-          docID++;
-          if (docID == ctx.maxDoc()) {
-            docID = NO_MORE_DOCS;
-          } else {
-            numerics.setDocument(docID);
-            index = -1;
-          }
+        public int advance(int target) throws IOException {
+          int docID = numerics.advance(target);
+          index = -1;
           return docID;
-        }
-
-        @Override
-        public int advance(int target) {
-          docID = target-1;
-          return nextDoc();
         }
 
         @Override
@@ -156,14 +153,17 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
 
         @Override
         public long nextOrd() {
-          return index < numerics.count()-1 ? ++index : NO_MORE_ORDS;
+          return index < numerics.docValueCount()-1 ? ++index : NO_MORE_ORDS;
         }
 
         @Override
         public BytesRef lookupOrd(long ord) {
-          assert ord>=0 && ord<numerics.count();
-          final long value = numerics.valueAt((int)ord);
-          coder.accept(value);
+          assert ord == index;
+          try {
+            coder.accept(numerics.nextValue());
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
           return bytes.get();
         }
 

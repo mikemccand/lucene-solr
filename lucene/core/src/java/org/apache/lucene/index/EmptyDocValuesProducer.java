@@ -40,7 +40,7 @@ public abstract class EmptyDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public SortedNumericDocValues getSortedNumeric(FieldInfo field) {
+  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) {
     throw new UnsupportedOperationException();
   }
   

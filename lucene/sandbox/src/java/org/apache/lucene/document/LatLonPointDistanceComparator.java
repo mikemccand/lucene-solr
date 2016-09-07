@@ -18,15 +18,16 @@ package org.apache.lucene.document;
 
 import java.io.IOException;
 
+import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
-import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.util.SloppyMath;
 
 import static org.apache.lucene.geo.GeoEncodingUtils.decodeLatitude;
@@ -49,7 +50,7 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
   final double[] values;
   double bottom;
   double topValue;
-  SortedNumericDocValues currentDocs;
+  SortedNumericDocValuesIterator currentDocs;
   
   // current bounding box(es) for the bottom distance on the PQ.
   // these are pre-encoded with LatLonPoint's encoding and 
@@ -115,16 +116,18 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
   
   @Override
   public int compareBottom(int doc) throws IOException {
-    currentDocs.setDocument(doc);
-
-    int numValues = currentDocs.count();
-    if (numValues == 0) {
+    if (doc > currentDocs.docID()) {
+      currentDocs.advance(doc);
+    }
+    if (doc < currentDocs.docID()) {
       return Double.compare(bottom, Double.POSITIVE_INFINITY);
     }
 
+    int numValues = currentDocs.docValueCount();
+
     int cmp = -1;
     for (int i = 0; i < numValues; i++) {
-      long encoded = currentDocs.valueAt(i);
+      long encoded = currentDocs.nextValue();
 
       // test bounding box
       int latitudeBits = (int)(encoded >> 32);
@@ -176,16 +179,19 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
   
   // TODO: optimize for single-valued case?
   // TODO: do all kinds of other optimizations!
-  double sortKey(int doc) {
-    currentDocs.setDocument(doc);
-
+  double sortKey(int doc) throws IOException {
+    if (doc > currentDocs.docID()) {
+      currentDocs.advance(doc);
+    }
     double minValue = Double.POSITIVE_INFINITY;
-    int numValues = currentDocs.count();
-    for (int i = 0; i < numValues; i++) {
-      long encoded = currentDocs.valueAt(i);
-      double docLatitude = decodeLatitude((int)(encoded >> 32));
-      double docLongitude = decodeLongitude((int)(encoded & 0xFFFFFFFF));
-      minValue = Math.min(minValue, SloppyMath.haversinSortKey(latitude, longitude, docLatitude, docLongitude));
+    if (doc == currentDocs.docID()) {
+      int numValues = currentDocs.docValueCount();
+      for (int i = 0; i < numValues; i++) {
+        long encoded = currentDocs.nextValue();
+        double docLatitude = decodeLatitude((int)(encoded >> 32));
+        double docLongitude = decodeLongitude((int)(encoded & 0xFFFFFFFF));
+        minValue = Math.min(minValue, SloppyMath.haversinSortKey(latitude, longitude, docLatitude, docLongitude));
+      }
     }
     return minValue;
   }

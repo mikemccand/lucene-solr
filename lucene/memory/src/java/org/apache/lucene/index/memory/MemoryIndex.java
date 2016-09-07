@@ -1152,10 +1152,10 @@ public class MemoryIndex {
     }
     
     @Override
-    public SortedNumericDocValues getSortedNumericDocValues(String field) {
+    public SortedNumericDocValuesIterator getSortedNumericDocValues(String field) {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.SORTED_NUMERIC);
       if (info != null) {
-        return info.numericProducer.sortedNumericDocValues;
+        return new StupidSortedNumericDocValuesIterator(info.numericProducer.sortedNumericDocValues, 1);
       } else {
         return null;
       }

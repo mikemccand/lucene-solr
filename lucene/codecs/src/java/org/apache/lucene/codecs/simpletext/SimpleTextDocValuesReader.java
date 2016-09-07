@@ -42,11 +42,13 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.store.BufferedChecksumIndexInput;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -376,9 +378,9 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
   
   @Override
-  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     final BinaryDocValues binary = getBinary(field);
-    return new SortedNumericDocValues() {
+    return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
       long values[];
 
       @Override
@@ -404,7 +406,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
       public int count() {
         return values.length;
       }
-    };
+      }, maxDoc);
   }
 
   @Override

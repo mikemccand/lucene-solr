@@ -24,6 +24,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
@@ -198,8 +199,8 @@ public class BlockJoinSelector {
   /** Wraps the provided {@link SortedNumericDocValues} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
-  public static NumericDocValues wrap(SortedNumericDocValues sortedNumerics, Type selection, BitSet parents, BitSet children) {
-    NumericDocValues values;
+  public static NumericDocValuesIterator wrap(SortedNumericDocValuesIterator sortedNumerics, Type selection, BitSet parents, BitSet children) {
+    NumericDocValuesIterator values;
     switch (selection) {
       case MIN:
         values = SortedNumericSelector.wrap(sortedNumerics, SortedNumericSelector.Type.MIN, SortField.Type.LONG);
@@ -210,31 +211,14 @@ public class BlockJoinSelector {
       default:
         throw new AssertionError();
     }
-    return wrap(values, DocValues.docsWithValue(sortedNumerics, parents.length()), selection, parents, children);
-  }
-
-  /** Wraps the provided {@link SortedNumericDocValues} in order to only select
-   *  one value per parent among its {@code children} using the configured
-   *  {@code selection} type. */
-  public static NumericDocValuesIterator wrapToIterator(SortedNumericDocValues sortedNumerics, Type selection, BitSet parents, BitSet children) {
-    NumericDocValues values;
-    switch (selection) {
-      case MIN:
-        values = SortedNumericSelector.wrap(sortedNumerics, SortedNumericSelector.Type.MIN, SortField.Type.LONG);
-        break;
-      case MAX:
-        values = SortedNumericSelector.wrap(sortedNumerics, SortedNumericSelector.Type.MAX, SortField.Type.LONG);
-        break;
-      default:
-        throw new AssertionError();
-    }
-    // nocommit cutover to SortedNumericDocValuesIterator directly:
-    return wrap(new StupidNumericDocValuesIterator(DocValues.docsWithValue(sortedNumerics, parents.length()), values), selection, parents, children);
+    return wrap(values, selection, parents, children);
   }
 
   /** Wraps the provided {@link NumericDocValues} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
+  // nocommit remove
+  /*
   public static NumericDocValues wrap(final NumericDocValues values, Bits docsWithValue, Type selection, BitSet parents, BitSet children) {
     return new NumericDocValues() {
 
@@ -278,6 +262,7 @@ public class BlockJoinSelector {
 
     };
   }
+  */
 
   /** Wraps the provided {@link NumericDocValuesIterator}, iterating over only
    *  child documents, in order to only select one value per parent among
@@ -295,34 +280,45 @@ public class BlockJoinSelector {
           values.nextDoc();
         }
 
-        int childDocID = values.nextDoc();
-        if (childDocID == NO_MORE_DOCS) {
-          parentDocID = NO_MORE_DOCS;
-          return parentDocID;
-        }
-
-        assert parents.get(childDocID) == false;
-        
-        parentDocID = parents.nextSetBit(childDocID);
-        value = values.longValue();
-
         while (true) {
-          childDocID = values.nextDoc();
-          assert childDocID != parentDocID;
-          if (childDocID > parentDocID) {
-            break;
+
+          // TODO: make this crazy loop more efficient
+
+          int childDocID = values.docID();
+          if (childDocID == NO_MORE_DOCS) {
+            parentDocID = NO_MORE_DOCS;
+            return parentDocID;
+          }
+          if (children.get(childDocID) == false) {
+            values.nextDoc();
+            continue;
           }
 
-          switch (selection) {
-          case MIN:
-            value = Math.min(value, values.longValue());
-            break;
-          case MAX:
-            value = Math.max(value, values.longValue());
-            break;
-          default:
-            throw new AssertionError();
+          assert parents.get(childDocID) == false;
+        
+          parentDocID = parents.nextSetBit(childDocID);
+          value = values.longValue();
+
+          while (true) {
+            childDocID = values.nextDoc();
+            assert childDocID != parentDocID;
+            if (childDocID > parentDocID) {
+              break;
+            }
+
+            switch (selection) {
+            case MIN:
+              value = Math.min(value, values.longValue());
+              break;
+            case MAX:
+              value = Math.max(value, values.longValue());
+              break;
+            default:
+              throw new AssertionError();
+            }
           }
+
+          break;
         }
 
         return parentDocID;

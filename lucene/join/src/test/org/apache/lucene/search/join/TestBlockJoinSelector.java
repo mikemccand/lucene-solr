@@ -21,8 +21,10 @@ import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -172,7 +174,7 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     }
   }
 
-  public void testNumericSelector() {
+  public void testNumericSelector() throws Exception {
     final BitSet parents = new FixedBitSet(20);
     parents.set(0);
     parents.set(5);
@@ -200,29 +202,71 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     longs[12] = 10;
     docsWithValue.set(18);
     longs[18] = 10;
-    final NumericDocValues values = new NumericDocValues() {
 
-      @Override
-      public long get(int docID) {
-        return longs[docID];
+    final NumericDocValuesIterator mins = BlockJoinSelector.wrap(DocValues.singleton(new CannedNumericDocValuesIterator(longs, docsWithValue)), BlockJoinSelector.Type.MIN, parents, children);
+    assertEquals(5, mins.nextDoc());
+    assertEquals(3, mins.longValue());
+    assertEquals(15, mins.nextDoc());
+    assertEquals(10, mins.longValue());
+    assertEquals(NO_MORE_DOCS, mins.nextDoc());
+
+    final NumericDocValuesIterator maxs = BlockJoinSelector.wrap(DocValues.singleton(new CannedNumericDocValuesIterator(longs, docsWithValue)), BlockJoinSelector.Type.MAX, parents, children);
+    assertEquals(5, maxs.nextDoc());
+    assertEquals(7, maxs.longValue());
+    assertEquals(15, maxs.nextDoc());
+    assertEquals(10, maxs.longValue());
+    assertEquals(NO_MORE_DOCS, maxs.nextDoc());
+  }
+
+  private static class CannedNumericDocValuesIterator extends NumericDocValuesIterator {
+    final Bits docsWithValue;
+    final long[] values;
+    int docID = -1;
+
+    public CannedNumericDocValuesIterator(long[] values, Bits docsWithValue) {
+      this.values = values;
+      this.docsWithValue = docsWithValue;
+    }
+
+    @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() {
+      while (true) {
+        docID++;
+        if (docID == values.length) {
+          docID = NO_MORE_DOCS;
+          break;
+        }
+        if (docsWithValue.get(docID)) {
+          break;
+        }
       }
-      
-    };
+      return docID;
+    }
 
-    final NumericDocValues mins = BlockJoinSelector.wrap(DocValues.singleton(values, docsWithValue), BlockJoinSelector.Type.MIN, parents, children);
-    assertEquals(0, mins.get(0));
-    assertEquals(3, mins.get(5));
-    assertEquals(0, mins.get(6));
-    assertEquals(0, mins.get(10));
-    assertEquals(10, mins.get(15));
-    assertEquals(0, mins.get(19));
+    @Override
+    public int advance(int target) {
+      if (target >= values.length) {
+        docID = NO_MORE_DOCS;
+        return docID;
+      } else {
+        docID = target - 1;
+        return nextDoc();
+      }
+    }
 
-    final NumericDocValues maxs = BlockJoinSelector.wrap(DocValues.singleton(values, docsWithValue), BlockJoinSelector.Type.MAX, parents, children);
-    assertEquals(0, maxs.get(0));
-    assertEquals(7, maxs.get(5));
-    assertEquals(0, maxs.get(6));
-    assertEquals(0, maxs.get(10));
-    assertEquals(10, maxs.get(15));
-    assertEquals(0, maxs.get(19));
+    @Override
+    public long longValue() {
+      return values[docID];
+    }
+
+    @Override
+    public long cost() {
+      return 5;
+    }
   }
 }

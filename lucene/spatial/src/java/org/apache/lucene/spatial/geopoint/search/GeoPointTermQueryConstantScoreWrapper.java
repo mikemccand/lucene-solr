@@ -22,6 +22,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.ConstantScoreScorer;
 import org.apache.lucene.search.ConstantScoreWeight;
@@ -124,7 +125,7 @@ final class GeoPointTermQueryConstantScoreWrapper <Q extends GeoPointMultiTermQu
         }
 
         // return two-phase iterator using docvalues to postfilter candidates
-        SortedNumericDocValues sdv = reader.getSortedNumericDocValues(query.getField());
+        SortedNumericDocValuesIterator sdv = reader.getSortedNumericDocValues(query.getField());
         TwoPhaseIterator iterator = new TwoPhaseIterator(disi) {
           @Override
           public boolean matches() throws IOException {
@@ -132,12 +133,16 @@ final class GeoPointTermQueryConstantScoreWrapper <Q extends GeoPointMultiTermQu
             if (preApproved.get(docId)) {
               return true;
             } else {
-              sdv.setDocument(docId);
-              int count = sdv.count();
-              for (int i = 0; i < count; i++) {
-                long hash = sdv.valueAt(i);
-                if (termsEnum.postFilter(GeoPointField.decodeLatitude(hash), GeoPointField.decodeLongitude(hash))) {
-                  return true;
+              if (docId > sdv.docID()) {
+                sdv.advance(docId);
+              }
+              if (docId == sdv.docID()) {
+                int count = sdv.docValueCount();
+                for (int i = 0; i < count; i++) {
+                  long hash = sdv.nextValue();
+                  if (termsEnum.postFilter(GeoPointField.decodeLatitude(hash), GeoPointField.decodeLongitude(hash))) {
+                    return true;
+                  }
                 }
               }
               return false;

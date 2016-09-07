@@ -239,7 +239,7 @@ public final class SlowCodecReaderWrapper {
       }
 
       @Override
-      public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
+      public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
         return reader.getSortedNumericDocValues(field.name);
       }
 

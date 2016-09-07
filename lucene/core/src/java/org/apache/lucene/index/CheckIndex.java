@@ -2168,26 +2168,26 @@ public final class CheckIndex implements Closeable {
     }
   }
   
-  private static void checkSortedNumericDocValues(String fieldName, int maxDoc, SortedNumericDocValues ndv, Bits docsWithField) {
-    for (int i = 0; i < maxDoc; i++) {
-      ndv.setDocument(i);
-      int count = ndv.count();
-      if (docsWithField.get(i)) {
-        if (count == 0) {
-          throw new RuntimeException("dv for field: " + fieldName + " is not marked missing but has zero count for doc: " + i);
+  private static void checkSortedNumericDocValues(String fieldName, int maxDoc, SortedNumericDocValuesIterator ndv) throws IOException {
+    if (ndv.docID() != -1) {
+      throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
+    }
+    while (true) {
+      int docID = ndv.nextDoc();
+      if (docID == NO_MORE_DOCS) {
+        break;
+      }
+      int count = ndv.docValueCount();
+      if (count == 0) {
+        throw new RuntimeException("sorted numeric dv for field: " + fieldName + " returned docValueCount=0 for docID=" + docID);
+      }
+      long previous = Long.MIN_VALUE;
+      for (int j = 0; j < count; j++) {
+        long value = ndv.nextValue();
+        if (value < previous) {
+          throw new RuntimeException("values out of order: " + value + " < " + previous + " for doc: " + docID);
         }
-        long previous = Long.MIN_VALUE;
-        for (int j = 0; j < count; j++) {
-          long value = ndv.valueAt(j);
-          if (value < previous) {
-            throw new RuntimeException("values out of order: " + value + " < " + previous + " for doc: " + i);
-          }
-          previous = value;
-        }
-      } else {
-        if (count != 0) {
-          throw new RuntimeException("dv for field: " + fieldName + " is marked missing but has count=" + count + " for doc: " + i);
-        }
+        previous = value;
       }
     }
   }
@@ -2219,7 +2219,7 @@ public final class CheckIndex implements Closeable {
         break;
       case SORTED_NUMERIC:
         status.totalSortedNumericFields++;
-        checkSortedNumericDocValues(fi.name, maxDoc, dvReader.getSortedNumeric(fi), docsWithField);
+        checkSortedNumericDocValues(fi.name, maxDoc, dvReader.getSortedNumeric(fi));
         break;
       case SORTED_SET:
         status.totalSortedSetFields++;

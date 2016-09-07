@@ -26,6 +26,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
@@ -133,7 +134,7 @@ public class ToParentBlockJoinSortField extends SortField {
     return new FieldComparator.IntComparator(numHits, getField(), (Integer) missingValue) {
       @Override
       protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-        SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
+        SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
             : BlockJoinSelector.Type.MIN;
@@ -142,7 +143,7 @@ public class ToParentBlockJoinSortField extends SortField {
         if (children == null) {
           return DocValues.emptyNumericIterator();
         }
-        return BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children);
+        return BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
       }
     };
   }
@@ -151,7 +152,7 @@ public class ToParentBlockJoinSortField extends SortField {
     return new FieldComparator.LongComparator(numHits, getField(), (Long) missingValue) {
       @Override
       protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-        SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
+        SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
             : BlockJoinSelector.Type.MIN;
@@ -160,7 +161,7 @@ public class ToParentBlockJoinSortField extends SortField {
         if (children == null) {
           return DocValues.emptyNumericIterator();
         }
-        return BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children);
+        return BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
       }
     };
   }
@@ -169,7 +170,7 @@ public class ToParentBlockJoinSortField extends SortField {
     return new FieldComparator.FloatComparator(numHits, getField(), (Float) missingValue) {
       @Override
       protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-        SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
+        SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
             : BlockJoinSelector.Type.MIN;
@@ -178,7 +179,7 @@ public class ToParentBlockJoinSortField extends SortField {
         if (children == null) {
           return DocValues.emptyNumericIterator();
         }
-        return new FilterNumericDocValuesIterator(BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children)) {
+        return new FilterNumericDocValuesIterator(BlockJoinSelector.wrap(sortedNumeric, type, parents, children)) {
           @Override
           public long longValue() {
             // undo the numericutils sortability
@@ -193,7 +194,7 @@ public class ToParentBlockJoinSortField extends SortField {
     return new FieldComparator.DoubleComparator(numHits, getField(), (Double) missingValue) {
       @Override
       protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-        SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
+        SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX
             : BlockJoinSelector.Type.MIN;
@@ -202,7 +203,7 @@ public class ToParentBlockJoinSortField extends SortField {
         if (children == null) {
           return DocValues.emptyNumericIterator();
         }
-        return new FilterNumericDocValuesIterator(BlockJoinSelector.wrapToIterator(sortedNumeric, type, parents, children)) {
+        return new FilterNumericDocValuesIterator(BlockJoinSelector.wrap(sortedNumeric, type, parents, children)) {
           @Override
           public long longValue() {
             // undo the numericutils sortability

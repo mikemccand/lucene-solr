@@ -72,6 +72,7 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
@@ -520,13 +521,13 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     assertEquals(0, controlNumericDocValues.nextDoc());
     assertEquals(controlNumericDocValues.longValue(), numericDocValues.longValue());
 
-    SortedNumericDocValues sortedNumericDocValues = leafReader.getSortedNumericDocValues("sorted_numeric");
-    sortedNumericDocValues.setDocument(0);
-    SortedNumericDocValues controlSortedNumericDocValues = controlLeafReader.getSortedNumericDocValues("sorted_numeric");
-    controlSortedNumericDocValues.setDocument(0);
-    assertEquals(controlSortedNumericDocValues.count(), sortedNumericDocValues.count());
-    for (int i = 0; i < controlSortedNumericDocValues.count(); i++) {
-      assertEquals(controlSortedNumericDocValues.valueAt(i), sortedNumericDocValues.valueAt(i));
+    SortedNumericDocValuesIterator sortedNumericDocValues = leafReader.getSortedNumericDocValues("sorted_numeric");
+    assertEquals(0, sortedNumericDocValues.nextDoc());
+    SortedNumericDocValuesIterator controlSortedNumericDocValues = controlLeafReader.getSortedNumericDocValues("sorted_numeric");
+    assertEquals(0, controlSortedNumericDocValues.nextDoc());
+    assertEquals(controlSortedNumericDocValues.docValueCount(), sortedNumericDocValues.docValueCount());
+    for (int i = 0; i < controlSortedNumericDocValues.docValueCount(); i++) {
+      assertEquals(controlSortedNumericDocValues.nextValue(), sortedNumericDocValues.nextValue());
     }
 
     BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValuesIterator("binary");

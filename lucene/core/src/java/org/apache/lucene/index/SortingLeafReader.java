@@ -300,32 +300,6 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingSortedNumericDocValues extends SortedNumericDocValues {
-
-    private final SortedNumericDocValues in;
-    private final Sorter.DocMap docMap;
-
-    SortingSortedNumericDocValues(SortedNumericDocValues in, DocMap docMap) {
-      this.in = in;
-      this.docMap = docMap;
-    }
-
-    @Override
-    public int count() {
-      return in.count();
-    }
-
-    @Override
-    public void setDocument(int doc) {
-      in.setDocument(docMap.newToOld(doc));
-    }
-
-    @Override
-    public long valueAt(int index) {
-      return in.valueAt(index);
-    }
-  }
-
   private static class SortingBits implements Bits {
 
     private final Bits in;
@@ -551,6 +525,72 @@ class SortingLeafReader extends FilterLeafReader {
     @Override
     public long getValueCount() {
       return in.getValueCount();
+    }
+  }
+
+  private final Map<String,long[][]> cachedSortedNumericDVs = new HashMap<>();
+
+  private static class SortingSortedNumericDocValues extends SortedNumericDocValuesIterator {
+    private final SortedNumericDocValuesIterator in;
+    private final long[][] values;
+    private int docID = -1;
+    private int upto;
+
+    SortingSortedNumericDocValues(SortedNumericDocValuesIterator in, long[][] values) {
+      this.in = in;
+      this.values = values;
+    }
+
+    @Override
+    public int docID() {
+      return docID;
+    }
+
+    @Override
+    public int nextDoc() {
+      while (true) {
+        docID++;
+        if (docID == values.length) {
+          docID = NO_MORE_DOCS;
+          break;
+        }
+        if (values[docID] != null) {
+          break;
+        }
+        // skip missing docs
+      }
+      upto = 0;
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) {
+      if (target >= values.length) {
+        docID = NO_MORE_DOCS;
+        return docID;
+      } else {
+        docID = target-1;
+        return nextDoc();
+      }
+    }
+
+    @Override
+    public long nextValue() {
+      if (upto == values[docID].length) {
+        throw new AssertionError();
+      } else {
+        return values[docID][upto++];
+      }
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+
+    @Override
+    public int docValueCount() {
+      return values[docID].length;
     }
   }
 
@@ -1111,14 +1151,32 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedNumericDocValues getSortedNumericDocValues(String field)
+  public SortedNumericDocValuesIterator getSortedNumericDocValues(String field)
       throws IOException {
-    final SortedNumericDocValues oldDocValues = in.getSortedNumericDocValues(field);
+    final SortedNumericDocValuesIterator oldDocValues = in.getSortedNumericDocValues(field);
     if (oldDocValues == null) {
       return null;
-    } else {
-      return new SortingSortedNumericDocValues(oldDocValues, docMap);
     }
+
+    long[][] values;
+    synchronized (cachedSortedNumericDVs) {
+      values = cachedSortedNumericDVs.get(field);
+      if (values == null) {
+        values = new long[maxDoc()][];
+        int docID;
+        while ((docID = oldDocValues.nextDoc()) != NO_MORE_DOCS) {
+          int newDocID = docMap.oldToNew(docID);
+          long[] docValues = new long[oldDocValues.docValueCount()];
+          for(int i=0;i<docValues.length;i++) {
+            docValues[i] = oldDocValues.nextValue();
+          }
+          values[newDocID] = docValues;
+        }
+        cachedSortedNumericDVs.put(field, values);
+      }
+    }
+
+    return new SortingSortedNumericDocValues(oldDocValues, values);
   }
 
   @Override

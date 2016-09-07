@@ -299,7 +299,7 @@ public class ParallelLeafReader extends LeafReader {
   }
   
   @Override
-  public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException {
     ensureOpen();
     LeafReader reader = fieldToReader.get(field);
     return reader == null ? null : reader.getSortedNumericDocValues(field);

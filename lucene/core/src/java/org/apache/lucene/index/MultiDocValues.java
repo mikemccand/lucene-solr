@@ -422,7 +422,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getSortedNumericDocValues(String)}
    * </p> 
    * */
-  public static SortedNumericDocValues getSortedNumericValues(final IndexReader r, final String field) throws IOException {
+  public static SortedNumericDocValuesIterator getSortedNumericValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -432,11 +432,12 @@ public class MultiDocValues {
     }
 
     boolean anyReal = false;
-    final SortedNumericDocValues[] values = new SortedNumericDocValues[size];
+    final SortedNumericDocValuesIterator[] values = new SortedNumericDocValuesIterator[size];
     final int[] starts = new int[size+1];
+    long totalCost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      SortedNumericDocValues v = context.reader().getSortedNumericDocValues(field);
+      SortedNumericDocValuesIterator v = context.reader().getSortedNumericDocValues(field);
       if (v == null) {
         v = DocValues.emptySortedNumeric(context.reader().maxDoc());
       } else {
@@ -444,33 +445,93 @@ public class MultiDocValues {
       }
       values[i] = v;
       starts[i] = context.docBase;
+      totalCost += v.cost();
     }
     starts[size] = r.maxDoc();
 
-    if (!anyReal) {
+    if (anyReal == false) {
       return null;
-    } else {
-      return new SortedNumericDocValues() {
-        SortedNumericDocValues current;
-
-        @Override
-        public void setDocument(int doc) {
-          int subIndex = ReaderUtil.subIndex(doc, starts);
-          current = values[subIndex];
-          current.setDocument(doc - starts[subIndex]);
-        }
-
-        @Override
-        public long valueAt(int index) {
-          return current.valueAt(index);
-        }
-
-        @Override
-        public int count() {
-          return current.count();
-        }
-      };
     }
+
+    final long finalTotalCost = totalCost;
+    
+    return new SortedNumericDocValuesIterator() {
+      private int nextLeaf;
+      private SortedNumericDocValuesIterator currentValues;
+      private LeafReaderContext currentLeaf;
+      private int docID = -1;
+
+      @Override
+      public int nextDoc() throws IOException {
+        while (true) {
+          if (currentValues == null) {
+            if (nextLeaf == leaves.size()) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            currentLeaf = leaves.get(nextLeaf);
+            currentValues = values[nextLeaf];
+            nextLeaf++;
+          }
+
+          int newDocID = currentValues.nextDoc();
+
+          if (newDocID == NO_MORE_DOCS) {
+            currentValues = null;
+            continue;
+          } else {
+            docID = currentLeaf.docBase + newDocID;
+            return docID;
+          }
+        }
+      }
+        
+      @Override
+      public int docID() {
+        return docID;
+      }
+        
+      @Override
+      public int advance(int targetDocID) throws IOException {
+        if (targetDocID <= docID) {
+          throw new IllegalArgumentException("can only advance beyond current document: on docID=" + docID + " but targetDocID=" + targetDocID);
+        }
+        int readerIndex = ReaderUtil.subIndex(targetDocID, leaves);
+        if (readerIndex >= nextLeaf) {
+          if (readerIndex == leaves.size()) {
+            currentValues = null;
+            docID = NO_MORE_DOCS;
+            return docID;
+          }
+          currentLeaf = leaves.get(readerIndex);
+          currentValues = values[readerIndex];
+          nextLeaf = readerIndex+1;
+        }
+        int newDocID = currentValues.advance(targetDocID - currentLeaf.docBase);
+        if (newDocID == NO_MORE_DOCS) {
+          currentValues = null;
+          return nextDoc();
+        } else {
+          docID = currentLeaf.docBase + newDocID;
+          return docID;
+        }
+      }
+
+      @Override
+      public long cost() {
+        return finalTotalCost;
+      }
+      
+      @Override
+      public int docValueCount() {
+        return currentValues.docValueCount();
+      }
+
+      @Override
+      public long nextValue() throws IOException {
+        return currentValues.nextValue();
+      }
+    };
   }
   
   /** Returns a SortedDocValues for a reader's docvalues (potentially doing extremely slow things).

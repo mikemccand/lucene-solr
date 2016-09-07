@@ -48,6 +48,8 @@ public abstract class SortedSetDocValuesIterator extends DocIdSetIterator {
    *         the next value in sorted order. 
    */
   public abstract long nextOrd() throws IOException;
+
+  // TODO: should we have a docValueCount, like SortedNumeric?
   
   /** Retrieves the value for the specified ordinal. The returned
    * {@link BytesRef} may be re-used across calls to lookupOrd so make sure to

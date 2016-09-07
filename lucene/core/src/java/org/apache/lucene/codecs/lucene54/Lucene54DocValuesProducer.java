@@ -43,11 +43,13 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -851,7 +853,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   }
 
   @Override
-  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     SortedSetEntry ss = sortedNumerics.get(field.name);
     if (ss.format == SORTED_SINGLE_VALUED) {
       NumericEntry numericEntry = numerics.get(field.name);
@@ -862,30 +864,117 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
       } else {
         docsWithField = getLiveBits(numericEntry.missingOffset, maxDoc);
       }
-      return DocValues.singleton(values, docsWithField);
+      return new SortedNumericDocValuesIterator() {
+        int docID = -1;
+
+        @Override
+        public int docID() {
+          return docID;
+        }
+
+        @Override
+        public int nextDoc() {
+          while (true) {
+            docID++;
+            if (docID == maxDoc) {
+              docID = NO_MORE_DOCS;
+              break;
+            }
+            
+            if (docsWithField.get(docID)) {
+              // TODO: use .nextSetBit here, at least!!
+              break;
+            }
+          }
+          return docID;
+        }
+
+        @Override
+        public int advance(int target) {
+          if (target >= maxDoc) {
+            docID = NO_MORE_DOCS;
+            return docID;
+          } else {
+            docID = target-1;
+            return nextDoc();
+          }
+        }
+
+        @Override
+        public long cost() {
+          // nocommit impl this
+          return 0;
+        }
+
+        @Override
+        public int docValueCount() {
+          return 1;
+        }
+
+        @Override
+        public long nextValue() {
+          return values.get(docID);
+        }
+      };
     } else if (ss.format == SORTED_WITH_ADDRESSES) {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final LongValues ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
 
-      return new SortedNumericDocValues() {
+      return new SortedNumericDocValuesIterator() {
         long startOffset;
         long endOffset;
+        int docID = -1;
+        long upto;
 
         @Override
-        public void setDocument(int doc) {
-          startOffset = ordIndex.get(doc);
-          endOffset = ordIndex.get(doc+1L);
+        public int docID() {
+          return docID;
         }
 
         @Override
-        public long valueAt(int index) {
-          return values.get(startOffset + index);
+        public int nextDoc() {
+          while (true) {
+            docID++;
+            if (docID == maxDoc) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            startOffset = ordIndex.get(docID);
+            endOffset = ordIndex.get(docID+1L);
+            if (endOffset > startOffset) {
+              break;
+            }
+          }
+          upto = startOffset;
+          return docID;
         }
 
         @Override
-        public int count() {
+        public int advance(int target) {
+          if (target >= maxDoc) {
+            docID = NO_MORE_DOCS;
+            return docID;
+          } else {
+            docID = target-1;
+            return nextDoc();
+          }
+        }
+        
+        @Override
+        public long cost() {
+          // nocommit impl this
+          return 0;
+        }
+        
+        @Override
+        public int docValueCount() {
           return (int) (endOffset - startOffset);
+        }
+        
+        @Override
+        public long nextValue() {
+          return values.get(upto++);
         }
       };
     } else if (ss.format == SORTED_SET_TABLE) {
@@ -894,25 +983,61 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new SortedNumericDocValues() {
+      return new SortedNumericDocValuesIterator() {
         int startOffset;
         int endOffset;
+        int docID = -1;
+        int upto;
 
         @Override
-        public void setDocument(int doc) {
-          final int ord = (int) ordinals.get(doc);
-          startOffset = offsets[ord];
-          endOffset = offsets[ord + 1];
+        public int docID() {
+          return docID;
         }
 
         @Override
-        public long valueAt(int index) {
-          return table[startOffset + index];
+        public int nextDoc() {
+          while (true) {
+            docID++;
+            if (docID == maxDoc) {
+              docID = NO_MORE_DOCS;
+              return docID;
+            }
+            int ord = (int) ordinals.get(docID);
+            startOffset = offsets[ord];
+            endOffset = offsets[ord+1];
+            if (endOffset > startOffset) {
+              break;
+            }
+          }
+          upto = startOffset;
+          return docID;
         }
 
         @Override
-        public int count() {
+        public int advance(int target) {
+          if (target >= maxDoc) {
+            docID = NO_MORE_DOCS;
+            return docID;
+          } else {
+            docID = target-1;
+            return nextDoc();
+          }
+        }
+        
+        @Override
+        public long cost() {
+          // nocommit impl this
+          return 0;
+        }
+
+        @Override
+        public int docValueCount() {
           return endOffset - startOffset;
+        }
+        
+        @Override
+        public long nextValue() {
+          return table[upto++];
         }
       };
     } else {

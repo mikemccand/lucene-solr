@@ -2522,20 +2522,19 @@ public abstract class LuceneTestCase extends Assert {
       }
       
       {
-        SortedNumericDocValues leftValues = MultiDocValues.getSortedNumericValues(leftReader, field);
-        SortedNumericDocValues rightValues = MultiDocValues.getSortedNumericValues(rightReader, field);
+        SortedNumericDocValuesIterator leftValues = MultiDocValues.getSortedNumericValues(leftReader, field);
+        SortedNumericDocValuesIterator rightValues = MultiDocValues.getSortedNumericValues(rightReader, field);
         if (leftValues != null && rightValues != null) {
-          for (int i = 0; i < leftReader.maxDoc(); i++) {
-            leftValues.setDocument(i);
-            long expected[] = new long[leftValues.count()];
-            for (int j = 0; j < expected.length; j++) {
-              expected[j] = leftValues.valueAt(j);
+          while (true) {
+            int docID = leftValues.nextDoc();
+            assertEquals(docID, rightValues.nextDoc());
+            if (docID == NO_MORE_DOCS) {
+              break;
             }
-            rightValues.setDocument(i);
-            for (int j = 0; j < expected.length; j++) {
-              assertEquals(info, expected[j], rightValues.valueAt(j));
+            assertEquals(info, leftValues.docValueCount(), rightValues.docValueCount());
+            for (int j = 0; j < leftValues.docValueCount(); j++) {
+              assertEquals(info, leftValues.nextValue(), rightValues.nextValue());
             }
-            assertEquals(info, expected.length, rightValues.count());
           }
         } else {
           assertNull(info, leftValues);

@@ -43,11 +43,13 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -688,19 +690,19 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
   
   @Override
-  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     SortedSetEntry ss = sortedNumerics.get(field.name);
     if (ss.format == SORTED_SINGLE_VALUED) {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final Bits docsWithField = getLiveBits(numericEntry.missingOffset, maxDoc);
-      return DocValues.singleton(values, docsWithField);
+      return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, values));
     } else if (ss.format == SORTED_WITH_ADDRESSES) {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
       
-      return new SortedNumericDocValues() {
+      return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
         long startOffset;
         long endOffset;
         
@@ -719,14 +721,14 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
         public int count() {
           return (int) (endOffset - startOffset);
         }
-      };
+        }, maxDoc);
     } else if (ss.format == SORTED_SET_TABLE) {
       NumericEntry entry = ords.get(field.name);
       final LongValues ordinals = getNumeric(entry);
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new SortedNumericDocValues() {
+      return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
         int startOffset;
         int endOffset;
         
@@ -746,7 +748,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
         public int count() {
           return endOffset - startOffset;
         }
-      };
+        }, maxDoc);
     } else {
       throw new AssertionError();
     }

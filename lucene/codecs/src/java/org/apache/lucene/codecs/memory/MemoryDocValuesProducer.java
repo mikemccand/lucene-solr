@@ -42,11 +42,13 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ByteArrayDataInput;
@@ -563,13 +565,13 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     SortedNumericEntry entry = sortedNumerics.get(field.name);
     if (entry.singleton) {
       NumericDocValues values = getNumericNonIterator(field);
       NumericEntry ne = numerics.get(field.name);
       Bits docsWithField = getMissingBits(field, ne.missingOffset, ne.missingBytes);
-      return DocValues.singleton(values, docsWithField);
+      return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, values));
     } else {
       final NumericDocValues values = getNumericNonIterator(field);
       final MonotonicBlockPackedReader addr;
@@ -589,7 +591,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
       if (values instanceof LongValues) {
         // probably not the greatest codec choice for this situation, but we support it
         final LongValues longValues = (LongValues) values;
-        return new SortedNumericDocValues() {
+        return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
           long startOffset;
           long endOffset;
           
@@ -608,9 +610,9 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           public int count() {
             return (int) (endOffset - startOffset);
           }
-        };
+          }, maxDoc);
       } else {
-        return new SortedNumericDocValues() {
+        return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
           int startOffset;
           int endOffset;
         
@@ -629,7 +631,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           public int count() {
             return (endOffset - startOffset);
           }
-        };
+          }, maxDoc);
       }
     }
   }

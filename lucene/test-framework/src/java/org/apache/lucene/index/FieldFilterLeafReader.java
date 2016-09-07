@@ -125,7 +125,7 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException {
     return hasField(field) ? super.getSortedNumericDocValues(field) : null;
   }
   

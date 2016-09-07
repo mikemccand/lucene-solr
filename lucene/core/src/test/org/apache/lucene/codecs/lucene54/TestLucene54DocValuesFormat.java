@@ -60,6 +60,7 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
@@ -215,8 +216,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
       final BinaryDocValuesIterator binary = DocValues.getBinaryIterator(reader, "binary");
 
-      final SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
-      final Bits sortedNumericBits = DocValues.getDocsWithField(reader, "sorted_numeric");
+      final SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
 
       final SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(reader, "sorted_set");
 
@@ -243,10 +243,10 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
           valueSet.add(sf.numericValue().longValue());
         }
 
-        sortedNumeric.setDocument(i);
-        assertEquals(valuesFields.length, sortedNumeric.count());
-        for (int j = 0; j < sortedNumeric.count(); ++j) {
-          assertTrue(valueSet.contains(sortedNumeric.valueAt(j)));
+        assertEquals(i, sortedNumeric.nextDoc());
+        assertEquals(valuesFields.length, sortedNumeric.docValueCount());
+        for (int j = 0; j < sortedNumeric.docValueCount(); ++j) {
+          assertTrue(valueSet.contains(sortedNumeric.nextValue()));
         }
         assertEquals(i, sortedSet.nextDoc());
         int sortedSetCount = 0;
@@ -259,8 +259,6 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
           sortedSetCount++;
         }
         assertEquals(valueSet.size(), sortedSetCount);
-
-        assertEquals(!valueSet.isEmpty(), sortedNumericBits.get(i));
       }
     }
 
@@ -583,14 +581,14 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       w.close();
       LeafReader sr = getOnlyLeafReader(r);
       assertEquals(maxDoc, sr.maxDoc());
-      SortedNumericDocValues values = sr.getSortedNumericDocValues("snum");
+      SortedNumericDocValuesIterator values = sr.getSortedNumericDocValues("snum");
       assertNotNull(values);
       RAMInputStream in = new RAMInputStream("", buffer);
       for (int i = 0; i < maxDoc; ++i) {
-        values.setDocument(i);
-        assertEquals(2, values.count());
-        assertEquals(in.readVLong(), values.valueAt(0));
-        assertEquals(in.readVLong(), values.valueAt(1));
+        assertEquals(i, values.nextDoc());
+        assertEquals(2, values.docValueCount());
+        assertEquals(in.readVLong(), values.nextValue());
+        assertEquals(in.readVLong(), values.nextValue());
       }
       r.close();
       dir.close();

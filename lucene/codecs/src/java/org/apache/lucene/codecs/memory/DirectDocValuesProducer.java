@@ -41,11 +41,13 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
+import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
@@ -476,7 +478,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
+  public synchronized SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     SortedNumericRawValues instance = sortedNumericInstances.get(field.name);
     final SortedNumericEntry entry = sortedNumerics.get(field.name);
     if (instance == null) {
@@ -491,12 +493,12 @@ class DirectDocValuesProducer extends DocValuesProducer {
     if (entry.docToAddress == null) {
       final NumericDocValues single = instance.values.numerics;
       final Bits docsWithField = getMissingBits(field, entry.values.missingOffset, entry.values.missingBytes);
-      return DocValues.singleton(single, docsWithField);
+      return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, single));
     } else {
       final NumericDocValues docToAddress = instance.docToAddress.numerics;
       final NumericDocValues values = instance.values.numerics;
       
-      return new SortedNumericDocValues() {
+      return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
         int valueStart;
         int valueLimit;
         
@@ -515,7 +517,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         public int count() {
           return valueLimit - valueStart;
         }
-      };
+        }, maxDoc);
     }
   }
   

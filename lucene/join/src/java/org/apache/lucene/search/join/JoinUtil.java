@@ -43,6 +43,7 @@ import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Collector;
@@ -244,17 +245,21 @@ public final class JoinUtil {
     if (multipleValuesPerDocument) {
       collector = new SimpleCollector() {
 
-        SortedNumericDocValues sortedNumericDocValues;
+        SortedNumericDocValuesIterator sortedNumericDocValues;
         Scorer scorer;
 
         @Override
         public void collect(int doc) throws IOException {
-          sortedNumericDocValues.setDocument(doc);
-          for (int i = 0; i < sortedNumericDocValues.count(); i++) {
-            long value = sortedNumericDocValues.valueAt(i);
-            joinValues.add(value);
-            if (needsScore) {
-              scoreAggregator.accept(value, scorer.score());
+          if (doc > sortedNumericDocValues.docID()) {
+            sortedNumericDocValues.advance(doc);
+          }
+          if (doc == sortedNumericDocValues.docID()) {
+            for (int i = 0; i < sortedNumericDocValues.docValueCount(); i++) {
+              long value = sortedNumericDocValues.nextValue();
+              joinValues.add(value);
+              if (needsScore) {
+                scoreAggregator.accept(value, scorer.score());
+              }
             }
           }
         }

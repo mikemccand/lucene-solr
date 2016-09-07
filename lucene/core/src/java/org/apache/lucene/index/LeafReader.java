@@ -253,17 +253,17 @@ public abstract class LeafReader extends IndexReader {
    *  used by a single thread. */
   public abstract BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException;
 
-  /** Returns {@link SortedDocValues} for this field, or
-   *  null if no {@link SortedDocValues} were indexed for
+  /** Returns {@link SortedDocValuesIterator} for this field, or
+   *  null if no {@link SortedDocValuesIterator} were indexed for
    *  this field.  The returned instance should only be
    *  used by a single thread. */
   public abstract SortedDocValuesIterator getSortedDocValues(String field) throws IOException;
   
-  /** Returns {@link SortedNumericDocValues} for this field, or
-   *  null if no {@link SortedNumericDocValues} were indexed for
+  /** Returns {@link SortedNumericDocValuesIterator} for this field, or
+   *  null if no {@link SortedNumericDocValuesIterator} were indexed for
    *  this field.  The returned instance should only be
    *  used by a single thread. */
-  public abstract SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException;
+  public abstract SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException;
 
   /** Returns {@link SortedSetDocValuesIterator} for this field, or
    *  null if no {@link SortedSetDocValuesIterator} were indexed for

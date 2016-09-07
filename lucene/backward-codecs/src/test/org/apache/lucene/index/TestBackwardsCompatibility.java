@@ -765,7 +765,7 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
       if (is42Index) {
         dvSortedSet = MultiDocValues.getSortedSetValues(reader, "dvSortedSet");
       }
-      SortedNumericDocValues dvSortedNumeric = null;
+      SortedNumericDocValuesIterator dvSortedNumeric = null;
       if (is49Index) {
         dvSortedNumeric = MultiDocValues.getSortedNumericValues(reader, "dvSortedNumeric");
       }
@@ -819,9 +819,9 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
           assertEquals(expectedRef, term);
         }
         if (is49Index) {
-          dvSortedNumeric.setDocument(i);
-          assertEquals(1, dvSortedNumeric.count());
-          assertEquals(id, dvSortedNumeric.valueAt(0));
+          assertEquals(i, dvSortedNumeric.nextDoc());
+          assertEquals(1, dvSortedNumeric.docValueCount());
+          assertEquals(id, dvSortedNumeric.nextValue());
         }
       }
     }

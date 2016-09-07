@@ -249,8 +249,46 @@ public final class DocValues {
   /**
    * An empty SortedNumericDocValues which returns zero values for every document 
    */
-  public static final SortedNumericDocValues emptySortedNumeric(int maxDoc) {
-    return singleton(emptyNumeric(), new Bits.MatchNoBits(maxDoc));
+  public static final SortedNumericDocValuesIterator emptySortedNumeric(int maxDoc) {
+    return new SortedNumericDocValuesIterator() {
+      
+      private boolean exhausted = false;
+      
+      @Override
+      public int advance(int target) {
+        assert exhausted == false;
+        assert target >= 0;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public int docID() {
+        return exhausted ? NO_MORE_DOCS : -1;
+      }
+      
+      @Override
+      public int nextDoc() {
+        assert exhausted == false;
+        exhausted = true;
+        return NO_MORE_DOCS;
+      }
+      
+      @Override
+      public long cost() {
+        return 0;
+      }
+
+      @Override
+      public int docValueCount() {
+        throw new IllegalStateException();
+      }
+
+      @Override
+      public long nextValue() {
+        throw new IllegalStateException();
+      }
+    };
   }
 
   /** 
@@ -325,25 +363,12 @@ public final class DocValues {
   }
   
   /** 
-   * Returns a single-valued view of the SortedNumericDocValues, if it was previously
-   * wrapped with {@link #singleton(NumericDocValues, Bits)}, or null. 
-   * @see #unwrapSingletonBits(SortedNumericDocValues)
+   * Returns a single-valued view of the SortedNumericDocValuesIterator, if it was previously
+   * wrapped with {@link #singleton(NumericDocValuesIterator)}, or null. 
    */
-  public static NumericDocValues unwrapSingleton(SortedNumericDocValues dv) {
-    if (dv instanceof SingletonSortedNumericDocValues) {
-      return ((SingletonSortedNumericDocValues)dv).getNumericDocValues();
-    } else {
-      return null;
-    }
-  }
-  
-  /** 
-   * Returns the documents with a value for the SortedNumericDocValues, if it was previously
-   * wrapped with {@link #singleton(NumericDocValues, Bits)}, or null. 
-   */
-  public static Bits unwrapSingletonBits(SortedNumericDocValues dv) {
-    if (dv instanceof SingletonSortedNumericDocValues) {
-      return ((SingletonSortedNumericDocValues)dv).getDocsWithField();
+  public static NumericDocValuesIterator unwrapSingleton(SortedNumericDocValuesIterator dv) {
+    if (dv instanceof SingletonSortedNumericDocValuesIterator) {
+      return ((SingletonSortedNumericDocValuesIterator)dv).getNumericDocValues();
     } else {
       return null;
     }
@@ -352,8 +377,8 @@ public final class DocValues {
   /**
    * Returns a multi-valued view over the provided NumericDocValues
    */
-  public static SortedNumericDocValues singleton(NumericDocValues dv, Bits docsWithField) {
-    return new SingletonSortedNumericDocValues(dv, docsWithField);
+  public static SortedNumericDocValuesIterator singleton(NumericDocValuesIterator dv) {
+    return new SingletonSortedNumericDocValuesIterator(dv);
   }
   
   /**
@@ -385,19 +410,14 @@ public final class DocValues {
   /**
    * Returns a Bits representing all documents from <code>dv</code> that have a value.
    */
-  public static Bits docsWithValue(final SortedNumericDocValues dv, final int maxDoc) {
-    return new Bits() {
-      @Override
-      public boolean get(int index) {
-        dv.setDocument(index);
-        return dv.count() != 0;
-      }
-
-      @Override
-      public int length() {
-        return maxDoc;
-      }
-    };
+  public static Bits docsWithValue(final SortedNumericDocValuesIterator dv, final int maxDoc) throws IOException {
+    // nocommit remove this entire method!!!
+    FixedBitSet bits = new FixedBitSet(maxDoc);
+    int docID;
+    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
+      bits.set(docID);
+    }
+    return bits;
   }
   
   // some helpers, for transition from fieldcache apis.
@@ -472,15 +492,15 @@ public final class DocValues {
   }
   
   /**
-   * Returns SortedNumericDocValues for the field, or {@link #emptySortedNumeric} if it has none. 
+   * Returns SortedNumericDocValuesIterator for the field, or {@link #emptySortedNumeric} if it has none. 
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#SORTED_NUMERIC}
    *                               or {@link DocValuesType#NUMERIC}.
    * @throws IOException if an I/O error occurs.
    */
-  public static SortedNumericDocValues getSortedNumeric(LeafReader reader, String field) throws IOException {
-    SortedNumericDocValues dv = reader.getSortedNumericDocValues(field);
+  public static SortedNumericDocValuesIterator getSortedNumeric(LeafReader reader, String field) throws IOException {
+    SortedNumericDocValuesIterator dv = reader.getSortedNumericDocValues(field);
     if (dv == null) {
       NumericDocValuesIterator single = reader.getNumericDocValuesIterator(field);
       if (single == null) {
@@ -488,7 +508,7 @@ public final class DocValues {
         return emptySortedNumeric(reader.maxDoc());
       }
       Bits bits = reader.getDocsWithField(field);
-      return singleton(new StupidNumericDocValues(reader.maxDoc(), single), bits);
+      return singleton(single);
     }
     return dv;
   }

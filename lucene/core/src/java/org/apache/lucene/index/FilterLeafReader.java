@@ -449,7 +449,7 @@ public abstract class FilterLeafReader extends LeafReader {
   }
   
   @Override
-  public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+  public SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException {
     ensureOpen();
     return in.getSortedNumericDocValues(field);
   }

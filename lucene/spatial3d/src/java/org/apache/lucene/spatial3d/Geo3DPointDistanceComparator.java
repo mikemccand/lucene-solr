@@ -23,14 +23,14 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
-
-import org.apache.lucene.spatial3d.geom.GeoDistanceShape;
-import org.apache.lucene.spatial3d.geom.XYZBounds;
 import org.apache.lucene.spatial3d.geom.DistanceStyle;
+import org.apache.lucene.spatial3d.geom.GeoDistanceShape;
 import org.apache.lucene.spatial3d.geom.PlanetModel;
+import org.apache.lucene.spatial3d.geom.XYZBounds;
 
 /**
  * Compares documents by distance from an origin point, using a GeoDistanceShape to compute the distance
@@ -47,7 +47,7 @@ class Geo3DPointDistanceComparator extends FieldComparator<Double> implements Le
   final double[] values;
   double bottomDistance;
   double topValue;
-  SortedNumericDocValues currentDocs;
+  SortedNumericDocValuesIterator currentDocs;
   
   XYZBounds priorityQueueBounds;
   
@@ -90,16 +90,19 @@ class Geo3DPointDistanceComparator extends FieldComparator<Double> implements Le
   
   @Override
   public int compareBottom(int doc) throws IOException {
-    currentDocs.setDocument(doc);
-
-    int numValues = currentDocs.count();
-    if (numValues == 0) {
+    if (doc > currentDocs.docID()) {
+      currentDocs.advance(doc);
+    }
+    if (doc < currentDocs.docID()) {
       return Double.compare(bottomDistance, Double.POSITIVE_INFINITY);
     }
+    
+    int numValues = currentDocs.docValueCount();
+    assert numValues > 0;
 
     int cmp = -1;
     for (int i = 0; i < numValues; i++) {
-      long encoded = currentDocs.valueAt(i);
+      long encoded = currentDocs.nextValue();
 
       // Test against bounds.
       // First we need to decode...
@@ -148,19 +151,22 @@ class Geo3DPointDistanceComparator extends FieldComparator<Double> implements Le
     return Double.compare(topValue, computeMinimumDistance(doc));
   }
 
-  double computeMinimumDistance(final int doc) {
-    currentDocs.setDocument(doc);
+  double computeMinimumDistance(final int doc) throws IOException {
+    if (doc > currentDocs.docID()) {
+      currentDocs.advance(doc);
+    }
     double minValue = Double.POSITIVE_INFINITY;
-    final int numValues = currentDocs.count();
-    for (int i = 0; i < numValues; i++) {
-      final long encoded = currentDocs.valueAt(i);
-      final double distance = distanceShape.computeDistance(DistanceStyle.ARC,
-        Geo3DDocValuesField.decodeXValue(encoded),
-        Geo3DDocValuesField.decodeYValue(encoded),
-        Geo3DDocValuesField.decodeZValue(encoded));
-      minValue = Math.min(minValue, distance);
+    if (doc == currentDocs.docID()) {
+      final int numValues = currentDocs.docValueCount();
+      for (int i = 0; i < numValues; i++) {
+        final long encoded = currentDocs.nextValue();
+        final double distance = distanceShape.computeDistance(DistanceStyle.ARC,
+                                                              Geo3DDocValuesField.decodeXValue(encoded),
+                                                              Geo3DDocValuesField.decodeYValue(encoded),
+                                                              Geo3DDocValuesField.decodeZValue(encoded));
+        minValue = Math.min(minValue, distance);
+      }
     }
     return minValue;
   }
-  
 }

@@ -109,13 +109,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     return getPostingsReader();
   }
   
-  final CloseableThreadLocal<Map<String,Object>> docValuesLocal = new CloseableThreadLocal<Map<String,Object>>() {
-    @Override
-    protected Map<String,Object> initialValue() {
-      return new HashMap<>();
-    }
-  };
-
   final CloseableThreadLocal<Map<String,Bits>> docsWithFieldLocal = new CloseableThreadLocal<Map<String,Bits>>() {
     @Override
     protected Map<String,Bits> initialValue() {
@@ -204,22 +197,15 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
   
   @Override
-  public final SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+  public final SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException {
     ensureOpen();
-    Map<String,Object> dvFields = docValuesLocal.get();
 
-    Object previous = dvFields.get(field);
-    if (previous != null && previous instanceof SortedNumericDocValues) {
-      return (SortedNumericDocValues) previous;
-    } else {
-      FieldInfo fi = getDVField(field, DocValuesType.SORTED_NUMERIC);
-      if (fi == null) {
-        return null;
-      }
-      SortedNumericDocValues dv = getDocValuesReader().getSortedNumeric(fi);
-      dvFields.put(field, dv);
-      return dv;
+    FieldInfo fi = getDVField(field, DocValuesType.SORTED_NUMERIC);
+    if (fi == null) {
+      return null;
     }
+    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
+    return getDocValuesReader().getSortedNumeric(fi);
   }
 
   @Override
@@ -248,7 +234,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
 
   @Override
   protected void doClose() throws IOException {
-    IOUtils.close(docValuesLocal, docsWithFieldLocal);
+    IOUtils.close(docsWithFieldLocal);
   }
   
   @Override

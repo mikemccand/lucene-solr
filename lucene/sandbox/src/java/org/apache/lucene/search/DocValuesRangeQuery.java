@@ -24,6 +24,7 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Bits;
@@ -150,7 +151,7 @@ public final class DocValuesRangeQuery extends Query {
       protected Bits getMatchingDocs(LeafReaderContext context) throws IOException {
         if (lowerVal instanceof Long || upperVal instanceof Long) {
 
-          final SortedNumericDocValues values = DocValues.getSortedNumeric(context.reader(), field);
+          final SortedNumericDocValuesIterator values = DocValues.getSortedNumeric(context.reader(), field);
 
           final long min;
           if (lowerVal == null) {
@@ -184,13 +185,21 @@ public final class DocValuesRangeQuery extends Query {
 
             @Override
             public boolean get(int doc) {
-              values.setDocument(doc);
-              final int count = values.count();
-              for (int i = 0; i < count; ++i) {
-                final long value = values.valueAt(i);
-                if (value >= min && value <= max) {
-                  return true;
+              try {
+                if (doc > values.docID()) {
+                  values.advance(doc);
                 }
+                if (doc == values.docID()) {
+                  final int count = values.docValueCount();
+                  for (int i = 0; i < count; ++i) {
+                    final long value = values.nextValue();
+                    if (value >= min && value <= max) {
+                      return true;
+                    }
+                  }
+                }
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
               }
               return false;
             }

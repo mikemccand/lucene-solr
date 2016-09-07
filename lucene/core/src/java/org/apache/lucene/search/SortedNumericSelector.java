@@ -17,9 +17,14 @@
 package org.apache.lucene.search;
 
 
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.FilterNumericDocValuesIterator;
 import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.util.NumericUtils;
 
 /** 
@@ -49,15 +54,15 @@ public class SortedNumericSelector {
    * Wraps a multi-valued SortedNumericDocValues as a single-valued view, using the specified selector 
    * and numericType.
    */
-  public static NumericDocValues wrap(SortedNumericDocValues sortedNumeric, Type selector, SortField.Type numericType) {
+  public static NumericDocValuesIterator wrap(SortedNumericDocValuesIterator sortedNumeric, Type selector, SortField.Type numericType) {
     if (numericType != SortField.Type.INT &&
         numericType != SortField.Type.LONG && 
         numericType != SortField.Type.FLOAT &&
         numericType != SortField.Type.DOUBLE) {
       throw new IllegalArgumentException("numericType must be a numeric type");
     }
-    final NumericDocValues view;
-    NumericDocValues singleton = DocValues.unwrapSingleton(sortedNumeric);
+    final NumericDocValuesIterator view;
+    NumericDocValuesIterator singleton = DocValues.unwrapSingleton(sortedNumeric);
     if (singleton != null) {
       // it's actually single-valued in practice, but indexed as multi-valued,
       // so just sort on the underlying single-valued dv directly.
@@ -78,17 +83,17 @@ public class SortedNumericSelector {
     // undo the numericutils sortability
     switch(numericType) {
       case FLOAT:
-        return new NumericDocValues() {
+        return new FilterNumericDocValuesIterator(view) {
           @Override
-          public long get(int docID) {
-            return NumericUtils.sortableFloatBits((int) view.get(docID));
+          public long longValue() {
+            return NumericUtils.sortableFloatBits((int) in.longValue());
           }
         };
       case DOUBLE:
-        return new NumericDocValues() {
+        return new FilterNumericDocValuesIterator(view) {
           @Override
-          public long get(int docID) {
-            return NumericUtils.sortableDoubleBits(view.get(docID));
+          public long longValue() {
+            return NumericUtils.sortableDoubleBits(in.longValue());
           }
         };
       default:
@@ -96,42 +101,96 @@ public class SortedNumericSelector {
     }
   }
   
-  /** Wraps a SortedNumericDocValues and returns the first value (min) */
-  static class MinValue extends NumericDocValues {
-    final SortedNumericDocValues in;
+  /** Wraps a SortedNumericDocValuesIterator and returns the first value (min) */
+  static class MinValue extends NumericDocValuesIterator {
+    final SortedNumericDocValuesIterator in;
+    private long value;
     
-    MinValue(SortedNumericDocValues in) {
+    MinValue(SortedNumericDocValuesIterator in) {
       this.in = in;
     }
 
     @Override
-    public long get(int docID) {
-      in.setDocument(docID);
-      if (in.count() == 0) {
-        return 0; // missing
-      } else {
-        return in.valueAt(0);
-      }
+    public int docID() {
+      return in.docID();
     }
-  }
-  
-  /** Wraps a SortedNumericDocValues and returns the last value (max) */
-  static class MaxValue extends NumericDocValues {
-    final SortedNumericDocValues in;
+
+    @Override
+    public int nextDoc() throws IOException {
+      int docID = in.nextDoc();
+      if (docID != NO_MORE_DOCS) {
+        value = in.nextValue();
+      }
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      int docID = in.advance(target);
+      if (docID != NO_MORE_DOCS) {
+        value = in.nextValue();
+      }
+      return docID;
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+
+    @Override
+    public long longValue() {
+      return value;
+    }
+  }    
+
+  /** Wraps a SortedNumericDocValuesIterator and returns the last value (max) */
+  static class MaxValue extends NumericDocValuesIterator {
+    final SortedNumericDocValuesIterator in;
+    private long value;
     
-    MaxValue(SortedNumericDocValues in) {
+    MaxValue(SortedNumericDocValuesIterator in) {
       this.in = in;
     }
 
     @Override
-    public long get(int docID) {
-      in.setDocument(docID);
-      final int count = in.count();
-      if (count == 0) {
-        return 0; // missing
-      } else {
-        return in.valueAt(count-1);
+    public int docID() {
+      return in.docID();
+    }
+
+    private void setValue() throws IOException {
+      int count = in.docValueCount();
+      for(int i=0;i<count;i++) {
+        value = in.nextValue();
       }
     }
-  }
+
+    @Override
+    public int nextDoc() throws IOException {
+      int docID = in.nextDoc();
+      if (docID != NO_MORE_DOCS) {
+        setValue();
+      }
+      return docID;
+    }
+
+    @Override
+    public int advance(int target) throws IOException {
+      int docID = in.advance(target);
+      if (docID != NO_MORE_DOCS) {
+        setValue();
+      }
+      return docID;
+    }
+
+    @Override
+    public long cost() {
+      return in.cost();
+    }
+
+    @Override
+    public long longValue() {
+      return value;
+    }
+  }    
 }

@@ -27,6 +27,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
@@ -60,10 +61,10 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
    *  used by a single thread. */
   public abstract SortedDocValuesIterator getSorted(FieldInfo field) throws IOException;
   
-  /** Returns {@link SortedNumericDocValues} for this field.
+  /** Returns {@link SortedNumericDocValuesIterator} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
-  public abstract SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException;
+  public abstract SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException;
   
   /** Returns {@link SortedSetDocValuesIterator} for this field.
    *  The returned instance need not be thread-safe: it will only be

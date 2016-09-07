@@ -30,15 +30,18 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.suggest.BitsProducer;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.LuceneTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 import static org.apache.lucene.search.suggest.document.TestSuggestField.Entry;
 import static org.apache.lucene.search.suggest.document.TestSuggestField.assertSuggestions;
 import static org.apache.lucene.search.suggest.document.TestSuggestField.iwcWithSuggestField;
@@ -81,30 +84,21 @@ public class TestPrefixCompletionQuery extends LuceneTestCase {
     @Override
     public Bits getBits(final LeafReaderContext context) throws IOException {
       final int maxDoc = context.reader().maxDoc();
-      final SortedNumericDocValues values = DocValues.getSortedNumeric(context.reader(), field);
-      return new Bits() {
-
-        @Override
-        public boolean get(int doc) {
-          values.setDocument(doc);
-          final int count = values.count();
-          for (int i = 0; i < count; ++i) {
-            final long v = values.valueAt(i);
-            if (v >= min && v <= max) {
-              return true;
-            }
+      FixedBitSet bits = new FixedBitSet(maxDoc);
+      final SortedNumericDocValuesIterator values = DocValues.getSortedNumeric(context.reader(), field);
+      int docID;
+      while ((docID = values.nextDoc()) != NO_MORE_DOCS) {
+        final int count = values.docValueCount();
+        for (int i = 0; i < count; ++i) {
+          final long v = values.nextValue();
+          if (v >= min && v <= max) {
+            bits.set(docID);
+            break;
           }
-          return false;
         }
-
-        @Override
-        public int length() {
-          return maxDoc;
-        }
-        
-      };
+      }
+      return bits;
     }
-
   }
 
   public Directory dir;
