@@ -102,11 +102,11 @@ class CrankyDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException {
+    public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       if (random.nextInt(100) == 0) {
         throw new IOException("Fake IOException from DocValuesConsumer.addSortedSetField()");
       }
-      delegate.addSortedSetField(field, values, docToOrdCount, ords);
+      delegate.addSortedSetField(field, valuesProducer);
     }
   }
 }

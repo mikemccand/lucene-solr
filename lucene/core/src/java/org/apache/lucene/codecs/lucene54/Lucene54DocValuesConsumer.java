@@ -33,8 +33,7 @@ import java.util.stream.StreamSupport;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.codecs.SortedDocValuesDocOrdsIterable;
-import org.apache.lucene.codecs.SortedDocValuesValuesIterable;
+import org.apache.lucene.codecs.LegacyDocValuesIterables;
 import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
@@ -584,8 +583,8 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
   public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
     meta.writeVInt(field.number);
     meta.writeByte(Lucene54DocValuesFormat.SORTED);
-    addTermsDict(field, new SortedDocValuesValuesIterable(valuesProducer, field));
-    addNumericField(field, new SortedDocValuesDocOrdsIterable(valuesProducer, field, maxDoc), NumberType.ORDINAL);
+    addTermsDict(field, LegacyDocValuesIterables.valuesIterable(valuesProducer.getSorted(field)));
+    addNumericField(field, LegacyDocValuesIterables.sortedOrdIterable(valuesProducer, field, maxDoc), NumberType.ORDINAL);
   }
 
   // nocommit removeme
@@ -625,7 +624,12 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
   }
 
   @Override
-  public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, final Iterable<Number> docToOrdCount, final Iterable<Number> ords) throws IOException {
+  public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+
+    Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
+    Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, maxDoc);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field, maxDoc);
+
     meta.writeVInt(field.number);
     meta.writeByte(Lucene54DocValuesFormat.SORTED_SET);
 

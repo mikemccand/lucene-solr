@@ -130,8 +130,8 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException {
-      getInstance(field).addSortedSetField(field, values, docToOrdCount, ords);
+    public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      getInstance(field).addSortedSetField(field, valuesProducer);
     }
 
     private DocValuesConsumer getInstance(FieldInfo field) throws IOException {

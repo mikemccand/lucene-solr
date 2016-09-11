@@ -28,8 +28,7 @@ import java.util.Set;
 
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.codecs.SortedDocValuesDocOrdsIterable;
-import org.apache.lucene.codecs.SortedDocValuesValuesIterable;
+import org.apache.lucene.codecs.LegacyDocValuesIterables;
 import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.DocValuesType;
@@ -206,8 +205,8 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   
   @Override
   public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-    Iterable<BytesRef> values = new SortedDocValuesValuesIterable(valuesProducer, field);
-    Iterable<Number> docToOrd = new SortedDocValuesDocOrdsIterable(valuesProducer, field, numDocs);
+    Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSorted(field));
+    Iterable<Number> docToOrd = LegacyDocValuesIterables.sortedOrdIterable(valuesProducer, field, numDocs);
     
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.SORTED;
@@ -327,7 +326,10 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   }
 
   @Override
-  public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException {
+  public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
+    Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, numDocs);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field, numDocs);
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.SORTED_SET;
     writeFieldEntry(field, DocValuesType.SORTED_SET);

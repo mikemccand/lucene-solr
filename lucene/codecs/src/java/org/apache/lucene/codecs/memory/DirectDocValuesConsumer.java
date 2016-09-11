@@ -23,8 +23,7 @@ import java.util.Iterator;
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.codecs.SortedDocValuesDocOrdsIterable;
-import org.apache.lucene.codecs.SortedDocValuesValuesIterable;
+import org.apache.lucene.codecs.LegacyDocValuesIterables;
 import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
 import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
@@ -241,9 +240,9 @@ class DirectDocValuesConsumer extends DocValuesConsumer {
     meta.writeByte(SORTED);
 
     // write the ordinals as numerics
-    addNumericFieldValues(field, new SortedDocValuesDocOrdsIterable(valuesProducer, field, maxDoc));
+    addNumericFieldValues(field, LegacyDocValuesIterables.sortedOrdIterable(valuesProducer, field, maxDoc));
     // write the values as binary
-    addBinaryFieldValues(field, new SortedDocValuesValuesIterable(valuesProducer, field));
+    addBinaryFieldValues(field, LegacyDocValuesIterables.valuesIterable(valuesProducer.getSorted(field)));
   }
   
   @Override
@@ -268,7 +267,11 @@ class DirectDocValuesConsumer extends DocValuesConsumer {
 
   // note: this might not be the most efficient... but it's fairly simple
   @Override
-  public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, final Iterable<Number> docToOrdCount, final Iterable<Number> ords) throws IOException {
+  public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
+    Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, maxDoc);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field, maxDoc);
+    
     meta.writeVInt(field.number);
     
     if (isSingleValued(docToOrdCount)) {

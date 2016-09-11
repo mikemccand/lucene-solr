@@ -28,6 +28,8 @@ import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.util.ArrayUtil;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.SloppyMath;
 
 import static org.apache.lucene.geo.GeoEncodingUtils.decodeLatitude;
@@ -65,6 +67,9 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
 
   // the number of times setBottom has been called (adversary protection)
   int setBottomCounter = 0;
+
+  private long[] currentValues = new long[4];
+  private int valuesDocID = -1;
 
   public LatLonPointDistanceComparator(String field, double latitude, double longitude, int numHits) {
     this.field = field;
@@ -113,6 +118,20 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
   public void setTopValue(Double value) {
     topValue = value.doubleValue();
   }
+
+  private void setValues() throws IOException {
+    if (valuesDocID != currentDocs.docID()) {
+      assert valuesDocID < currentDocs.docID(): " valuesDocID=" + valuesDocID + " vs " + currentDocs.docID();
+      valuesDocID = currentDocs.docID();
+      int count = currentDocs.docValueCount();
+      if (count > currentValues.length) {
+        currentValues = new long[ArrayUtil.oversize(count, RamUsageEstimator.NUM_BYTES_LONG)];
+      }
+      for(int i=0;i<count;i++) {
+        currentValues[i] = currentDocs.nextValue();
+      }
+    }
+  }
   
   @Override
   public int compareBottom(int doc) throws IOException {
@@ -123,11 +142,13 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
       return Double.compare(bottom, Double.POSITIVE_INFINITY);
     }
 
+    setValues();
+
     int numValues = currentDocs.docValueCount();
 
     int cmp = -1;
     for (int i = 0; i < numValues; i++) {
-      long encoded = currentDocs.nextValue();
+      long encoded = currentValues[i];
 
       // test bounding box
       int latitudeBits = (int)(encoded >> 32);
@@ -164,6 +185,7 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
       LatLonDocValuesField.checkCompatible(info);
     }
     currentDocs = DocValues.getSortedNumeric(reader, field);
+    valuesDocID = -1;
     return this;
   }
   
@@ -185,9 +207,10 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
     }
     double minValue = Double.POSITIVE_INFINITY;
     if (doc == currentDocs.docID()) {
+      setValues();
       int numValues = currentDocs.docValueCount();
       for (int i = 0; i < numValues; i++) {
-        long encoded = currentDocs.nextValue();
+        long encoded = currentValues[i];
         double docLatitude = decodeLatitude((int)(encoded >> 32));
         double docLongitude = decodeLongitude((int)(encoded & 0xFFFFFFFF));
         minValue = Math.min(minValue, SloppyMath.haversinSortKey(latitude, longitude, docLatitude, docLongitude));

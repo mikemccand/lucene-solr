@@ -169,49 +169,44 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException {
-      long valueCount = 0;
+    public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      SortedSetDocValuesIterator values = valuesProducer.getSortedSet(field);
+      long valueCount = values.getValueCount();
       BytesRef lastValue = null;
-      for (BytesRef b : values) {
+      for (long i=0;i<valueCount;i++) {
+        BytesRef b = values.lookupOrd(i);
         assert b != null;
         assert b.isValid();
-        if (valueCount > 0) {
+        if (i > 0) {
           assert b.compareTo(lastValue) > 0;
         }
         lastValue = BytesRef.deepCopyOf(b);
-        valueCount++;
       }
       
       int docCount = 0;
-      long ordCount = 0;
       LongBitSet seenOrds = new LongBitSet(valueCount);
-      Iterator<Number> ordIterator = ords.iterator();
-      for (Number v : docToOrdCount) {
-        assert v != null;
-        int count = v.intValue();
-        assert count >= 0;
+      while (true) {
+        int docID = values.nextDoc();
+        if (docID == NO_MORE_DOCS) {
+          break;
+        }
         docCount++;
-        ordCount += count;
         
         long lastOrd = -1;
-        for (int i = 0; i < count; i++) {
-          Number o = ordIterator.next();
-          assert o != null;
-          long ord = o.longValue();
-          assert ord >= 0 && ord < valueCount;
+        while (true) {
+          long ord = values.nextOrd();
+          if (ord == SortedSetDocValuesIterator.NO_MORE_ORDS) {
+            break;
+          }
+          assert ord >= 0 && ord < valueCount: "ord=" + ord + " is not in bounds 0 .." + (valueCount-1);
           assert ord > lastOrd : "ord=" + ord + ",lastOrd=" + lastOrd;
           seenOrds.set(ord);
           lastOrd = ord;
         }
       }
-      assert ordIterator.hasNext() == false;
       
-      assert docCount == maxDoc;
       assert seenOrds.cardinality() == valueCount;
-      TestUtil.checkIterator(values.iterator(), valueCount, false);
-      TestUtil.checkIterator(docToOrdCount.iterator(), maxDoc, false);
-      TestUtil.checkIterator(ords.iterator(), ordCount, false);
-      in.addSortedSetField(field, values, docToOrdCount, ords);
+      in.addSortedSetField(field, valuesProducer);
     }
     
     @Override

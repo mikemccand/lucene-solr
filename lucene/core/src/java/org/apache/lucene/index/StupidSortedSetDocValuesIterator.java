@@ -96,4 +96,9 @@ public final class StupidSortedSetDocValuesIterator extends SortedSetDocValuesIt
   public long getValueCount() {
     return values.getValueCount();
   }
+
+  @Override
+  public String toString() {
+    return "StupidSortedSetDocValuesIterator(" + values + ")";
+  }
 }

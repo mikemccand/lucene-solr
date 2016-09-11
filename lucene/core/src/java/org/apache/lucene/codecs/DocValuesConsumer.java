@@ -120,13 +120,10 @@ public abstract class DocValuesConsumer implements Closeable {
   /**
    * Writes pre-sorted set docvalues for a field
    * @param field field information
-   * @param values Iterable of binary values in sorted order (deduplicated).
-   * @param docToOrdCount Iterable of the number of values for each document. A zero ordinal
-   *                      count indicates a missing value.
-   * @param ords Iterable of ordinal occurrences (docToOrdCount*maxDoc total).
+   * @param valuesProducer produces the values to write
    * @throws IOException if an I/O error occurred.
    */
-  public abstract void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrdCount, Iterable<Number> ords) throws IOException;
+  public abstract void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException;
   
   /** Merges in the fields from the readers in 
    *  <code>mergeState</code>. The default implementation 
@@ -586,11 +583,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
     @Override
     public int nextDoc() throws IOException {
-      int docID = values.nextDoc();
-      if (docID == NO_MORE_DOCS) {
-        return NO_MORE_DOCS;
-      }
-      return docID;
+      return values.nextDoc();
     }
   }
 
@@ -747,10 +740,7 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one sorted set sub-reader that we are merging */
   private static class SortedSetDocValuesSub extends DocIDMerger.Sub {
 
-    // nocommit cutover to just nextDoc not docID++ once we fix DocValuesConsumer
-
     private final SortedSetDocValuesIterator values;
-    private int docID = -1;
     private final int maxDoc;
     private final LongValues map;
     private long ord;
@@ -764,21 +754,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
     @Override
     public int nextDoc() throws IOException {
-      // nocommit make this sparse
-      docID++;
-      if (docID > values.docID()) {
-        values.nextDoc();
-      }
-      if (docID == values.docID()) {
-        ord = values.nextOrd();
-      } else {
-        ord = NO_MORE_ORDS;
-      }
-      if (docID == maxDoc) {
-        return NO_MORE_DOCS;
-      } else {
-        return docID;
-      }
+      return values.nextDoc();
     }
 
     public long nextOrd() throws IOException {
@@ -791,7 +767,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
     @Override
     public String toString() {
-      return "SortedSetDocValuesSub(docID=" + docID + " mappedDocID=" + mappedDocID + " values=" + values + ")";
+      return "SortedSetDocValuesSub(mappedDocID=" + mappedDocID + " values=" + values + ")";
     }
   }
 
@@ -850,222 +826,102 @@ public abstract class DocValuesConsumer implements Closeable {
     
     // step 3: add field
     addSortedSetField(mergeFieldInfo,
-        // ord -> value
-        new Iterable<BytesRef>() {
-          @Override
-          public Iterator<BytesRef> iterator() {
-            return new Iterator<BytesRef>() {
-              long currentOrd;
+                      new EmptyDocValuesProducer() {
+                        @Override
+                        public SortedSetDocValuesIterator getSortedSet(FieldInfo fieldInfo) {
+                          if (fieldInfo != mergeFieldInfo) {
+                            throw new IllegalArgumentException("wrong FieldInfo");
+                          }
 
-              @Override
-              public boolean hasNext() {
-                return currentOrd < map.getValueCount();
-              }
+                          // We must make new iterators + DocIDMerger for each iterator:
+                          List<SortedSetDocValuesSub> subs = new ArrayList<>();
 
-              @Override
-              public BytesRef next() {
-                if (hasNext() == false) {
-                  throw new NoSuchElementException();
-                }
-                int segmentNumber = map.getFirstSegmentNumber(currentOrd);
-                long segmentOrd = map.getFirstSegmentOrd(currentOrd);
-                final BytesRef term = toMerge.get(segmentNumber).lookupOrd(segmentOrd);
-                currentOrd++;
-                return term;
-              }
-
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException();
-              }
-            };
-          }
-        },
-        // doc -> ord count
-        new Iterable<Number>() {
-          @Override
-          public Iterator<Number> iterator() {
-
-            // We must make new iterators + DocIDMerger for each iterator:
-            List<SortedSetDocValuesSub> subs = new ArrayList<>();
-            for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-              SortedSetDocValuesIterator values = null;
-              DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-              if (docValuesProducer != null) {
-                FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-                if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.SORTED_SET) {
-                  try {
-                    values = docValuesProducer.getSortedSet(fieldInfo);
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                }
-              }
-              if (values == null) {
-                values = DocValues.emptySortedSet();
-              }
-              subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i], map.getGlobalOrds(i)));
-            }
+                          // nocommit make asserting XXX ensure cost is non zero:
+                          long cost = 0;
+                          
+                          for (int i=0;i<mergeState.docValuesProducers.length;i++) {
+                            SortedSetDocValuesIterator values = null;
+                            DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
+                            if (docValuesProducer != null) {
+                              FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                              if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.SORTED_SET) {
+                                try {
+                                  values = docValuesProducer.getSortedSet(readerFieldInfo);
+                                } catch (IOException ioe) {
+                                  throw new RuntimeException(ioe);
+                                }
+                              }
+                            }
+                            if (values == null) {
+                              values = DocValues.emptySortedSet();
+                            }
+                            cost += values.cost();
+                            subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i], map.getGlobalOrds(i)));
+                          }
             
-            final DocIDMerger<SortedSetDocValuesSub> docIDMerger;
-            try {
-              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }
+                          final DocIDMerger<SortedSetDocValuesSub> docIDMerger;
+                          try {
+                            docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                          } catch (IOException ioe) {
+                            throw new RuntimeException(ioe);
+                          }
+                          
+                          final long finalCost = cost;
 
-            return new Iterator<Number>() {
-              int nextValue;
-              boolean nextIsSet;
+                          return new SortedSetDocValuesIterator() {
+                            private int docID = -1;
+                            private SortedSetDocValuesSub currentSub;
 
-              @Override
-              public boolean hasNext() {
-                return nextIsSet || setNext();
-              }
+                            @Override
+                            public int docID() {
+                              return docID;
+                            }
 
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException();
-              }
+                            @Override
+                            public int nextDoc() throws IOException {
+                              currentSub = docIDMerger.next();
+                              if (currentSub == null) {
+                                docID = NO_MORE_DOCS;
+                              } else {
+                                docID = currentSub.mappedDocID;
+                              }
 
-              @Override
-              public Number next() {
-                if (hasNext() == false) {
-                  throw new NoSuchElementException();
-                }
-                assert nextIsSet;
-                nextIsSet = false;
-                // TODO make a mutable number
-                return nextValue;
-              }
+                              return docID;
+                            }
 
-              private boolean setNext() {
-                while (true) {
-                  SortedSetDocValuesSub sub;
-                  try {
-                    sub = docIDMerger.next();
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                  if (sub == null) {
-                    return false;
-                  }
-                  nextValue = 0;
-                  try {
-                    while (sub.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                      nextValue++;
-                    }
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                  //System.out.println("  doc " + sub + " -> ord count = " + nextValue);
-                  nextIsSet = true;
-                  return true;
-                }
-              }
-            };
-          }
-        },
-        // ords
-        new Iterable<Number>() {
-          @Override
-          public Iterator<Number> iterator() {
+                            @Override
+                            public int advance(int target) throws IOException {
+                              throw new UnsupportedOperationException();
+                            }
 
-            // We must make new iterators + DocIDMerger for each iterator:
-            List<SortedSetDocValuesSub> subs = new ArrayList<>();
-            for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-              SortedSetDocValuesIterator values = null;
-              DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-              if (docValuesProducer != null) {
-                FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-                if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.SORTED_SET) {
-                  try {
-                    values = docValuesProducer.getSortedSet(fieldInfo);
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                }
-              }
-              if (values == null) {
-                values = DocValues.emptySortedSet();
-              }
-              subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i], map.getGlobalOrds(i)));
-            }
+                            @Override
+                            public long nextOrd() throws IOException {
+                              long subOrd = currentSub.values.nextOrd();
+                              if (subOrd == NO_MORE_ORDS) {
+                                return NO_MORE_ORDS;
+                              }
+                              return currentSub.map.get(subOrd);
+                            }
 
-            final DocIDMerger<SortedSetDocValuesSub> docIDMerger;
-            try {
-              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }
+                            @Override
+                            public long cost() {
+                              return finalCost;
+                            }
 
-            return new Iterator<Number>() {
-              long nextValue;
-              boolean nextIsSet;
-              long ords[] = new long[8];
-              int ordUpto;
-              int ordLength;
+                            @Override
+                            public BytesRef lookupOrd(long ord) {
+                              int segmentNumber = map.getFirstSegmentNumber(ord);
+                              long segmentOrd = map.getFirstSegmentOrd(ord);
+                              return toMerge.get(segmentNumber).lookupOrd(segmentOrd);
+                            }
 
-              @Override
-              public boolean hasNext() {
-                return nextIsSet || setNext();
-              }
-
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException();
-              }
-
-              @Override
-              public Number next() {
-                if (hasNext() == false) {
-                  throw new NoSuchElementException();
-                }
-                assert nextIsSet;
-                nextIsSet = false;
-                // TODO make a mutable number
-                return nextValue;
-              }
-
-              private boolean setNext() {
-                while (true) {
-                  if (ordUpto < ordLength) {
-                    nextValue = ords[ordUpto];
-                    ordUpto++;
-                    nextIsSet = true;
-                    return true;
-                  }
-
-                  SortedSetDocValuesSub sub;
-                  try {
-                    sub = docIDMerger.next();
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                  if (sub == null) {
-                    return false;
-                  }
-
-                  ordUpto = ordLength = 0;
-                  try {
-                    long ord;
-                    while ((ord = sub.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-                      if (ordLength == ords.length) {
-                        ords = ArrayUtil.grow(ords, ordLength+1);
-                      }
-                      ords[ordLength] = sub.map.get(ord);
-                      ordLength++;
-                    }
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                  continue;
-                }
-              }
-            };
-          }
-        }
-     );
+                            @Override
+                            public long getValueCount() {
+                              return map.getValueCount();
+                            }
+                          };
+                        }
+                      });
   }
   
   // TODO: seek-by-ord to nextSetBit

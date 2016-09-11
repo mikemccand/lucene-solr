@@ -797,7 +797,7 @@ public class AssertingLeafReader extends FilterLeafReader {
     @Override
     public long nextValue() throws IOException {
       assertThread("Sorted numeric doc values", creationThread);
-      assert valueUpto < in.docValueCount();
+      assert valueUpto < in.docValueCount(): "valueUpto=" + valueUpto + " in.docValueCount()=" + in.docValueCount();
       valueUpto++;
       return in.nextValue();
     }
