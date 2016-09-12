@@ -125,8 +125,8 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public void addSortedNumericField(FieldInfo field, Iterable<Number> docToValueCount, Iterable<Number> values) throws IOException {
-      getInstance(field).addSortedNumericField(field, docToValueCount, values);
+    public void addSortedNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      getInstance(field).addSortedNumericField(field, valuesProducer);
     }
 
     @Override

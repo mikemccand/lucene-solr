@@ -22,6 +22,7 @@ import java.util.Iterator;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.BytesRef;
 
@@ -173,7 +174,7 @@ public class LegacyDocValuesIterables {
   }
 
   /** Returns an iterable returning the concatenated ordinals for all documents */
-  public static Iterable<Number> sortedSetOrdsIterable(final DocValuesProducer valuesProducer, final FieldInfo fieldInfo, final int maxDoc) {
+  public static Iterable<Number> sortedSetOrdsIterable(final DocValuesProducer valuesProducer, final FieldInfo fieldInfo) {
 
     return new Iterable<Number>() {
 
@@ -233,4 +234,108 @@ public class LegacyDocValuesIterables {
     };
   }
 
+  public static Iterable<Number> sortedNumericToDocCount(final DocValuesProducer valuesProducer, final FieldInfo fieldInfo, int maxDoc) {
+    return new Iterable<Number>() {
+
+      @Override
+      public Iterator<Number> iterator() {
+
+        final SortedNumericDocValuesIterator values;
+        try {
+          values = valuesProducer.getSortedNumeric(fieldInfo);
+        } catch (IOException ioe) {
+          throw new RuntimeException(ioe);
+        }
+
+        return new Iterator<Number>() {
+          private int nextDocID;
+          private int nextCount;
+
+          @Override
+          public boolean hasNext() {
+            return nextDocID < maxDoc;
+          }
+
+          @Override
+          public Number next() {
+            try {
+              if (nextDocID > values.docID()) {
+                values.nextDoc();
+              }
+              int result;
+              if (nextDocID == values.docID()) {
+                result = values.docValueCount();
+              } else {
+                result = 0;
+              }
+              nextDocID++;
+              return result;
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
+          }
+        };
+      }
+    };
+  }
+
+  public static Iterable<Number> sortedNumericToValues(final DocValuesProducer valuesProducer, final FieldInfo fieldInfo) {
+    return new Iterable<Number>() {
+
+      @Override
+      public Iterator<Number> iterator() {
+
+        final SortedNumericDocValuesIterator values;
+        try {
+          values = valuesProducer.getSortedNumeric(fieldInfo);
+        } catch (IOException ioe) {
+          throw new RuntimeException(ioe);
+        }
+
+        return new Iterator<Number>() {
+          private boolean nextIsSet;
+          private int nextCount;
+          private int upto;
+          private long nextValue;
+
+          private void setNext() {
+            try {
+              if (nextIsSet == false) {
+                if (upto == nextCount) {
+                  values.nextDoc();
+                  if (values.docID() == NO_MORE_DOCS) {
+                    nextCount = 0;
+                    nextIsSet = false;
+                    return;
+                  } else {
+                    nextCount = values.docValueCount();
+                  }
+                  upto = 0;
+                }
+                nextValue = values.nextValue();
+                upto++;
+                nextIsSet = true;
+              }
+            } catch (IOException ioe) {
+              throw new RuntimeException(ioe);
+            }
+          }
+          
+          @Override
+          public boolean hasNext() {
+            setNext();
+            return nextCount != 0;
+          }
+
+          @Override
+          public Number next() {
+            setNext();
+            assert nextCount != 0;
+            nextIsSet = false;
+            return nextValue;
+          }
+        };
+      }
+    };
+  }
 }

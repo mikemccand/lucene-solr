@@ -284,7 +284,11 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   }
 
   @Override
-  public void addSortedNumericField(FieldInfo field, final Iterable<Number> docToValueCount, final Iterable<Number> values) throws IOException {
+  public void addSortedNumericField(FieldInfo field, final DocValuesProducer valuesProducer) throws IOException {
+
+    final Iterable<Number> docToValueCount = LegacyDocValuesIterables.sortedNumericToDocCount(valuesProducer, field, numDocs);
+    final Iterable<Number> values = LegacyDocValuesIterables.sortedNumericToValues(valuesProducer, field);
+
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.SORTED_NUMERIC;
     doAddBinary(field, new Iterable<BytesRef>() {     
@@ -329,7 +333,7 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
     Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
     Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, numDocs);
-    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field, numDocs);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field);
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.SORTED_SET;
     writeFieldEntry(field, DocValuesType.SORTED_SET);

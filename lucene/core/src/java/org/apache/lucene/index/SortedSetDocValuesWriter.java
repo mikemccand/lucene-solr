@@ -201,8 +201,8 @@ class SortedSetDocValuesWriter extends DocValuesWriter {
 
     @Override
     public int nextDoc() {
+      // consume any un-consumed ords from current doc
       while (ordUpto < ordCount) {
-        // consume any un-consumed ords from last doc
         ordsIter.next();
         ordUpto++;
       }

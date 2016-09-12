@@ -94,11 +94,11 @@ class CrankyDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addSortedNumericField(FieldInfo field, Iterable<Number> docToValueCount, Iterable<Number> values) throws IOException {
+    public void addSortedNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       if (random.nextInt(100) == 0) {
         throw new IOException("Fake IOException from DocValuesConsumer.addSortedNumericField()");
       }
-      delegate.addSortedNumericField(field, docToValueCount, values);
+      delegate.addSortedNumericField(field, valuesProducer);
     }
 
     @Override

@@ -81,8 +81,6 @@ public abstract class DocValuesConsumer implements Closeable {
    *  constructors, typically implicit.) */
   protected DocValuesConsumer() {}
 
-  // nocommit cutover to iterators:
-
   /**
    * Writes numeric docvalues for a field.
    * @param field field information
@@ -110,12 +108,10 @@ public abstract class DocValuesConsumer implements Closeable {
   /**
    * Writes pre-sorted numeric docvalues for a field
    * @param field field information
-   * @param docToValueCount Iterable of the number of values for each document. A zero
-   *                        count indicates a missing value.
-   * @param values Iterable of numeric values in sorted order (not deduplicated).
+   * @param valuesProducer produces the values to write
    * @throws IOException if an I/O error occurred.
    */
-  public abstract void addSortedNumericField(FieldInfo field, Iterable<Number> docToValueCount, Iterable<Number> values) throws IOException;
+  public abstract void addSortedNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException;
 
   /**
    * Writes pre-sorted set docvalues for a field
@@ -359,9 +355,7 @@ public abstract class DocValuesConsumer implements Closeable {
   private static class SortedNumericDocValuesSub extends DocIDMerger.Sub {
 
     final SortedNumericDocValuesIterator values;
-    private int docID = -1;
     private final int maxDoc;
-    public int docValueCount;
 
     public SortedNumericDocValuesSub(MergeState.DocMap docMap, SortedNumericDocValuesIterator values, int maxDoc) {
       super(docMap);
@@ -371,21 +365,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
     @Override
     public int nextDoc() throws IOException {
-      // nocommit make this sparse
-      docID++;
-      if (docID == maxDoc) {
-        docID = NO_MORE_DOCS;
-        return docID;
-      }
-      if (docID > values.docID()) {
-        values.advance(docID);
-      }
-      if (docID == values.docID()) {
-        docValueCount = values.docValueCount();
-      } else {
-        docValueCount = 0;
-      }
-      return docID;
+      return values.nextDoc();
     }
   }
 
@@ -398,173 +378,89 @@ public abstract class DocValuesConsumer implements Closeable {
   public void mergeSortedNumericField(FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
     
     addSortedNumericField(mergeFieldInfo,
-        // doc -> value count
-        new Iterable<Number>() {
-          @Override
-          public Iterator<Number> iterator() {
+                          new EmptyDocValuesProducer() {
+                            @Override
+                            public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo fieldInfo) {
+                              if (fieldInfo != mergeFieldInfo) {
+                                throw new IllegalArgumentException("wrong FieldInfo");
+                              }
+                              
+                              // We must make new iterators + DocIDMerger for each iterator:
+                              List<SortedNumericDocValuesSub> subs = new ArrayList<>();
+                              long cost = 0;
+                              for (int i=0;i<mergeState.docValuesProducers.length;i++) {
+                                DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
+                                SortedNumericDocValuesIterator values = null;
+                                if (docValuesProducer != null) {
+                                  FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
+                                  if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.SORTED_NUMERIC) {
+                                    try {
+                                      values = docValuesProducer.getSortedNumeric(readerFieldInfo);
+                                    } catch (IOException ioe) {
+                                      throw new RuntimeException(ioe);
+                                    }
+                                  }
+                                }
+                                if (values == null) {
+                                  values = DocValues.emptySortedNumeric(mergeState.maxDocs[i]);
+                                }
+                                cost += values.cost();
+                                subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
+                              }
 
-            // We must make new iterators + DocIDMerger for each iterator:
-            List<SortedNumericDocValuesSub> subs = new ArrayList<>();
-            for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-              DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-              SortedNumericDocValuesIterator values = null;
-              if (docValuesProducer != null) {
-                FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-                if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.SORTED_NUMERIC) {
-                  try {
-                    values = docValuesProducer.getSortedNumeric(fieldInfo);
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                }
-              }
-              if (values == null) {
-                values = DocValues.emptySortedNumeric(mergeState.maxDocs[i]);
-              }
-              subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
-            }
+                              final long finalCost = cost;
 
-            final DocIDMerger<SortedNumericDocValuesSub> docIDMerger;
-            try {
-              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }
+                              final DocIDMerger<SortedNumericDocValuesSub> docIDMerger;
+                              try {
+                                docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
+                              } catch (IOException ioe) {
+                                throw new RuntimeException(ioe);
+                              }
 
-            return new Iterator<Number>() {
-              int nextValue;
-              boolean nextIsSet;
+                              return new SortedNumericDocValuesIterator() {
 
-              @Override
-              public boolean hasNext() {
-                return nextIsSet || setNext();
-              }
+                                private int docID = -1;
+                                private SortedNumericDocValuesSub currentSub;
 
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException();
-              }
+                                @Override
+                                public int docID() {
+                                  return docID;
+                                }
+                                
+                                @Override
+                                public int nextDoc() throws IOException {
+                                  currentSub = docIDMerger.next();
+                                  if (currentSub == null) {
+                                    docID = NO_MORE_DOCS;
+                                  } else {
+                                    docID = currentSub.mappedDocID;
+                                  }
 
-              @Override
-              public Number next() {
-                if (hasNext() == false) {
-                  throw new NoSuchElementException();
-                }
-                assert nextIsSet;
-                nextIsSet = false;
-                return nextValue;
-              }
+                                  return docID;
+                                }
 
-              private boolean setNext() {
-                while (true) {
-                  SortedNumericDocValuesSub sub;
-                  try {
-                    sub = docIDMerger.next();
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                  if (sub == null) {
-                    return false;
-                  }
-                  nextIsSet = true;
-                  nextValue = sub.docValueCount;
-                  return true;
-                }
-              }
-            };
-          }
-        },
-        // values
-        new Iterable<Number>() {
-          @Override
-          public Iterator<Number> iterator() {
+                                @Override
+                                public int advance(int target) throws IOException {
+                                  throw new UnsupportedOperationException();
+                                }
 
-            // We must make new iterators + DocIDMerger for each iterator:
-            List<SortedNumericDocValuesSub> subs = new ArrayList<>();
-            for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-              DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-              SortedNumericDocValuesIterator values = null;
-              if (docValuesProducer != null) {
-                FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
-                if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.SORTED_NUMERIC) {
-                  try {
-                    values = docValuesProducer.getSortedNumeric(fieldInfo);
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                }
-              }
-              if (values == null) {
-                values = DocValues.emptySortedNumeric(mergeState.maxDocs[i]);
-              }
-              subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
-            }
+                                @Override
+                                public int docValueCount() {
+                                  return currentSub.values.docValueCount();
+                                }
 
-            final DocIDMerger<SortedNumericDocValuesSub> docIDMerger;
-            try {
-              docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-            } catch (IOException ioe) {
-              throw new RuntimeException(ioe);
-            }
+                                @Override
+                                public long cost() {
+                                  return finalCost;
+                                }
 
-            return new Iterator<Number>() {
-              long nextValue;
-              boolean nextIsSet;
-              int valueUpto;
-              int valueCount;
-              SortedNumericDocValuesSub current;
-
-              @Override
-              public boolean hasNext() {
-                return nextIsSet || setNext();
-              }
-
-              @Override
-              public void remove() {
-                throw new UnsupportedOperationException();
-              }
-
-              @Override
-              public Number next() {
-                if (hasNext() == false) {
-                  throw new NoSuchElementException();
-                }
-                assert nextIsSet;
-                nextIsSet = false;
-                return nextValue;
-              }
-
-              private boolean setNext() {
-                while (true) {
-                  
-                  if (valueUpto < valueCount) {
-                    try {
-                      nextValue = current.values.nextValue();
-                    } catch (IOException ioe) {
-                      throw new RuntimeException(ioe);
-                    }
-                    valueUpto++;
-                    nextIsSet = true;
-                    return true;
-                  }
-
-                  try {
-                    current = docIDMerger.next();
-                  } catch (IOException ioe) {
-                    throw new RuntimeException(ioe);
-                  }
-                  
-                  if (current == null) {
-                    return false;
-                  }
-                  valueUpto = 0;
-                  valueCount = current.docValueCount;
-                }
-              }
-            };
-          }
-        }
-     );
+                                @Override
+                                public long nextValue() throws IOException {
+                                  return currentSub.values.nextValue();
+                                }
+                              };
+                            }
+                          });
   }
 
   /** Tracks state of one sorted sub-reader that we are merging */
@@ -743,7 +639,6 @@ public abstract class DocValuesConsumer implements Closeable {
     private final SortedSetDocValuesIterator values;
     private final int maxDoc;
     private final LongValues map;
-    private long ord;
 
     public SortedSetDocValuesSub(MergeState.DocMap docMap, SortedSetDocValuesIterator values, int maxDoc, LongValues map) {
       super(docMap);
@@ -755,14 +650,6 @@ public abstract class DocValuesConsumer implements Closeable {
     @Override
     public int nextDoc() throws IOException {
       return values.nextDoc();
-    }
-
-    public long nextOrd() throws IOException {
-      long result = ord;
-      if (result != NO_MORE_ORDS) {
-        ord = values.nextOrd();
-      }
-      return result;
     }
 
     @Override

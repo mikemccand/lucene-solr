@@ -145,27 +145,28 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public void addSortedNumericField(FieldInfo field, Iterable<Number> docToValueCount, Iterable<Number> values) throws IOException {
+    public void addSortedNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+      SortedNumericDocValuesIterator values = valuesProducer.getSortedNumeric(field);
       long valueCount = 0;
-      Iterator<Number> valueIterator = values.iterator();
-      for (Number count : docToValueCount) {
-        assert count != null;
-        assert count.intValue() >= 0;
-        valueCount += count.intValue();
+      int lastDocID = -1;
+      while (true) {
+        int docID = values.nextDoc();
+        if (docID == NO_MORE_DOCS) {
+          break;
+        }
+        assert values.docID() > lastDocID;
+        lastDocID = values.docID();
+        int count = values.docValueCount();
+        assert count > 0;
+        valueCount += count;
         long previous = Long.MIN_VALUE;
-        for (int i = 0; i < count.intValue(); i++) {
-          assert valueIterator.hasNext();
-          Number next = valueIterator.next();
-          assert next != null;
-          long nextValue = next.longValue();
+        for (int i = 0; i < count; i++) {
+          long nextValue = values.nextValue();
           assert nextValue >= previous;
           previous = nextValue;
         }
       }
-      assert valueIterator.hasNext() == false;
-      TestUtil.checkIterator(docToValueCount.iterator(), maxDoc, false);
-      TestUtil.checkIterator(values.iterator(), valueCount, false);
-      in.addSortedNumericField(field, docToValueCount, values);
+      in.addSortedNumericField(field, valuesProducer);
     }
     
     @Override

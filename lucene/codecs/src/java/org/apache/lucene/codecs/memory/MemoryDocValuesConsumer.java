@@ -419,7 +419,11 @@ class MemoryDocValuesConsumer extends DocValuesConsumer {
   }
   
   @Override
-  public void addSortedNumericField(FieldInfo field, Iterable<Number> docToValueCount, Iterable<Number> values) throws IOException {
+  public void addSortedNumericField(FieldInfo field, final DocValuesProducer valuesProducer) throws IOException {
+
+    final Iterable<Number> docToValueCount = LegacyDocValuesIterables.sortedNumericToDocCount(valuesProducer, field, maxDoc);
+    final Iterable<Number> values = LegacyDocValuesIterables.sortedNumericToValues(valuesProducer, field);
+
     meta.writeVInt(field.number);
     
     if (isSingleValued(docToValueCount)) {
@@ -453,7 +457,7 @@ class MemoryDocValuesConsumer extends DocValuesConsumer {
   public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
     Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
     Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, maxDoc);
-    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field, maxDoc);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field);
     meta.writeVInt(field.number);
     
     if (isSingleValued(docToOrdCount)) {

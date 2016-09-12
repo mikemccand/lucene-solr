@@ -596,7 +596,11 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
   }
 
   @Override
-  public void addSortedNumericField(FieldInfo field, final Iterable<Number> docToValueCount, final Iterable<Number> values) throws IOException {
+  public void addSortedNumericField(FieldInfo field, final DocValuesProducer valuesProducer) throws IOException {
+
+    final Iterable<Number> docToValueCount = LegacyDocValuesIterables.sortedNumericToDocCount(valuesProducer, field, maxDoc);
+    final Iterable<Number> values = LegacyDocValuesIterables.sortedNumericToValues(valuesProducer, field);
+    
     meta.writeVInt(field.number);
     meta.writeByte(Lucene54DocValuesFormat.SORTED_NUMERIC);
     if (isSingleValued(docToValueCount)) {
@@ -628,7 +632,7 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
 
     Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
     Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, maxDoc);
-    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field, maxDoc);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field);
 
     meta.writeVInt(field.number);
     meta.writeByte(Lucene54DocValuesFormat.SORTED_SET);
