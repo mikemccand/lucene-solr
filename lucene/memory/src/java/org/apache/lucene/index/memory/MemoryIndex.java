@@ -1129,7 +1129,7 @@ public class MemoryIndex {
       if (info == null) {
         return null;
       }
-      return new StupidNumericDocValuesIterator(getDocsWithField(field), info.numericProducer.numericDocValues);
+      return new StupidNumericDocValuesIterator(new Bits.MatchAllBits(1), info.numericProducer.numericDocValues);
     }
 
     @Override
@@ -1192,16 +1192,6 @@ public class MemoryIndex {
             return info.binaryProducer.dvBytesValuesSet.size();
           }
           }, 1);
-      } else {
-        return null;
-      }
-    }
-
-    @Override
-    public Bits getDocsWithField(String field) {
-      Info info = fields.get(field);
-      if (info != null && info.fieldInfo.getDocValuesType() != DocValuesType.NONE) {
-        return new Bits.MatchAllBits(1);
       } else {
         return null;
       }

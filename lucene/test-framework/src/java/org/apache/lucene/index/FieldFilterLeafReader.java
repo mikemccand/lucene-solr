@@ -140,11 +140,6 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public Bits getDocsWithField(String field) throws IOException {
-    return hasField(field) ? super.getDocsWithField(field) : null;
-  }
-
-  @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("FieldFilterLeafReader(reader=");
     sb.append(in).append(", fields=");

@@ -428,18 +428,18 @@ class FieldCacheImpl implements FieldCache {
     public long minValue;
   }
 
+  @Override
   public Bits getDocsWithField(LeafReader reader, String field, Parser parser) throws IOException {
     final FieldInfo fieldInfo = reader.getFieldInfos().fieldInfo(field);
     if (fieldInfo == null) {
       // field does not exist or has no value
       return new Bits.MatchNoBits(reader.maxDoc());
-    } else if (fieldInfo.getDocValuesType() != DocValuesType.NONE) {
-      return reader.getDocsWithField(field);
     } 
     
-    if (parser instanceof PointParser) {
+    if (fieldInfo.getDocValuesType() != DocValuesType.NONE) {
+      // doc values case
+    } else if (parser instanceof PointParser) {
       // points case
-      
     } else {
       // postings case
       if (fieldInfo.getIndexOptions() == IndexOptions.NONE) {
@@ -477,13 +477,53 @@ class FieldCacheImpl implements FieldCache {
     protected BitsEntry createValue(LeafReader reader, CacheKey key) throws IOException {
       final String field = key.field;
       final Parser parser = (Parser) key.custom;
-      if (parser instanceof PointParser) {
+      FieldInfo fieldInfo = reader.getFieldInfos().fieldInfo(field);
+      if (fieldInfo.getDocValuesType() != DocValuesType.NONE) {
+        return createValueDocValues(reader, field);
+      } else if (parser instanceof PointParser) {
         return createValuePoints(reader, field);
       } else {
         return createValuePostings(reader, field);
       }
     }
-  
+
+    private BitsEntry createValueDocValues(LeafReader reader, String field) throws IOException {
+      FieldInfo fieldInfo = reader.getFieldInfos().fieldInfo(field);
+      
+      DocValuesType dvType = fieldInfo.getDocValuesType();
+      DocIdSetIterator iterator;
+      switch(dvType) {
+      case NUMERIC:
+        iterator = reader.getNumericDocValuesIterator(field);
+        break;
+      case BINARY:
+        iterator = reader.getBinaryDocValuesIterator(field);
+        break;
+      case SORTED:
+        iterator = reader.getSortedDocValues(field);
+        break;
+      case SORTED_NUMERIC:
+        iterator = reader.getSortedNumericDocValues(field);
+        break;
+      case SORTED_SET:
+        iterator = reader.getSortedSetDocValues(field);
+        break;
+      default:
+        throw new AssertionError();
+      }
+
+      FixedBitSet bits = new FixedBitSet(reader.maxDoc());
+      while (true) {
+        int docID = iterator.nextDoc();
+        if (docID == DocIdSetIterator.NO_MORE_DOCS) {
+          break;
+        }
+        bits.set(docID);
+      }
+
+      return new BitsEntry(bits);
+    }
+
     private BitsEntry createValuePoints(LeafReader reader, String field) throws IOException {
       final int maxDoc = reader.maxDoc();
       PointValues values = reader.getPointValues();

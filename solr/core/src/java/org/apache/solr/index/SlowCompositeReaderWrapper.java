@@ -125,12 +125,6 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public Bits getDocsWithField(String field) throws IOException {
-    ensureOpen();
-    return MultiDocValues.getDocsWithField(in, field);
-  }
-
-  @Override
   public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
     ensureOpen();
     return MultiDocValues.getBinaryValuesIterator(in, field);

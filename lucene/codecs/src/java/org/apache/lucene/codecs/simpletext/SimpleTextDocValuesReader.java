@@ -486,8 +486,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
       }, maxDoc);
   }
   
-  @Override
-  public Bits getDocsWithField(FieldInfo field) throws IOException {
+  private Bits getDocsWithField(FieldInfo field) throws IOException {
     switch (field.getDocValuesType()) {
       case SORTED_SET:
         return DocValues.docsWithValue(getSortedSet(field), maxDoc);

@@ -823,9 +823,6 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     LeafReader subR = r.leaves().get(0).reader();
     assertEquals(2, subR.numDocs());
 
-    Bits bits = DocValues.getDocsWithField(subR, "dv");
-    assertTrue(bits.get(0));
-    assertTrue(bits.get(1));
     r.close();
     dir.close();
   }

@@ -815,10 +815,6 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
         continue;
       }
 
-      if (!DocValues.getDocsWithField(leafReader, fieldName).get(docid)) {
-        continue;
-      }
-
       if (schemaField.multiValued()) {
         final SortedSetDocValuesIterator values = reader.getSortedSetDocValues(fieldName);
         if (values != null && values.getValueCount() > 0) {
@@ -841,7 +837,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             if (ndv.advance(docid) == docid) {
               val = ndv.longValue();
             } else {
-              val = 0L;
+              continue;
             }
             Object newVal = val;
             if (schemaField.getType() instanceof TrieIntField) {
@@ -863,7 +859,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             if (bdv.advance(docid) == docid) {
               value = BytesRef.deepCopyOf(bdv.binaryValue());
             } else {
-              value = new BytesRef(BytesRef.EMPTY_BYTES);
+              continue;
             }
             doc.addField(fieldName, value);
             break;
@@ -884,8 +880,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
           case SORTED_SET:
             throw new AssertionError("SORTED_SET fields should be multi-valued!");
           case NONE:
-            // Shouldn't happen since we check that the document has a DocValues field.
-            throw new AssertionError("Document does not have a DocValues field with the name '" + fieldName + "'!");
+            break;
         }
       }
     }

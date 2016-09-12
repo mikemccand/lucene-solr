@@ -313,12 +313,6 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public Bits getDocsWithField(FieldInfo field) throws IOException {
-      DocValuesProducer producer = fields.get(field.name);
-      return producer == null ? null : producer.getDocsWithField(field);
-    }
-
-    @Override
     public void close() throws IOException {
       IOUtils.close(formats.values());
     }

@@ -313,13 +313,6 @@ public class ParallelLeafReader extends LeafReader {
   }
 
   @Override
-  public Bits getDocsWithField(String field) throws IOException {
-    ensureOpen();
-    LeafReader reader = fieldToReader.get(field);
-    return reader == null ? null : reader.getDocsWithField(field);
-  }
-
-  @Override
   public NumericDocValuesIterator getNormValues(String field) throws IOException {
     ensureOpen();
     LeafReader reader = fieldToReader.get(field);

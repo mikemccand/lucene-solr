@@ -249,11 +249,6 @@ public final class SlowCodecReaderWrapper {
       }
 
       @Override
-      public Bits getDocsWithField(FieldInfo field) throws IOException {
-        return reader.getDocsWithField(field.name);
-      }
-
-      @Override
       public void checkIntegrity() throws IOException {
         // We already checkIntegrity the entire reader up front
       }

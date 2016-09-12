@@ -1242,16 +1242,6 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public Bits getDocsWithField(String field) throws IOException {
-    Bits bits = in.getDocsWithField(field);
-    if (bits == null || bits instanceof Bits.MatchAllBits || bits instanceof Bits.MatchNoBits) {
-      return bits;
-    } else {
-      return new SortingBits(bits, docMap);
-    }
-  }
-
-  @Override
   public Fields getTermVectors(final int docID) throws IOException {
     return in.getTermVectors(docMap.newToOld(docID));
   }

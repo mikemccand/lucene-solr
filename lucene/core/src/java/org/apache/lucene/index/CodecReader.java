@@ -34,7 +34,6 @@ import org.apache.lucene.codecs.TermVectorsReader;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
 import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.CloseableThreadLocal;
 import org.apache.lucene.util.IOUtils;
 
 /**
@@ -109,13 +108,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     return getPostingsReader();
   }
   
-  final CloseableThreadLocal<Map<String,Bits>> docsWithFieldLocal = new CloseableThreadLocal<Map<String,Bits>>() {
-    @Override
-    protected Map<String,Bits> initialValue() {
-      return new HashMap<>();
-    }
-  };
-  
   // returns the FieldInfo that corresponds to the given field and type, or
   // null if the field does not exist, or not indexed as the requested
   // DovDocValuesType.
@@ -148,30 +140,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     }
     // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getDocValuesReader().getNumeric(fi);
-  }
-
-  @Override
-  public final Bits getDocsWithField(String field) throws IOException {
-    ensureOpen();
-    Map<String,Bits> dvFields = docsWithFieldLocal.get();
-
-    Bits previous = dvFields.get(field);
-    if (previous != null) {
-      return previous;
-    } else {
-      FieldInfo fi = getFieldInfos().fieldInfo(field);
-      if (fi == null) {
-        // Field does not exist
-        return null;
-      }
-      if (fi.getDocValuesType() == DocValuesType.NONE) {
-        // Field was not indexed with doc values
-        return null;
-      }
-      Bits dv = getDocValuesReader().getDocsWithField(fi);
-      dvFields.put(field, dv);
-      return dv;
-    }
   }
 
   @Override
@@ -234,7 +202,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
 
   @Override
   protected void doClose() throws IOException {
-    IOUtils.close(docsWithFieldLocal);
   }
   
   @Override

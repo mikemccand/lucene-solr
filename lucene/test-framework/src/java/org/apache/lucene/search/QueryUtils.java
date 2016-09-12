@@ -251,11 +251,6 @@ public class QueryUtils {
       }
 
       @Override
-      public Bits getDocsWithField(String field) throws IOException {
-        return null;
-      }
-
-      @Override
       public NumericDocValuesIterator getNormValues(String field) throws IOException {
         return null;
       }

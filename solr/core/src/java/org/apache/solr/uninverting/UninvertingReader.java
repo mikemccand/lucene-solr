@@ -348,31 +348,6 @@ public class UninvertingReader extends FilterLeafReader {
     return null;
   }
 
-  @Override
-  public Bits getDocsWithField(String field) throws IOException {
-    Bits bits = in.getDocsWithField(field);
-    if (bits != null) {
-      return bits;
-    }
-    Type v = getType(field);
-    if (v != null) {
-      switch (v) {
-        case INTEGER_POINT:  return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.INT_POINT_PARSER);
-        case FLOAT_POINT:    return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.FLOAT_POINT_PARSER);
-        case LONG_POINT:     return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.LONG_POINT_PARSER);
-        case DOUBLE_POINT:   return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.DOUBLE_POINT_PARSER);
-        case LEGACY_INTEGER: return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.LEGACY_INT_PARSER);
-        case LEGACY_FLOAT:   return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.LEGACY_FLOAT_PARSER);
-        case LEGACY_LONG:    return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.LEGACY_LONG_PARSER);
-        case LEGACY_DOUBLE:  return FieldCache.DEFAULT.getDocsWithField(in, field, FieldCache.LEGACY_DOUBLE_PARSER);
-        default:
-          return FieldCache.DEFAULT.getDocsWithField(in, field, null);
-      }
-    } else {
-      return null;
-    }
-  }
-  
   /** 
    * Returns the field's uninversion type, or null 
    * if the field doesn't exist or doesn't have a mapping.

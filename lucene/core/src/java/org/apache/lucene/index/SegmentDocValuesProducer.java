@@ -129,13 +129,6 @@ class SegmentDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public Bits getDocsWithField(FieldInfo field) throws IOException {
-    DocValuesProducer dvProducer = dvProducersByField.get(field.name);
-    assert dvProducer != null;
-    return dvProducer.getDocsWithField(field);
-  }
-
-  @Override
   public void checkIntegrity() throws IOException {
     for (DocValuesProducer producer : dvProducers) {
       producer.checkIntegrity();

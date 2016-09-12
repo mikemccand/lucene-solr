@@ -1087,21 +1087,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     return liveDocs;
   }
 
-  @Override
-  public Bits getDocsWithField(String field) throws IOException {
-    Bits docsWithField = super.getDocsWithField(field);
-    FieldInfo fi = getFieldInfos().fieldInfo(field);
-    if (docsWithField != null) {
-      assert fi != null;
-      assert fi.getDocValuesType() != DocValuesType.NONE;
-      assert maxDoc() == docsWithField.length();
-      docsWithField = new AssertingBits(docsWithField);
-    } else {
-      assert fi == null || fi.getDocValuesType() == DocValuesType.NONE;
-    }
-    return docsWithField;
-  }
-
   // we don't change behavior of the reader: just validate the API.
 
   @Override

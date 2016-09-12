@@ -50,11 +50,6 @@ public abstract class EmptyDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public Bits getDocsWithField(FieldInfo field) {
-    throw new UnsupportedOperationException();
-  }
-  
-  @Override
   public void checkIntegrity() {
     throw new UnsupportedOperationException();
   }

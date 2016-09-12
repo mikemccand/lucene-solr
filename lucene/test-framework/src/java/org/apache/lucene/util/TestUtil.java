@@ -374,8 +374,7 @@ public final class TestUtil {
           if (reader.getBinaryDocValuesIterator(info.name) != null ||
               reader.getNumericDocValuesIterator(info.name) != null ||
               reader.getSortedDocValues(info.name) != null || 
-              reader.getSortedSetDocValues(info.name) != null || 
-              reader.getDocsWithField(info.name) != null) {
+              reader.getSortedSetDocValues(info.name) != null) {
             throw new RuntimeException("field: " + info.name + " has docvalues but should omit them!");
           }
           break;

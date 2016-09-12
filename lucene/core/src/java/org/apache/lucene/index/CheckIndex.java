@@ -2205,12 +2205,6 @@ public final class CheckIndex implements Closeable {
   }
   
   private static void checkDocValues(FieldInfo fi, DocValuesProducer dvReader, int maxDoc, PrintStream infoStream, DocValuesStatus status) throws Exception {
-    Bits docsWithField = dvReader.getDocsWithField(fi);
-    if (docsWithField == null) {
-      throw new RuntimeException(fi.name + " docsWithField does not exist");
-    } else if (docsWithField.length() != maxDoc) {
-      throw new RuntimeException(fi.name + " docsWithField has incorrect length: " + docsWithField.length() + ",expected: " + maxDoc);
-    }
     switch(fi.getDocValuesType()) {
       case SORTED:
         status.totalSortedFields++;

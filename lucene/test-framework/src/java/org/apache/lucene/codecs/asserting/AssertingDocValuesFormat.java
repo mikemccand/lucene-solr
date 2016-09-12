@@ -271,15 +271,6 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public Bits getDocsWithField(FieldInfo field) throws IOException {
-      assert field.getDocValuesType() != DocValuesType.NONE;
-      Bits bits = in.getDocsWithField(field);
-      assert bits != null;
-      assert bits.length() == maxDoc;
-      return new AssertingLeafReader.AssertingBits(bits);
-    }
-
-    @Override
     public void close() throws IOException {
       in.close();
       in.close(); // close again

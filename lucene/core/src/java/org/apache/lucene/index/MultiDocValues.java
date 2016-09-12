@@ -245,6 +245,9 @@ public class MultiDocValues {
           currentLeaf = leaves.get(readerIndex);
           currentValues = iterators.get(readerIndex);
           nextLeaf = readerIndex+1;
+          if (currentValues == null) {
+            return nextDoc();
+          }
         }
         int newDocID = currentValues.advance(targetDocID - currentLeaf.docBase);
         if (newDocID == NO_MORE_DOCS) {
@@ -266,51 +269,6 @@ public class MultiDocValues {
         return finalTotalCost;
       }
     };
-  }
-  
-  /** Returns a Bits for a reader's docsWithField (potentially merging on-the-fly) 
-   * <p>
-   * This is a slow way to access this bitset. Instead, access them per-segment
-   * with {@link LeafReader#getDocsWithField(String)}
-   * </p> 
-   * */
-  public static Bits getDocsWithField(final IndexReader r, final String field) throws IOException {
-    final List<LeafReaderContext> leaves = r.leaves();
-    final int size = leaves.size();
-    if (size == 0) {
-      return null;
-    } else if (size == 1) {
-      return leaves.get(0).reader().getDocsWithField(field);
-    }
-
-    boolean anyReal = false;
-    boolean anyMissing = false;
-    final Bits[] values = new Bits[size];
-    final int[] starts = new int[size+1];
-    for (int i = 0; i < size; i++) {
-      LeafReaderContext context = leaves.get(i);
-      Bits v = context.reader().getDocsWithField(field);
-      if (v == null) {
-        v = new Bits.MatchNoBits(context.reader().maxDoc());
-        anyMissing = true;
-      } else {
-        anyReal = true;
-        if (v instanceof Bits.MatchAllBits == false) {
-          anyMissing = true;
-        }
-      }
-      values[i] = v;
-      starts[i] = context.docBase;
-    }
-    starts[size] = r.maxDoc();
-
-    if (!anyReal) {
-      return null;
-    } else if (!anyMissing) {
-      return new Bits.MatchAllBits(r.maxDoc());
-    } else {
-      return new MultiBits(values, starts, false);
-    }
   }
 
   /** Returns a BinaryDocValuesIterator for a reader's docvalues (potentially merging on-the-fly) */  
@@ -393,6 +351,9 @@ public class MultiDocValues {
           currentLeaf = leaves.get(readerIndex);
           currentValues = iterators.get(readerIndex);
           nextLeaf = readerIndex+1;
+          if (currentValues == null) {
+            return nextDoc();
+          }
         }
         int newDocID = currentValues.advance(targetDocID - currentLeaf.docBase);
         if (newDocID == NO_MORE_DOCS) {

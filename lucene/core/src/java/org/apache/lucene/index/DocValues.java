@@ -507,7 +507,6 @@ public final class DocValues {
         checkField(reader, field, DocValuesType.SORTED_NUMERIC, DocValuesType.NUMERIC);
         return emptySortedNumeric(reader.maxDoc());
       }
-      Bits bits = reader.getDocsWithField(field);
       return singleton(single);
     }
     return dv;
@@ -533,26 +532,5 @@ public final class DocValues {
       dv = singleton(sorted);
     }
     return dv;
-  }
-  
-  /**
-   * Returns Bits for the field, or {@link Bits} matching nothing if it has none. 
-   * @return bits instance, or an empty instance if {@code field} does not exist in this reader.
-   * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
-   * @throws IOException if an I/O error occurs.
-   */
-  public static Bits getDocsWithField(LeafReader reader, String field) throws IOException {
-    Bits dv = reader.getDocsWithField(field);
-    if (dv == null) {
-      assert DocValuesType.values().length == 6; // we just don't want NONE
-      checkField(reader, field, DocValuesType.BINARY, 
-                            DocValuesType.NUMERIC, 
-                            DocValuesType.SORTED, 
-                            DocValuesType.SORTED_NUMERIC, 
-                            DocValuesType.SORTED_SET);
-      return new Bits.MatchNoBits(reader.maxDoc());
-    } else {
-      return dv;
-    }
   }
 }

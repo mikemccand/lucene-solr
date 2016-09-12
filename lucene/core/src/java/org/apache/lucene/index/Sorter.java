@@ -277,7 +277,6 @@ final class Sorter {
     case INT:
       {
         int[] values = new int[maxDoc];
-        Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
         NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
@@ -310,7 +309,6 @@ final class Sorter {
     case DOUBLE:
       {
         double[] values = new double[maxDoc];
-        Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
         NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
@@ -342,7 +340,6 @@ final class Sorter {
     case FLOAT:
       {
         float[] values = new float[maxDoc];
-        Bits docsWithField = DocValues.getDocsWithField(reader, sortField.getField());
         NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
