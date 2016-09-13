@@ -21,7 +21,6 @@ import java.util.function.LongConsumer;
 
 import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;

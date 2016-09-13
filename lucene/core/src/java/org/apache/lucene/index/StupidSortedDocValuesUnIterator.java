@@ -28,7 +28,7 @@ import org.apache.lucene.util.FixedBitSet;
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link BinaryDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValues}
  */
 public final class StupidSortedDocValuesUnIterator extends SortedDocValues {
   private final LeafReader reader;

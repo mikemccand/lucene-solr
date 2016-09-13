@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
@@ -79,20 +78,20 @@ public class Insanity {
     }
 
     @Override
-    public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
       if (insaneField.equals(field)) {
         return null;
       } else {
-        return in.getNumericDocValuesIterator(field);
+        return in.getNumericDocValues(field);
       }
     }
 
     @Override
-    public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+    public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
       if (insaneField.equals(field)) {
         return null;
       } else {
-        return in.getBinaryDocValuesIterator(field);
+        return in.getBinaryDocValues(field);
       }
     }
 

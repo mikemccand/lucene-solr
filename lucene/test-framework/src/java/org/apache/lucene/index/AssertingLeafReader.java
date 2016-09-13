@@ -466,27 +466,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     }    
   }
   
-  /** Wraps a BinaryDocValues but with additional asserts */
-  public static class AssertingBinaryDocValues extends BinaryDocValues {
-    private final Thread creationThread = Thread.currentThread();
-    private final BinaryDocValues in;
-    private final int maxDoc;
-    
-    public AssertingBinaryDocValues(BinaryDocValues in, int maxDoc) {
-      this.in = in;
-      this.maxDoc = maxDoc;
-    }
-
-    @Override
-    public BytesRef get(int docID) {
-      assertThread("Binary doc values", creationThread);
-      assert docID >= 0 && docID < maxDoc;
-      final BytesRef result = in.get(docID);
-      assert result.isValid();
-      return result;
-    }
-  }
-  
   /** Wraps a BinaryDocValuesIterator but with additional asserts */
   public static class AssertingBinaryDocValuesIterator extends BinaryDocValuesIterator {
     private final Thread creationThread = Thread.currentThread();

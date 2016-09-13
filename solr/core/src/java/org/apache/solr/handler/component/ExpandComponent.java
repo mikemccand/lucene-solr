@@ -336,7 +336,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
       }
     } else {
       groupSet = new LongHashSet(docList.size());
-      NumericDocValuesIterator collapseValues = contexts.get(currentContext).reader().getNumericDocValuesIterator(field);
+      NumericDocValuesIterator collapseValues = contexts.get(currentContext).reader().getNumericDocValues(field);
       int count = 0;
       for(int i=0; i<globalDocs.length; i++) {
         int globalDoc = globalDocs[i];
@@ -344,7 +344,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
           currentContext++;
           currentDocBase = contexts.get(currentContext).docBase;
           nextDocBase = currentContext+1 < contexts.size() ? contexts.get(currentContext+1).docBase : Integer.MAX_VALUE;
-          collapseValues = contexts.get(currentContext).reader().getNumericDocValuesIterator(field);
+          collapseValues = contexts.get(currentContext).reader().getNumericDocValues(field);
         }
         int contextDoc = globalDoc - currentDocBase;
         int valueDocID = collapseValues.docID();
@@ -641,7 +641,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
 
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
       final int docBase = context.docBase;
-      this.docValues = context.reader().getNumericDocValuesIterator(this.field);
+      this.docValues = context.reader().getNumericDocValues(this.field);
 
       final LongObjectHashMap<LeafCollector> leafCollectors = new LongObjectHashMap<>();
 

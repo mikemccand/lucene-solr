@@ -19,7 +19,6 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 import java.io.PrintStream;
 
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;

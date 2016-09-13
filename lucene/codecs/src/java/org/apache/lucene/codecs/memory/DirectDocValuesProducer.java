@@ -28,13 +28,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
+import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
@@ -376,7 +376,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
   }
 
-  private synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private synchronized LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
     BinaryRawValues instance = binaryInstances.get(field.name);
     if (instance == null) {
       // Lazy load
@@ -389,7 +389,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
     final byte[] bytes = instance.bytes;
     final int[] address = instance.address;
 
-    return new BinaryDocValues() {
+    return new LegacyBinaryDocValues() {
       final BytesRef term = new BytesRef();
 
       @Override
@@ -445,7 +445,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   // nocommit removeme
-  private SortedDocValues newSortedInstance(final NumericDocValues docToOrd, final BinaryDocValues values, final int count) {
+  private SortedDocValues newSortedInstance(final NumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
     return new SortedDocValues() {
 
       @Override
@@ -549,7 +549,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
     } else {
       final NumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
       final NumericDocValues ords = instance.ords.numerics;
-      final BinaryDocValues values = getBinary(field);
+      final LegacyBinaryDocValues values = getBinary(field);
       
       // Must make a new instance since the iterator has state:
       return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {

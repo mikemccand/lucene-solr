@@ -155,12 +155,12 @@ class SortingLeafReader extends FilterLeafReader {
 
   }
 
-  private static class SortingBinaryDocValues extends BinaryDocValues {
+  private static class SortingBinaryDocValues extends LegacyBinaryDocValues {
 
-    private final BinaryDocValues in;
+    private final LegacyBinaryDocValues in;
     private final Sorter.DocMap docMap;
 
-    SortingBinaryDocValues(BinaryDocValues in, Sorter.DocMap docMap) {
+    SortingBinaryDocValues(LegacyBinaryDocValues in, Sorter.DocMap docMap) {
       this.in = in;
       this.docMap = docMap;
     }

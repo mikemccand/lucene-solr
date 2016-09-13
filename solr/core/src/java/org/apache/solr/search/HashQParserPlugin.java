@@ -315,7 +315,7 @@ public class HashQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      values = context.reader().getNumericDocValuesIterator(field);
+      values = context.reader().getNumericDocValues(field);
     }
 
     public long hashCode(int doc) throws IOException {

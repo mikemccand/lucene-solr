@@ -29,13 +29,13 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
+import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
@@ -230,7 +230,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     };
   }
 
-  private BinaryDocValues getBinary(FieldInfo fieldInfo) throws IOException {
+  private LegacyBinaryDocValues getBinary(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
 
     // SegmentCoreReaders already verifies this field is
@@ -241,7 +241,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final BytesRefBuilder scratch = new BytesRefBuilder();
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
 
-    return new BinaryDocValues() {
+    return new LegacyBinaryDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
 
       @Override
@@ -379,7 +379,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   
   @Override
   public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
-    final BinaryDocValues binary = getBinary(field);
+    final LegacyBinaryDocValues binary = getBinary(field);
     return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
       long values[];
 

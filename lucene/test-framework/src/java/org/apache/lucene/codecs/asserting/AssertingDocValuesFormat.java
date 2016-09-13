@@ -25,7 +25,6 @@ import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValuesIterator;
 import org.apache.lucene.index.AssertingLeafReader;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;

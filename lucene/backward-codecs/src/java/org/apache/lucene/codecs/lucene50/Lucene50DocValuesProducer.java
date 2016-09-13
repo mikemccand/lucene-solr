@@ -29,13 +29,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
+import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
@@ -511,7 +511,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
   }
 
-  private BinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
     BinaryEntry bytes = binaries.get(field.name);
     switch(bytes.format) {
       case BINARY_FIXED_UNCOMPRESSED:
@@ -525,7 +525,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     }
   }
   
-  private BinaryDocValues getFixedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
+  private LegacyBinaryDocValues getFixedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
     final IndexInput data = this.data.slice("fixed-binary", bytes.offset, bytes.count * bytes.maxLength);
 
     final BytesRef term = new BytesRef(bytes.maxLength);
@@ -560,7 +560,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return addresses;
   }
   
-  private BinaryDocValues getVariableBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
+  private LegacyBinaryDocValues getVariableBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
     final MonotonicBlockPackedReader addresses = getAddressInstance(field, bytes);
 
     final IndexInput data = this.data.slice("var-binary", bytes.offset, bytes.addressesOffset - bytes.offset);
@@ -620,7 +620,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return index;
   }
 
-  private BinaryDocValues getCompressedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
+  private LegacyBinaryDocValues getCompressedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
     final MonotonicBlockPackedReader addresses = getIntervalInstance(field, bytes);
     final ReverseTermsIndex index = getReverseIndexInstance(field, bytes);
     assert addresses.size() > 0; // we don't have to handle empty case
@@ -635,7 +635,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   
   private SortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
-    final BinaryDocValues binary = getBinary(field);
+    final LegacyBinaryDocValues binary = getBinary(field);
     NumericEntry entry = ords.get(field.name);
     final LongValues ordinals = getNumeric(entry);
     return new SortedDocValues() {
@@ -1000,7 +1000,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   // internally we compose complex dv (sorted/sortedset) from other ones
-  static abstract class LongBinaryDocValues extends BinaryDocValues {
+  static abstract class LongBinaryDocValues extends LegacyBinaryDocValues {
     @Override
     public final BytesRef get(int docID) {
       return get((long)docID);

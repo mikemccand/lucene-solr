@@ -28,13 +28,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
+import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
@@ -413,7 +413,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     }
   }
 
-  private BinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
     BinaryEntry entry = binaries.get(field.name);
 
     BytesAndAddresses instance;
@@ -432,7 +432,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     if (addresses == null) {
       assert entry.minLength == entry.maxLength;
       final int fixedLength = entry.minLength;
-      return new BinaryDocValues() {
+      return new LegacyBinaryDocValues() {
         final BytesRef term = new BytesRef();
 
         @Override
@@ -442,7 +442,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         }
       };
     } else {
-      return new BinaryDocValues() {
+      return new LegacyBinaryDocValues() {
         final BytesRef term = new BytesRef();
 
         @Override
@@ -660,7 +660,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    final BinaryDocValues docToOrds = getBinary(field);
+    final LegacyBinaryDocValues docToOrds = getBinary(field);
     final FST<Long> fst = instance;
     
     // per-thread resources

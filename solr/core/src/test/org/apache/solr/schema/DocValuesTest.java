@@ -86,16 +86,16 @@ public class DocValuesTest extends SolrTestCaseJ4 {
         assertEquals(DocValuesType.SORTED, infos.fieldInfo("stringdv").getDocValuesType());
         assertEquals(DocValuesType.SORTED, infos.fieldInfo("booldv").getDocValuesType());
 
-        NumericDocValuesIterator dvs = reader.getNumericDocValuesIterator("floatdv");
+        NumericDocValuesIterator dvs = reader.getNumericDocValues("floatdv");
         assertEquals(0, dvs.nextDoc());
         assertEquals((long) Float.floatToIntBits(1), dvs.longValue());
-        dvs = reader.getNumericDocValuesIterator("intdv");
+        dvs = reader.getNumericDocValues("intdv");
         assertEquals(0, dvs.nextDoc());
         assertEquals(2L, dvs.longValue());
-        dvs = reader.getNumericDocValuesIterator("doubledv");
+        dvs = reader.getNumericDocValues("doubledv");
         assertEquals(0, dvs.nextDoc());
         assertEquals(Double.doubleToLongBits(3), dvs.longValue());
-        dvs = reader.getNumericDocValuesIterator("longdv");
+        dvs = reader.getNumericDocValues("longdv");
         assertEquals(0, dvs.nextDoc());
         assertEquals(4L, dvs.longValue());
         SortedDocValuesIterator sdv = reader.getSortedDocValues("stringdv");

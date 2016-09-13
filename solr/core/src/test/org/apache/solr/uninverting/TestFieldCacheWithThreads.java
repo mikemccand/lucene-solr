@@ -30,7 +30,6 @@ import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -213,7 +212,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
             final NumericDocValuesIterator docIDToID;
             try {
               stringDVDirect = sr.getSortedDocValues("stringdv");
-              docIDToID = sr.getNumericDocValuesIterator("id");
+              docIDToID = sr.getNumericDocValues("id");
               assertNotNull(stringDVDirect);
             } catch (IOException ioe) {
               throw new RuntimeException(ioe);

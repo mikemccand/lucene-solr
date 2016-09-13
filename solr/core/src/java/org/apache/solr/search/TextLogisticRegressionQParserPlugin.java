@@ -148,7 +148,7 @@ public class TextLogisticRegressionQParserPlugin extends QParserPlugin {
     public void doSetNextReader(LeafReaderContext context) throws IOException {
       super.doSetNextReader(context);
       leafReader = context.reader();
-      leafOutcomeValue = leafReader.getNumericDocValuesIterator(trainingParams.outcome);
+      leafOutcomeValue = leafReader.getNumericDocValues(trainingParams.outcome);
     }
 
     public void collect(int doc) throws IOException{

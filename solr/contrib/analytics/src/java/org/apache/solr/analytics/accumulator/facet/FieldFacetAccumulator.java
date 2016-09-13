@@ -80,7 +80,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
       setValues = context.reader().getSortedSetDocValues(name);
     } else {
       if (numField) {
-        numValues = context.reader().getNumericDocValuesIterator(name);
+        numValues = context.reader().getNumericDocValues(name);
       } else {
         sortValues = context.reader().getSortedDocValues(name);
       }

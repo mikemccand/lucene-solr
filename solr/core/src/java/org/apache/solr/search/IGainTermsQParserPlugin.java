@@ -119,7 +119,7 @@ public class IGainTermsQParserPlugin extends QParserPlugin {
     protected void doSetNextReader(LeafReaderContext context) throws IOException {
       super.doSetNextReader(context);
       LeafReader reader = context.reader();
-      leafOutcomeValue = reader.getNumericDocValuesIterator(outcome);
+      leafOutcomeValue = reader.getNumericDocValues(outcome);
     }
 
     @Override

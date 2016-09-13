@@ -22,11 +22,11 @@ import org.apache.lucene.util.BytesRef;
 /**
  * A per-document byte[]
  */
-public abstract class BinaryDocValues {
+public abstract class LegacyBinaryDocValues {
   
   /** Sole constructor. (For invocation by subclass 
    * constructors, typically implicit.) */
-  protected BinaryDocValues() {}
+  protected LegacyBinaryDocValues() {}
 
   /** Lookup the value for document.  The returned {@link BytesRef} may be
    * re-used across calls to {@link #get(int)} so make sure to

@@ -27,7 +27,7 @@ import org.apache.lucene.util.BytesRef;
  * dictionary value (ordinal) can be retrieved for each document. Ordinals
  * are dense and in increasing sorted order.
  */
-public abstract class SortedDocValues extends BinaryDocValues {
+public abstract class SortedDocValues extends LegacyBinaryDocValues {
 
   /** Sole constructor. (For invocation by subclass 
    * constructors, typically implicit.) */

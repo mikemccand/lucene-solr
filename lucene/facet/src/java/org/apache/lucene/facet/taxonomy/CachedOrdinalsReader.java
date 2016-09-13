@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import org.apache.lucene.codecs.DocValuesFormat;
-import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
@@ -105,8 +105,8 @@ public class CachedOrdinalsReader extends OrdinalsReader implements Accountable 
     public final int[] ordinals;
 
     /**
-     * Creates a new {@link CachedOrds} from the {@link BinaryDocValues}.
-     * Assumes that the {@link BinaryDocValues} is not {@code null}.
+     * Creates a new {@link CachedOrds} from the {@link BinaryDocValuesIterator}.
+     * Assumes that the {@link BinaryDocValuesIterator} is not {@code null}.
      */
     public CachedOrds(OrdinalsSegmentReader source, int maxDoc) throws IOException {
       offsets = new int[maxDoc + 1];

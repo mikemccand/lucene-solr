@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
@@ -79,7 +78,7 @@ class FieldCacheImpl implements FieldCache {
   private synchronized void init() {
     caches = new HashMap<>(6);
     caches.put(Long.TYPE, new LongCache(this));
-    caches.put(BinaryDocValues.class, new BinaryDocValuesCache(this));
+    caches.put(BinaryDocValuesIterator.class, new BinaryDocValuesCache(this));
     caches.put(SortedDocValues.class, new SortedDocValuesCache(this));
     caches.put(DocTermOrds.class, new DocTermOrdsCache(this));
     caches.put(DocsWithFieldCache.class, new DocsWithFieldCache(this));
@@ -494,10 +493,10 @@ class FieldCacheImpl implements FieldCache {
       DocIdSetIterator iterator;
       switch(dvType) {
       case NUMERIC:
-        iterator = reader.getNumericDocValuesIterator(field);
+        iterator = reader.getNumericDocValues(field);
         break;
       case BINARY:
-        iterator = reader.getBinaryDocValuesIterator(field);
+        iterator = reader.getBinaryDocValues(field);
         break;
       case SORTED:
         iterator = reader.getSortedDocValues(field);
@@ -609,7 +608,7 @@ class FieldCacheImpl implements FieldCache {
     if (parser == null) {
       throw new NullPointerException();
     }
-    final NumericDocValuesIterator valuesIn = reader.getNumericDocValuesIterator(field);
+    final NumericDocValuesIterator valuesIn = reader.getNumericDocValues(field);
     if (valuesIn != null) {
       return valuesIn;
     } else {
@@ -1074,7 +1073,7 @@ class FieldCacheImpl implements FieldCache {
   }
 
   public BinaryDocValuesIterator getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
-    BinaryDocValuesIterator valuesIn = reader.getBinaryDocValuesIterator(field);
+    BinaryDocValuesIterator valuesIn = reader.getBinaryDocValues(field);
     if (valuesIn == null) {
       valuesIn = reader.getSortedDocValues(field);
     }
@@ -1094,7 +1093,7 @@ class FieldCacheImpl implements FieldCache {
       return DocValues.emptyBinaryIterator();
     }
 
-    BinaryDocValuesImpl impl = (BinaryDocValuesImpl) caches.get(BinaryDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
+    BinaryDocValuesImpl impl = (BinaryDocValuesImpl) caches.get(BinaryDocValuesIterator.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
     return impl.iterator(getDocsWithField(reader, field, null));
   }
 

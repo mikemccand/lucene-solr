@@ -16,8 +16,7 @@
  */
 package org.apache.lucene.document;
 
-
-import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.util.BytesRef;
 
@@ -37,7 +36,7 @@ import org.apache.lucene.util.BytesRef;
  * If you also need to store the value, you should add a
  * separate {@link StoredField} instance.
  * 
- * @see BinaryDocValues
+ * @see BinaryDocValuesIterator
  * */
 public class BinaryDocValuesField extends Field {
   

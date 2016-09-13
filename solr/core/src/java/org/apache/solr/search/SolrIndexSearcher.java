@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DocumentStoredFieldVisitor;
 import org.apache.lucene.document.LazyDocument;
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
@@ -832,7 +831,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
         final DocValuesType dvType = fieldInfos.fieldInfo(fieldName).getDocValuesType();
         switch (dvType) {
           case NUMERIC:
-            final NumericDocValuesIterator ndv = leafReader.getNumericDocValuesIterator(fieldName);
+            final NumericDocValuesIterator ndv = leafReader.getNumericDocValues(fieldName);
             Long val;
             if (ndv.advance(docid) == docid) {
               val = ndv.longValue();
@@ -854,7 +853,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             doc.addField(fieldName, newVal);
             break;
           case BINARY:
-            BinaryDocValuesIterator bdv = leafReader.getBinaryDocValuesIterator(fieldName);
+            BinaryDocValuesIterator bdv = leafReader.getBinaryDocValues(fieldName);
             BytesRef value;
             if (bdv.advance(docid) == docid) {
               value = BytesRef.deepCopyOf(bdv.binaryValue());

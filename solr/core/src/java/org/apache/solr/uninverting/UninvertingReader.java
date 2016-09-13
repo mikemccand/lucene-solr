@@ -25,7 +25,6 @@ import org.apache.lucene.document.NumericDocValuesField; // javadocs
 import org.apache.lucene.document.SortedDocValuesField; // javadocs
 import org.apache.lucene.document.SortedSetDocValuesField; // javadocs
 import org.apache.lucene.document.StringField; // javadocs
-import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValuesType;
@@ -51,7 +50,7 @@ import org.apache.solr.uninverting.FieldCache.CacheEntry;
  * This is accomplished by "inverting the inverted index" or "uninversion".
  * <p>
  * The uninversion process happens lazily: upon the first request for the 
- * field's docvalues (e.g. via {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator(String)} 
+ * field's docvalues (e.g. via {@link org.apache.lucene.index.LeafReader#getNumericDocValues(String)} 
  * or similar), it will create the docvalues on-the-fly if needed and cache it,
  * based on the core cache key of the wrapped LeafReader.
  */
@@ -277,8 +276,8 @@ public class UninvertingReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
-    NumericDocValuesIterator values = super.getNumericDocValuesIterator(field);
+  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+    NumericDocValuesIterator values = super.getNumericDocValues(field);
     if (values != null) {
       return values;
     }
@@ -299,8 +298,8 @@ public class UninvertingReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
-    BinaryDocValuesIterator values = in.getBinaryDocValuesIterator(field);
+  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+    BinaryDocValuesIterator values = in.getBinaryDocValues(field);
     if (values != null) {
       return values;
     }
