@@ -445,7 +445,7 @@ public final class DocValues {
    * @throws IOException if an I/O error occurs.
    */
   public static NumericDocValuesIterator getNumericIterator(LeafReader reader, String field) throws IOException {
-    NumericDocValuesIterator dv = reader.getNumericDocValuesIterator(field);
+    NumericDocValuesIterator dv = reader.getNumericDocValues(field);
     if (dv == null) {
       checkField(reader, field, DocValuesType.NUMERIC);
       return emptyNumericIterator();
@@ -463,7 +463,7 @@ public final class DocValues {
    * @throws IOException if an I/O error occurs.
    */
   public static BinaryDocValuesIterator getBinaryIterator(LeafReader reader, String field) throws IOException {
-    BinaryDocValuesIterator dv = reader.getBinaryDocValuesIterator(field);
+    BinaryDocValuesIterator dv = reader.getBinaryDocValues(field);
     if (dv == null) {
       dv = reader.getSortedDocValues(field);
       if (dv == null) {
@@ -502,7 +502,7 @@ public final class DocValues {
   public static SortedNumericDocValuesIterator getSortedNumeric(LeafReader reader, String field) throws IOException {
     SortedNumericDocValuesIterator dv = reader.getSortedNumericDocValues(field);
     if (dv == null) {
-      NumericDocValuesIterator single = reader.getNumericDocValuesIterator(field);
+      NumericDocValuesIterator single = reader.getNumericDocValues(field);
       if (single == null) {
         checkField(reader, field, DocValuesType.SORTED_NUMERIC, DocValuesType.NUMERIC);
         return emptySortedNumeric(reader.maxDoc());

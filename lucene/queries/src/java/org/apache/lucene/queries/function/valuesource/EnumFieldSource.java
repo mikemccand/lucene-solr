@@ -30,7 +30,7 @@ import org.apache.lucene.util.mutable.MutableValue;
 import org.apache.lucene.util.mutable.MutableValueInt;
 
 /**
- * Obtains int field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator} and makes
+ * Obtains int field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValues} and makes
  * those values available as other numeric types, casting as needed.
  * strVal of the value is not the int value, but its string (displayed) value
  */

@@ -226,12 +226,12 @@ public class QueryUtils {
       }
 
       @Override
-      public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+      public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
         return null;
       }
 
       @Override
-      public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+      public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
         return null;
       }
 

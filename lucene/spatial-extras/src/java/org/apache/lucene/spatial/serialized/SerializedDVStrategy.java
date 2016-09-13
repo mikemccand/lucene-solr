@@ -195,7 +195,7 @@ public class SerializedDVStrategy extends SpatialStrategy {
 
     @Override
     public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-      final BinaryDocValuesIterator docValues = readerContext.reader().getBinaryDocValuesIterator(fieldName);
+      final BinaryDocValuesIterator docValues = readerContext.reader().getBinaryDocValues(fieldName);
 
       return new FunctionValues() {
         int bytesRefDoc = -1;

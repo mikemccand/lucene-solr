@@ -721,7 +721,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
           }
         } else {
           // Just carry over doc values from previous field:
-          NumericDocValuesIterator oldValues = reader.getNumericDocValuesIterator("number_" + oldSchemaGen);
+          NumericDocValuesIterator oldValues = reader.getNumericDocValues("number_" + oldSchemaGen);
           assertNotNull("oldSchemaGen=" + oldSchemaGen, oldValues);
           for(int i=0;i<maxDoc;i++) {
             // TODO: is this still O(blockSize^2)?
@@ -747,7 +747,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
       protected void checkParallelReader(LeafReader r, LeafReader parR, long schemaGen) throws IOException {
         String fieldName = "number_" + schemaGen;
         if (DEBUG) System.out.println(Thread.currentThread().getName() + ": TEST: now check parallel number DVs field=" + fieldName + " r=" + r + " parR=" + parR);
-        NumericDocValuesIterator numbers = parR.getNumericDocValuesIterator(fieldName);
+        NumericDocValuesIterator numbers = parR.getNumericDocValues(fieldName);
         if (numbers == null) {
           return;
         }
@@ -816,7 +816,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
           }
         } else {
           // Just carry over doc values from previous field:
-          NumericDocValuesIterator oldValues = reader.getNumericDocValuesIterator("number");
+          NumericDocValuesIterator oldValues = reader.getNumericDocValues("number");
           assertNotNull("oldSchemaGen=" + oldSchemaGen, oldValues);
           for(int i=0;i<maxDoc;i++) {
             // TODO: is this still O(blockSize^2)?
@@ -846,7 +846,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
       @Override
       protected void checkParallelReader(LeafReader r, LeafReader parR, long schemaGen) throws IOException {
         if (DEBUG) System.out.println(Thread.currentThread().getName() + ": TEST: now check parallel number DVs r=" + r + " parR=" + parR);
-        NumericDocValuesIterator numbers = parR.getNumericDocValuesIterator("numbers");
+        NumericDocValuesIterator numbers = parR.getNumericDocValues("numbers");
         if (numbers == null) {
           return;
         }
@@ -1111,7 +1111,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
          IndexReader r = DirectoryReader.open(dir)) {
         for (LeafReaderContext ctx : r.leaves()) {
           LeafReader leaf = ctx.reader();
-          NumericDocValuesIterator numbers = leaf.getNumericDocValuesIterator("number");
+          NumericDocValuesIterator numbers = leaf.getNumericDocValues("number");
           if (numbers != null) {
             int maxDoc = leaf.maxDoc();
             for(int i=0;i<maxDoc;i++) {

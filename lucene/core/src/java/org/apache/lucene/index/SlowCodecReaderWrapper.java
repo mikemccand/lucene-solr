@@ -225,12 +225,12 @@ public final class SlowCodecReaderWrapper {
 
       @Override
       public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {  
-        return reader.getNumericDocValuesIterator(field.name);
+        return reader.getNumericDocValues(field.name);
       }
 
       @Override
       public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
-        return reader.getBinaryDocValuesIterator(field.name);
+        return reader.getBinaryDocValues(field.name);
       }
 
       @Override

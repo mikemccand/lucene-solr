@@ -903,11 +903,11 @@ public class TestDirectoryReaderReopen extends LuceneTestCase {
     // sharing same core
     assertSame(latest.leaves().get(0).reader().getCoreCacheKey(), oldest.leaves().get(0).reader().getCoreCacheKey());
 
-    NumericDocValuesIterator values = getOnlyLeafReader(oldest).getNumericDocValuesIterator("dv");
+    NumericDocValuesIterator values = getOnlyLeafReader(oldest).getNumericDocValues("dv");
     assertEquals(0, values.nextDoc());
     assertEquals(1, values.longValue());
 
-    values = getOnlyLeafReader(latest).getNumericDocValuesIterator("dv");
+    values = getOnlyLeafReader(latest).getNumericDocValues("dv");
     assertEquals(0, values.nextDoc());
     assertEquals(2, values.longValue());
     
@@ -950,11 +950,11 @@ public class TestDirectoryReaderReopen extends LuceneTestCase {
     // sharing same core
     assertSame(latest.leaves().get(0).reader().getCoreCacheKey(), oldest.leaves().get(0).reader().getCoreCacheKey());
 
-    NumericDocValuesIterator values = getOnlyLeafReader(oldest).getNumericDocValuesIterator("dv");
+    NumericDocValuesIterator values = getOnlyLeafReader(oldest).getNumericDocValues("dv");
     assertEquals(0, values.nextDoc());
     assertEquals(1, values.longValue());
 
-    values = getOnlyLeafReader(latest).getNumericDocValuesIterator("dv");
+    values = getOnlyLeafReader(latest).getNumericDocValues("dv");
     assertEquals(0, values.nextDoc());
     assertEquals(2, values.longValue());
     

@@ -150,12 +150,12 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
     if (facetFields.contains(field)) {
       final OrdinalsReader ordsReader = getOrdinalsReader(field);
-      return new OrdinalMappingBinaryDocValuesIterator(ordsReader.getReader(in.getContext()), in.getBinaryDocValuesIterator(field));
+      return new OrdinalMappingBinaryDocValuesIterator(ordsReader.getReader(in.getContext()), in.getBinaryDocValues(field));
     } else {
-      return in.getBinaryDocValuesIterator(field);
+      return in.getBinaryDocValues(field);
     }
   }
   

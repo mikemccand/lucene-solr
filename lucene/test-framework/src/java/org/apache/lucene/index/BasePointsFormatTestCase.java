@@ -170,7 +170,7 @@ public abstract class BasePointsFormatTestCase extends BaseIndexFileFormatTestCa
     for(LeafReaderContext ctx : r.leaves()) {
       PointValues values = ctx.reader().getPointValues();
 
-      NumericDocValuesIterator idValues = ctx.reader().getNumericDocValuesIterator("id");
+      NumericDocValuesIterator idValues = ctx.reader().getNumericDocValues("id");
       int[] docIDToID = new int[ctx.reader().maxDoc()];
       int docID;
       while ((docID = idValues.nextDoc()) != NO_MORE_DOCS) {

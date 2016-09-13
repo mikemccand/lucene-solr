@@ -231,7 +231,6 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,CachedNumericDVs> cachedNumericDVs = new HashMap<>();
 
-  // nocommit horrible!  can we use offline sorter instead?
   private static class CachedNumericDVs {
     private final long[] values;
     private final BitSet docsWithField;
@@ -244,9 +243,8 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,CachedBinaryDVs> cachedBinaryDVs = new HashMap<>();
 
-  // nocommit horrible!  can we use offline sorter instead?
   private static class CachedBinaryDVs {
-    // nocommit at least cutover to packed:
+    // TODO: at least cutover to BytesRefArray here:
     private final BytesRef[] values;
     private final BitSet docsWithField;
 
@@ -1047,10 +1045,9 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
-    final BinaryDocValuesIterator oldDocValues = in.getBinaryDocValuesIterator(field);
+  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+    final BinaryDocValuesIterator oldDocValues = in.getBinaryDocValues(field);
     if (oldDocValues == null) return null;
-    // nocommit this is horrible!!
     CachedBinaryDVs dvs;
     synchronized (cachedBinaryDVs) {
       dvs = cachedBinaryDVs.get(field);
@@ -1100,7 +1097,6 @@ class SortingLeafReader extends FilterLeafReader {
   public NumericDocValuesIterator getNormValues(String field) throws IOException {
     final NumericDocValuesIterator oldNorms = in.getNormValues(field);
     if (oldNorms == null) return null;
-    // nocommit this is horrible!!
     CachedNumericDVs norms;
     synchronized (cachedNorms) {
       norms = cachedNorms.get(field);
@@ -1124,10 +1120,9 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
-    final NumericDocValuesIterator oldDocValues = in.getNumericDocValuesIterator(field);
+  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+    final NumericDocValuesIterator oldDocValues = in.getNumericDocValues(field);
     if (oldDocValues == null) return null;
-    // nocommit this is horrible!!
     CachedNumericDVs dvs;
     synchronized (cachedNumericDVs) {
       dvs = cachedNumericDVs.get(field);
@@ -1186,7 +1181,6 @@ class SortingLeafReader extends FilterLeafReader {
       return null;
     }
 
-    // nocommit this is horrible!!
     int[] ords;
     synchronized (cachedSortedDVs) {
       ords = cachedSortedDVs.get(field);

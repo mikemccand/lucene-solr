@@ -968,8 +968,8 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
-    NumericDocValuesIterator dv = super.getNumericDocValuesIterator(field);
+  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+    NumericDocValuesIterator dv = super.getNumericDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
@@ -982,8 +982,8 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
-    BinaryDocValuesIterator dv = super.getBinaryDocValuesIterator(field);
+  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+    BinaryDocValuesIterator dv = super.getBinaryDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;

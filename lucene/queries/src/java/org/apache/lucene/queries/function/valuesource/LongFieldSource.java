@@ -31,7 +31,7 @@ import org.apache.lucene.util.mutable.MutableValue;
 import org.apache.lucene.util.mutable.MutableValueLong;
 
 /**
- * Obtains long field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator} and makes those
+ * Obtains long field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValues} and makes those
  * values available as other numeric types, casting as needed.
  */
 public class LongFieldSource extends FieldCacheSource {

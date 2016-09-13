@@ -83,7 +83,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     w.close();
     LeafReader sr = getOnlyLeafReader(r3);
     assertEquals(2, sr.numDocs());
-    NumericDocValuesIterator docValues = sr.getNumericDocValuesIterator("dv");
+    NumericDocValuesIterator docValues = sr.getNumericDocValues("dv");
     assertNotNull(docValues);
     r3.close();
     d3.close();

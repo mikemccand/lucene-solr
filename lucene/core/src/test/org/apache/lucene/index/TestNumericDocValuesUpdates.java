@@ -220,7 +220,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     assertEquals(1, reader.leaves().size());
     LeafReader r = reader.leaves().get(0).reader();
-    NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("val");
+    NumericDocValuesIterator ndv = r.getNumericDocValues("val");
     assertEquals(0, ndv.nextDoc());
     assertEquals(2, ndv.longValue());
     assertEquals(1, ndv.nextDoc());
@@ -265,7 +265,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     for (LeafReaderContext context : reader.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("val");
+      NumericDocValuesIterator ndv = r.getNumericDocValues("val");
       assertNotNull(ndv);
       for (int i = 0; i < r.maxDoc(); i++) {
         long expected = expectedValues[i + context.docBase];
@@ -306,11 +306,11 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     final DirectoryReader reader2 = DirectoryReader.openIfChanged(reader1);
     assertNotNull(reader2);
     assertTrue(reader1 != reader2);
-    NumericDocValuesIterator dvs1 = reader1.leaves().get(0).reader().getNumericDocValuesIterator("val");
+    NumericDocValuesIterator dvs1 = reader1.leaves().get(0).reader().getNumericDocValues("val");
     assertEquals(0, dvs1.nextDoc());
     assertEquals(1, dvs1.longValue());
 
-    NumericDocValuesIterator dvs2 = reader2.leaves().get(0).reader().getNumericDocValuesIterator("val");
+    NumericDocValuesIterator dvs2 = reader2.leaves().get(0).reader().getNumericDocValues("val");
     assertEquals(0, dvs2.nextDoc());
     assertEquals(10, dvs2.longValue());
 
@@ -397,7 +397,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     LeafReader r = reader.leaves().get(0).reader();
     assertFalse(r.getLiveDocs().get(0));
-    NumericDocValuesIterator values = r.getNumericDocValuesIterator("val");
+    NumericDocValuesIterator values = r.getNumericDocValues("val");
     assertEquals(1, values.advance(1));
     assertEquals(17, values.longValue());
     
@@ -430,8 +430,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     final DirectoryReader reader = DirectoryReader.open(dir);
     LeafReader r = reader.leaves().get(0).reader();
-    NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
-    BinaryDocValuesIterator bdv = r.getBinaryDocValuesIterator("bdv");
+    NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
+    BinaryDocValuesIterator bdv = r.getBinaryDocValues("bdv");
     SortedDocValuesIterator sdv = r.getSortedDocValues("sdv");
     SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("ssdv");
     for (int i = 0; i < r.maxDoc(); i++) {
@@ -482,8 +482,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     final DirectoryReader reader = DirectoryReader.open(dir);
     LeafReader r = reader.leaves().get(0).reader();
-    NumericDocValuesIterator ndv1 = r.getNumericDocValuesIterator("ndv1");
-    NumericDocValuesIterator ndv2 = r.getNumericDocValuesIterator("ndv2");
+    NumericDocValuesIterator ndv1 = r.getNumericDocValues("ndv1");
+    NumericDocValuesIterator ndv2 = r.getNumericDocValues("ndv2");
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndv1.nextDoc());
       assertEquals(17, ndv1.longValue());
@@ -517,7 +517,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     final DirectoryReader reader = DirectoryReader.open(dir);
     LeafReader r = reader.leaves().get(0).reader();
-    NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
+    NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(17, ndv.longValue());
@@ -682,7 +682,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
       assertEquals(1, reader.leaves().size());
       final LeafReader r = reader.leaves().get(0).reader();
       assertNull("index should have no deletes after forceMerge", r.getLiveDocs());
-      NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
+      NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
       assertNotNull(ndv);
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, ndv.nextDoc());
@@ -795,7 +795,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
         Bits liveDocs = r.getLiveDocs();
         for (int field = 0; field < fieldValues.length; field++) {
           String f = "f" + field;
-          NumericDocValuesIterator ndv = r.getNumericDocValuesIterator(f);
+          NumericDocValuesIterator ndv = r.getNumericDocValues(f);
           assertNotNull(ndv);
           int maxDoc = r.maxDoc();
           for (int doc = 0; doc < maxDoc; doc++) {
@@ -855,7 +855,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     DirectoryReader reader = DirectoryReader.open(dir);
     for (LeafReaderContext context : reader.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
+      NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
       assertEquals(0, ndv.nextDoc());
       assertEquals(5L, ndv.longValue());
       // docID 1 has no ndv value
@@ -908,7 +908,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     DirectoryReader reader = DirectoryReader.open(dir);
     for (LeafReaderContext context : reader.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
+      NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
       assertEquals(0, ndv.nextDoc());
       assertEquals(5L, ndv.longValue());
       assertTrue(ndv.nextDoc() > 1);
@@ -981,7 +981,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     DirectoryReader reader = DirectoryReader.open(dir);
     for (LeafReaderContext context : reader.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
+      NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, ndv.nextDoc());
         assertEquals(5L, ndv.longValue());
@@ -1009,7 +1009,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     DirectoryReader r = DirectoryReader.open(dir);
-    NumericDocValuesIterator ndv = r.leaves().get(0).reader().getNumericDocValuesIterator("f");
+    NumericDocValuesIterator ndv = r.leaves().get(0).reader().getNumericDocValues("f");
     assertEquals(0, ndv.nextDoc());
     assertEquals(17, ndv.longValue());
     r.close();
@@ -1127,8 +1127,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     for (LeafReaderContext context : reader.leaves()) {
       LeafReader r = context.reader();
       for (int i = 0; i < numFields; i++) {
-        NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("f" + i);
-        NumericDocValuesIterator control = r.getNumericDocValuesIterator("cf" + i);
+        NumericDocValuesIterator ndv = r.getNumericDocValues("f" + i);
+        NumericDocValuesIterator control = r.getNumericDocValues("cf" + i);
         Bits liveDocs = r.getLiveDocs();
         for (int j = 0; j < r.maxDoc(); j++) {
           if (liveDocs == null || liveDocs.get(j)) {
@@ -1170,8 +1170,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
       DirectoryReader reader = DirectoryReader.open(writer);
       for (LeafReaderContext context : reader.leaves()) {
         LeafReader r = context.reader();
-        NumericDocValuesIterator fndv = r.getNumericDocValuesIterator("f");
-        NumericDocValuesIterator cfndv = r.getNumericDocValuesIterator("cf");
+        NumericDocValuesIterator fndv = r.getNumericDocValues("f");
+        NumericDocValuesIterator cfndv = r.getNumericDocValues("cf");
         for (int j = 0; j < r.maxDoc(); j++) {
           assertEquals(j, fndv.nextDoc());
           assertEquals(j, cfndv.nextDoc());
@@ -1283,8 +1283,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     DirectoryReader reader = DirectoryReader.open(dir2);
     for (LeafReaderContext context : reader.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator ndv = r.getNumericDocValuesIterator("ndv");
-      NumericDocValuesIterator control = r.getNumericDocValuesIterator("control");
+      NumericDocValuesIterator ndv = r.getNumericDocValues("ndv");
+      NumericDocValuesIterator control = r.getNumericDocValues("control");
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, ndv.nextDoc());
         assertEquals(i, control.nextDoc());
@@ -1382,8 +1382,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     for (LeafReaderContext context : reader.leaves()) {
       for (int i = 0; i < numNumericFields; i++) {
         LeafReader r = context.reader();
-        NumericDocValuesIterator f = r.getNumericDocValuesIterator("f" + i);
-        NumericDocValuesIterator cf = r.getNumericDocValuesIterator("cf" + i);
+        NumericDocValuesIterator f = r.getNumericDocValues("f" + i);
+        NumericDocValuesIterator cf = r.getNumericDocValues("cf" + i);
         for (int j = 0; j < r.maxDoc(); j++) {
           assertEquals(j, f.nextDoc());
           assertEquals(j, cf.nextDoc());
@@ -1416,10 +1416,10 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     DirectoryReader reader = DirectoryReader.open(dir);
-    NumericDocValuesIterator dvs = reader.leaves().get(0).reader().getNumericDocValuesIterator("f1");
+    NumericDocValuesIterator dvs = reader.leaves().get(0).reader().getNumericDocValues("f1");
     assertEquals(0, dvs.nextDoc());
     assertEquals(4, dvs.longValue());
-    dvs = reader.leaves().get(0).reader().getNumericDocValuesIterator("f2");
+    dvs = reader.leaves().get(0).reader().getNumericDocValues("f2");
     assertEquals(0, dvs.nextDoc());
     assertEquals(3, dvs.longValue());
     reader.close();
@@ -1446,7 +1446,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     DirectoryReader reader = DirectoryReader.open(dir);
     assertEquals(1, reader.leaves().size());
-    NumericDocValuesIterator dvs = reader.leaves().get(0).reader().getNumericDocValuesIterator("f1");
+    NumericDocValuesIterator dvs = reader.leaves().get(0).reader().getNumericDocValues("f1");
     assertEquals(0, dvs.nextDoc());
     assertEquals(2, dvs.longValue());
     
@@ -1472,7 +1472,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     DirectoryReader reader = DirectoryReader.open(dir);
     assertEquals(1, reader.leaves().size());
-    NumericDocValuesIterator dvs = reader.leaves().get(0).reader().getNumericDocValuesIterator("f1");
+    NumericDocValuesIterator dvs = reader.leaves().get(0).reader().getNumericDocValues("f1");
     assertEquals(0, dvs.nextDoc());
     assertEquals(1, dvs.longValue());
     reader.close();

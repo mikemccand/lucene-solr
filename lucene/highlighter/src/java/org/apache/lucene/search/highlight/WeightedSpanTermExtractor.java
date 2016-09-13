@@ -456,13 +456,13 @@ public class WeightedSpanTermExtractor {
     }
 
     @Override
-    public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
-      return super.getNumericDocValuesIterator(FIELD_NAME);
+    public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+      return super.getNumericDocValues(FIELD_NAME);
     }
     
     @Override
-    public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
-      return super.getBinaryDocValuesIterator(FIELD_NAME);
+    public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+      return super.getBinaryDocValues(FIELD_NAME);
     }
     
     @Override

@@ -175,7 +175,7 @@ public abstract class FieldComparator<T> {
   }
 
   /** Parses field's values as double (using {@link
-   *  org.apache.lucene.index.LeafReader#getNumericDocValuesIterator} and sorts by ascending value */
+   *  org.apache.lucene.index.LeafReader#getNumericDocValues} and sorts by ascending value */
   public static class DoubleComparator extends NumericComparator<Double> {
     private final double[] values;
     private double bottom;
@@ -240,7 +240,7 @@ public abstract class FieldComparator<T> {
   }
 
   /** Parses field's values as float (using {@link
-   *  org.apache.lucene.index.LeafReader#getNumericDocValuesIterator(String)} and sorts by ascending value */
+   *  org.apache.lucene.index.LeafReader#getNumericDocValues(String)} and sorts by ascending value */
   public static class FloatComparator extends NumericComparator<Float> {
     private final float[] values;
     private float bottom;
@@ -305,7 +305,7 @@ public abstract class FieldComparator<T> {
   }
 
   /** Parses field's values as int (using {@link
-   *  org.apache.lucene.index.LeafReader#getNumericDocValuesIterator(String)} and sorts by ascending value */
+   *  org.apache.lucene.index.LeafReader#getNumericDocValues(String)} and sorts by ascending value */
   public static class IntComparator extends NumericComparator<Integer> {
     private final int[] values;
     private int bottom;                           // Value of bottom of queue
@@ -372,7 +372,7 @@ public abstract class FieldComparator<T> {
   }
 
   /** Parses field's values as long (using {@link
-   *  org.apache.lucene.index.LeafReader#getNumericDocValuesIterator(String)} and sorts by ascending value */
+   *  org.apache.lucene.index.LeafReader#getNumericDocValues(String)} and sorts by ascending value */
   public static class LongComparator extends NumericComparator<Long> {
     private final long[] values;
     private long bottom;

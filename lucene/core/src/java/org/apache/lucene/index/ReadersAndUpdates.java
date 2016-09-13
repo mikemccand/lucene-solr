@@ -335,7 +335,7 @@ class ReadersAndUpdates {
 
               final NumericDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
 
-              final NumericDocValuesIterator currentValues = reader.getNumericDocValuesIterator(field);
+              final NumericDocValuesIterator currentValues = reader.getNumericDocValues(field);
               updatesIter.reset();
 
               // Merge sort of the original doc values with updated doc values:
@@ -439,7 +439,7 @@ class ReadersAndUpdates {
               final BinaryDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
               updatesIter.reset();
 
-              final BinaryDocValuesIterator currentValues = reader.getBinaryDocValuesIterator(field);
+              final BinaryDocValuesIterator currentValues = reader.getBinaryDocValues(field);
 
               // Merge sort of the original doc values with updated doc values:
               return new BinaryDocValuesIterator() {

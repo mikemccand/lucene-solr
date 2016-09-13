@@ -116,11 +116,11 @@ public class TestPerFieldDocValuesFormat extends BaseDocValuesFormatTestCase {
       Document hitDoc = isearcher.doc(hitDocID);
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
-      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValuesIterator("dv1");
+      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv1");
       assertEquals(hitDocID, dv.advance(hitDocID));
       assertEquals(5, dv.longValue());
       
-      BinaryDocValuesIterator dv2 = ireader.leaves().get(0).reader().getBinaryDocValuesIterator("dv2");
+      BinaryDocValuesIterator dv2 = ireader.leaves().get(0).reader().getBinaryDocValues("dv2");
       assertEquals(hitDocID, dv2.advance(hitDocID));
       final BytesRef term = dv2.binaryValue();
       assertEquals(new BytesRef("hello world"), term);

@@ -63,7 +63,7 @@ import org.apache.lucene.index.IndexOptions;
  * To sort according to a
  * <code>LegacyLongField</code>, use the normal numeric sort types, eg
  * {@link org.apache.lucene.search.SortField.Type#LONG}. <code>LegacyLongField</code>
- * values can also be loaded directly from {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator}.
+ * values can also be loaded directly from {@link org.apache.lucene.index.LeafReader#getNumericDocValues}.
  *
  * <p>You may add the same field name as an <code>LegacyLongField</code> to
  * the same document more than once.  Range querying and

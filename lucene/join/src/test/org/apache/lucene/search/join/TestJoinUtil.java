@@ -487,7 +487,7 @@ public class TestJoinUtil extends LuceneTestCase {
             if (fieldScorer == null) {
               return null;
             }
-            NumericDocValuesIterator price = context.reader().getNumericDocValuesIterator(priceField);
+            NumericDocValuesIterator price = context.reader().getNumericDocValues(priceField);
             return new FilterScorer(fieldScorer, this) {
               @Override
               public float score() throws IOException {

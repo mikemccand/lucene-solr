@@ -50,7 +50,7 @@ public class TaxonomyFacetSumFloatAssociations extends FloatTaxonomyFacets {
   private final void sumValues(List<MatchingDocs> matchingDocs) throws IOException {
     //System.out.println("count matchingDocs=" + matchingDocs + " facetsField=" + facetsFieldName);
     for(MatchingDocs hits : matchingDocs) {
-      BinaryDocValuesIterator dv = hits.context.reader().getBinaryDocValuesIterator(indexFieldName);
+      BinaryDocValuesIterator dv = hits.context.reader().getBinaryDocValues(indexFieldName);
       if (dv == null) { // this reader does not have DocValues for the requested category list
         continue;
       }

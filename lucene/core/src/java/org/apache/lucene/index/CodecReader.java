@@ -129,27 +129,23 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     return fi;
   }
 
-  // nocommit rename this method:
-  
   @Override
-  public final NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+  public final NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getDVField(field, DocValuesType.NUMERIC);
     if (fi == null) {
       return null;
     }
-    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getDocValuesReader().getNumeric(fi);
   }
 
   @Override
-  public final BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+  public final BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getDVField(field, DocValuesType.BINARY);
     if (fi == null) {
       return null;
     }
-    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getDocValuesReader().getBinaryIterator(fi);
   }
 
@@ -160,7 +156,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     if (fi == null) {
       return null;
     }
-    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getDocValuesReader().getSorted(fi);
   }
   
@@ -172,7 +167,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     if (fi == null) {
       return null;
     }
-    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getDocValuesReader().getSortedNumeric(fi);
   }
 
@@ -183,7 +177,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     if (fi == null) {
       return null;
     }
-    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getDocValuesReader().getSortedSet(fi);
   }
   
@@ -196,7 +189,6 @@ public abstract class CodecReader extends LeafReader implements Accountable {
       return null;
     }
 
-    // nocommit we no longer cache here (the iterator is "use once"), but maybe codec should properly cache the DV producer to get OK perf?
     return getNormsReader().getNorms(fi);
   }
 

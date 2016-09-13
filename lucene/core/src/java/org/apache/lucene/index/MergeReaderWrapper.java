@@ -86,7 +86,7 @@ class MergeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (fi == null) {
@@ -101,7 +101,7 @@ class MergeReaderWrapper extends LeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException {
+  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (fi == null) {

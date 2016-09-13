@@ -78,10 +78,10 @@ public final class FieldValueQuery extends Query {
         case NONE:
           return null;
         case NUMERIC:
-          iterator = reader.getNumericDocValuesIterator(field);
+          iterator = reader.getNumericDocValues(field);
           break;
         case BINARY:
-          iterator = reader.getBinaryDocValuesIterator(field);
+          iterator = reader.getBinaryDocValues(field);
           break;
         case SORTED:
           iterator = reader.getSortedDocValues(field);

@@ -1124,7 +1124,7 @@ public class MemoryIndex {
     }
 
     @Override
-    public NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException {
+    public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.NUMERIC);
       if (info == null) {
         return null;
@@ -1133,7 +1133,7 @@ public class MemoryIndex {
     }
 
     @Override
-    public BinaryDocValuesIterator getBinaryDocValuesIterator(String field) {
+    public BinaryDocValuesIterator getBinaryDocValues(String field) {
       return getSortedDocValues(field, DocValuesType.BINARY);
     }
 

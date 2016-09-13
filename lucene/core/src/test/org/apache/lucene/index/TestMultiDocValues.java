@@ -63,7 +63,7 @@ public class TestMultiDocValues extends LuceneTestCase {
     iw.close();
     
     NumericDocValuesIterator multi = MultiDocValues.getNumericValuesIterator(ir, "numbers");
-    NumericDocValuesIterator single = merged.getNumericDocValuesIterator("numbers");
+    NumericDocValuesIterator single = merged.getNumericDocValues("numbers");
     for (int i = 0; i < numDocs; i++) {
       assertEquals(i, multi.nextDoc());
       assertEquals(i, single.nextDoc());
@@ -103,7 +103,7 @@ public class TestMultiDocValues extends LuceneTestCase {
     iw.close();
 
     BinaryDocValuesIterator multi = MultiDocValues.getBinaryValuesIterator(ir, "bytes");
-    BinaryDocValuesIterator single = merged.getBinaryDocValuesIterator("bytes");
+    BinaryDocValuesIterator single = merged.getBinaryDocValues("bytes");
     for (int i = 0; i < numDocs; i++) {
       assertEquals(i, multi.nextDoc());
       assertEquals(i, single.nextDoc());

@@ -51,7 +51,7 @@ public class FastTaxonomyFacetCounts extends IntTaxonomyFacets {
 
   private final void count(List<MatchingDocs> matchingDocs) throws IOException {
     for(MatchingDocs hits : matchingDocs) {
-      BinaryDocValuesIterator dv = hits.context.reader().getBinaryDocValuesIterator(indexFieldName);
+      BinaryDocValuesIterator dv = hits.context.reader().getBinaryDocValues(indexFieldName);
       if (dv == null) { // this reader does not have DocValues for the requested category list
         continue;
       }

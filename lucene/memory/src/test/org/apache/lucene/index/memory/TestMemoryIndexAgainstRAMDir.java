@@ -453,7 +453,7 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     mindex.addField("field", "the quick brown fox", mockAnalyzer);
     LeafReader reader = (LeafReader) mindex.createSearcher().getIndexReader();
     TestUtil.checkReader(reader);
-    assertNull(reader.getNumericDocValuesIterator("not-in-index"));
+    assertNull(reader.getNumericDocValues("not-in-index"));
     assertNull(reader.getNormValues("not-in-index"));
     assertNull(reader.postings(new Term("not-in-index", "foo")));
     assertNull(reader.postings(new Term("not-in-index", "foo"), PostingsEnum.ALL));
@@ -515,8 +515,8 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     IndexReader controlIndexReader = DirectoryReader.open(dir);
     LeafReader controlLeafReader =  controlIndexReader.leaves().get(0).reader();
 
-    NumericDocValuesIterator numericDocValues = leafReader.getNumericDocValuesIterator("numeric");
-    NumericDocValuesIterator controlNumericDocValues = controlLeafReader.getNumericDocValuesIterator("numeric");
+    NumericDocValuesIterator numericDocValues = leafReader.getNumericDocValues("numeric");
+    NumericDocValuesIterator controlNumericDocValues = controlLeafReader.getNumericDocValues("numeric");
     assertEquals(0, numericDocValues.nextDoc());
     assertEquals(0, controlNumericDocValues.nextDoc());
     assertEquals(controlNumericDocValues.longValue(), numericDocValues.longValue());
@@ -530,8 +530,8 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
       assertEquals(controlSortedNumericDocValues.nextValue(), sortedNumericDocValues.nextValue());
     }
 
-    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValuesIterator("binary");
-    BinaryDocValuesIterator controlBinaryDocValues = controlLeafReader.getBinaryDocValuesIterator("binary");
+    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValues("binary");
+    BinaryDocValuesIterator controlBinaryDocValues = controlLeafReader.getBinaryDocValues("binary");
     assertEquals(0, binaryDocValues.nextDoc());
     assertEquals(0, controlBinaryDocValues.nextDoc());
     assertEquals(controlBinaryDocValues.binaryValue(), binaryDocValues.binaryValue());

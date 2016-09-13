@@ -181,7 +181,7 @@ public class TestMultipleIndexFields extends FacetTestCase {
   private void assertOrdinalsExist(String field, IndexReader ir) throws IOException {
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      if (r.getBinaryDocValuesIterator(field) != null) {
+      if (r.getBinaryDocValues(field) != null) {
         return; // not all segments must have this DocValues
       }
     }

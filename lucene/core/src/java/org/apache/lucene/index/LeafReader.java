@@ -245,13 +245,13 @@ public abstract class LeafReader extends IndexReader {
    *  this field.  The returned instance should only be
    *  used by a single thread.  This will never return null. */
   // nocommit fix AssertingXXXReader to assert that this indeed never returns null
-  public abstract NumericDocValuesIterator getNumericDocValuesIterator(String field) throws IOException;
+  public abstract NumericDocValuesIterator getNumericDocValues(String field) throws IOException;
 
   /** Returns {@link BinaryDocValuesIterator} for this field, or
    *  null if no binary doc values were indexed for
    *  this field.  The returned instance should only be
    *  used by a single thread. */
-  public abstract BinaryDocValuesIterator getBinaryDocValuesIterator(String field) throws IOException;
+  public abstract BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException;
 
   /** Returns {@link SortedDocValuesIterator} for this field, or
    *  null if no {@link SortedDocValuesIterator} were indexed for

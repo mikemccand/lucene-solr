@@ -371,39 +371,39 @@ public final class TestUtil {
       // reader shouldn't return multiple docvalues types for the same field.
       switch(info.getDocValuesType()) {
         case NONE:
-          if (reader.getBinaryDocValuesIterator(info.name) != null ||
-              reader.getNumericDocValuesIterator(info.name) != null ||
+          if (reader.getBinaryDocValues(info.name) != null ||
+              reader.getNumericDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null || 
               reader.getSortedSetDocValues(info.name) != null) {
             throw new RuntimeException("field: " + info.name + " has docvalues but should omit them!");
           }
           break;
         case SORTED:
-          if (reader.getBinaryDocValuesIterator(info.name) != null ||
-              reader.getNumericDocValuesIterator(info.name) != null ||
+          if (reader.getBinaryDocValues(info.name) != null ||
+              reader.getNumericDocValues(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null) {
             throw new RuntimeException(info.name + " returns multiple docvalues types!");
           }
           break;
         case SORTED_NUMERIC:
-          if (reader.getBinaryDocValuesIterator(info.name) != null ||
-              reader.getNumericDocValuesIterator(info.name) != null ||
+          if (reader.getBinaryDocValues(info.name) != null ||
+              reader.getNumericDocValues(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null) {
             throw new RuntimeException(info.name + " returns multiple docvalues types!");
           }
           break;
         case SORTED_SET:
-          if (reader.getBinaryDocValuesIterator(info.name) != null ||
-              reader.getNumericDocValuesIterator(info.name) != null ||
+          if (reader.getBinaryDocValues(info.name) != null ||
+              reader.getNumericDocValues(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null) {
             throw new RuntimeException(info.name + " returns multiple docvalues types!");
           }
           break;
         case BINARY:
-          if (reader.getNumericDocValuesIterator(info.name) != null ||
+          if (reader.getNumericDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null) {
@@ -411,7 +411,7 @@ public final class TestUtil {
           }
           break;
         case NUMERIC:
-          if (reader.getBinaryDocValuesIterator(info.name) != null ||
+          if (reader.getBinaryDocValues(info.name) != null ||
               reader.getSortedDocValues(info.name) != null ||
               reader.getSortedNumericDocValues(info.name) != null ||
               reader.getSortedSetDocValues(info.name) != null) {

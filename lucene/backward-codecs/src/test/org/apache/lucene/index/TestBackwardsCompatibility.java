@@ -1382,8 +1382,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
   public static final String dvUpdatesIndex = "dvupdates.6.0.0.zip";
 
   private void assertNumericDocValues(LeafReader r, String f, String cf) throws IOException {
-    NumericDocValuesIterator ndvf = r.getNumericDocValuesIterator(f);
-    NumericDocValuesIterator ndvcf = r.getNumericDocValuesIterator(cf);
+    NumericDocValuesIterator ndvf = r.getNumericDocValues(f);
+    NumericDocValuesIterator ndvcf = r.getNumericDocValues(cf);
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndvcf.nextDoc());
       assertEquals(i, ndvf.nextDoc());
@@ -1392,8 +1392,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
   }
   
   private void assertBinaryDocValues(LeafReader r, String f, String cf) throws IOException {
-    BinaryDocValuesIterator bdvf = r.getBinaryDocValuesIterator(f);
-    BinaryDocValuesIterator bdvcf = r.getBinaryDocValuesIterator(cf);
+    BinaryDocValuesIterator bdvf = r.getBinaryDocValues(f);
+    BinaryDocValuesIterator bdvcf = r.getBinaryDocValues(cf);
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, bdvf.nextDoc());
       assertEquals(i, bdvcf.nextDoc());

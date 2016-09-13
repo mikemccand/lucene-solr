@@ -31,7 +31,7 @@ import org.apache.lucene.util.mutable.MutableValue;
 import org.apache.lucene.util.mutable.MutableValueInt;
 
 /**
- * Obtains int field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValuesIterator} and makes those
+ * Obtains int field values from {@link org.apache.lucene.index.LeafReader#getNumericDocValues} and makes those
  * values available as other numeric types, casting as needed.
  */
 public class IntFieldSource extends FieldCacheSource {
