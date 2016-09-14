@@ -38,12 +38,12 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
+import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
@@ -421,7 +421,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final BytesRefBuilder scratch = new BytesRefBuilder();
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
     
-    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
+    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
       String[] currentOrds = new String[0];
       int currentIndex = 0;
       final BytesRefBuilder term = new BytesRefBuilder();

@@ -2132,7 +2132,7 @@ public final class CheckIndex implements Closeable {
       long lastOrd = -1;
       long ord;
       int ordCount = 0;
-      while ((ord = dv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+      while ((ord = dv.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
         if (ord <= lastOrd) {
           throw new RuntimeException("ords out of order: " + ord + " <= " + lastOrd + " for doc: " + docID);
         }

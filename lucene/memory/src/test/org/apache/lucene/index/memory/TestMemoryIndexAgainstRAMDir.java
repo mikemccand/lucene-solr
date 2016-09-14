@@ -70,7 +70,6 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -547,12 +546,12 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     SortedSetDocValuesIterator controlSortedSetDocValues = controlLeafReader.getSortedSetDocValues("sorted_set");
     assertEquals(0, controlSortedSetDocValues.nextDoc());
     assertEquals(controlSortedSetDocValues.getValueCount(), sortedSetDocValues.getValueCount());
-    for (long controlOrd = controlSortedSetDocValues.nextOrd(); controlOrd != SortedSetDocValues.NO_MORE_ORDS;
+    for (long controlOrd = controlSortedSetDocValues.nextOrd(); controlOrd != SortedSetDocValuesIterator.NO_MORE_ORDS;
          controlOrd = controlSortedSetDocValues.nextOrd()) {
       assertEquals(controlOrd, sortedSetDocValues.nextOrd());
       assertEquals(controlSortedSetDocValues.lookupOrd(controlOrd), sortedSetDocValues.lookupOrd(controlOrd));
     }
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, sortedSetDocValues.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, sortedSetDocValues.nextOrd());
 
     indexReader.close();
     controlIndexReader.close();

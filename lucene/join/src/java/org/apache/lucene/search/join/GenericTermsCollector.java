@@ -21,7 +21,6 @@ import java.io.PrintStream;
 
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;

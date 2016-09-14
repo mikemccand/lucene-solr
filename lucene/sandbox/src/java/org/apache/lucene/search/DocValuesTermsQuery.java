@@ -25,7 +25,6 @@ import java.util.Objects;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.Bits;
@@ -171,7 +170,7 @@ public class DocValuesTermsQuery extends Query {
                 values.advance(doc);
               }
               if (doc == values.docID()) {
-                for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+                for (long ord = values.nextOrd(); ord != SortedSetDocValuesIterator.NO_MORE_ORDS; ord = values.nextOrd()) {
                   if (bits.get(ord)) {
                     return true;
                   }

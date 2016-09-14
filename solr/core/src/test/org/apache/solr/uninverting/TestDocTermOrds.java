@@ -41,7 +41,6 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -120,18 +119,18 @@ public class TestDocTermOrds extends LuceneTestCase {
     assertEquals(0, iter.nextOrd());
     assertEquals(1, iter.nextOrd());
     assertEquals(2, iter.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, iter.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, iter.nextOrd());
     
     assertEquals(1, iter.nextDoc());
     assertEquals(3, iter.nextOrd());
     assertEquals(4, iter.nextOrd());
     assertEquals(5, iter.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, iter.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, iter.nextOrd());
 
     assertEquals(2, iter.nextDoc());
     assertEquals(0, iter.nextOrd());
     assertEquals(5, iter.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, iter.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, iter.nextOrd());
 
     r.close();
     dir.close();
@@ -422,7 +421,7 @@ public class TestDocTermOrds extends LuceneTestCase {
       final int[] answers = idToOrds[(int) docIDToID.longValue()];
       int upto = 0;
       long ord;
-      while ((ord = iter.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+      while ((ord = iter.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
         te.seekExact(ord);
         final BytesRef expected = termsArray[answers[upto++]];
         if (VERBOSE) {
@@ -666,15 +665,15 @@ public class TestDocTermOrds extends LuceneTestCase {
     
     assertEquals(0, v.nextDoc());
     assertEquals(0, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     assertEquals(1, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     assertEquals(3, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals("bar", value.utf8ToString());

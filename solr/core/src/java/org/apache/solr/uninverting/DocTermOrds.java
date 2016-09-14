@@ -27,8 +27,8 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
@@ -751,7 +751,7 @@ public class DocTermOrds implements Accountable {
     }
   }
   
-  private class Iterator extends SortedSetDocValues {
+  private class Iterator extends LegacySortedSetDocValues {
     final LeafReader reader;
     final TermsEnum te;  // used internally for lookupOrd() and lookupTerm()
     // currently we read 5 at a time (using the logic of the old iterator)

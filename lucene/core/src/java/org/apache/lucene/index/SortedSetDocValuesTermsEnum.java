@@ -25,13 +25,14 @@ import java.io.IOException;
 /** Implements a {@link TermsEnum} wrapping a provided
  * {@link SortedSetDocValues}. */
 
+// nocommit removeme
 class SortedSetDocValuesTermsEnum extends TermsEnum {
-  private final SortedSetDocValues values;
+  private final LegacySortedSetDocValues values;
   private long currentOrd = -1;
   private final BytesRefBuilder scratch;
 
   /** Creates a new TermsEnum over the provided values */
-  public SortedSetDocValuesTermsEnum(SortedSetDocValues values) {
+  public SortedSetDocValuesTermsEnum(LegacySortedSetDocValues values) {
     this.values = values;
     scratch = new BytesRefBuilder();
   }

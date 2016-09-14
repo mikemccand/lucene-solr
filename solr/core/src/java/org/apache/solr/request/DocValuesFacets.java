@@ -25,7 +25,6 @@ import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;

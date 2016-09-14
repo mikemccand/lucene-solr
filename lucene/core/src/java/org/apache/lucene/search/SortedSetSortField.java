@@ -22,12 +22,11 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 
 /** 
- * SortField for {@link SortedSetDocValues}.
+ * SortField for {@link SortedSetDocValuesIterator}.
  * <p>
  * A SortedSetDocValues contains multiple values for a field, so sorting with
  * this technique "selects" a value as the representative sort value for the document.

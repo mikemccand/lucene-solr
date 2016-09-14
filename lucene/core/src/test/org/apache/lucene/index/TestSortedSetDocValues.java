@@ -21,7 +21,7 @@ import org.apache.lucene.util.LuceneTestCase;
 public class TestSortedSetDocValues extends LuceneTestCase {
 
   public void testNoMoreOrdsConstant() {
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, -1);
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, -1);
   }
 
 }

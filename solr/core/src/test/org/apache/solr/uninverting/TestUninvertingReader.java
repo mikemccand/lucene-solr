@@ -42,7 +42,6 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
@@ -78,12 +77,12 @@ public class TestUninvertingReader extends LuceneTestCase {
     
     assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals(-3, LegacyNumericUtils.prefixCodedToInt(value));
@@ -120,12 +119,12 @@ public class TestUninvertingReader extends LuceneTestCase {
     
     assertEquals(0, v.nextDoc());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     assertEquals(1, v.nextDoc());
     assertEquals(0, v.nextOrd());
     assertEquals(1, v.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, v.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, v.nextOrd());
     
     BytesRef value = v.lookupOrd(0);
     assertEquals(Float.floatToRawIntBits(-3f), LegacyNumericUtils.prefixCodedToInt(value));

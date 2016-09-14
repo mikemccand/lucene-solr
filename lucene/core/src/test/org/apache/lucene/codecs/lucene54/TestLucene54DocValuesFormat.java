@@ -58,7 +58,6 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -249,7 +248,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
         int sortedSetCount = 0;
         while (true) {
           long ord = sortedSet.nextOrd();
-          if (ord == SortedSetDocValues.NO_MORE_ORDS) {
+          if (ord == SortedSetDocValuesIterator.NO_MORE_ORDS) {
             break;
           }
           assertTrue(valueSet.contains(Long.parseLong(sortedSet.lookupOrd(ord).utf8ToString())));
@@ -543,7 +542,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
           assertEquals(b.get(), values.lookupOrd(values.nextOrd()));
         }
 
-        assertEquals(SortedSetDocValues.NO_MORE_ORDS, values.nextOrd());
+        assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, values.nextOrd());
       }
       r.close();
       dir.close();

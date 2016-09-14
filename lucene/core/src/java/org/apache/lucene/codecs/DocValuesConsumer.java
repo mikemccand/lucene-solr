@@ -37,7 +37,6 @@ import org.apache.lucene.index.SegmentWriteState; // javadocs
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.ArrayUtil;
@@ -695,7 +694,7 @@ public abstract class DocValuesConsumer implements Closeable {
         while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
           if (liveDocs.get(docID)) {
             long ord;
-            while ((ord = dv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+            while ((ord = dv.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
               bitset.set(ord);
             }
           }

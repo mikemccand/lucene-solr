@@ -49,7 +49,6 @@ import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.Directory;
@@ -255,12 +254,12 @@ public class TestFieldCache extends LuceneTestCase {
           assertEquals(i, termOrds.nextDoc());
         }
         long ord = termOrds.nextOrd();
-        assert ord != SortedSetDocValues.NO_MORE_ORDS;
+        assert ord != SortedSetDocValuesIterator.NO_MORE_ORDS;
         BytesRef scratch = termOrds.lookupOrd(ord);
         assertEquals(v, scratch);
       }
       if (i == termOrds.docID()) {
-        assertEquals(SortedSetDocValues.NO_MORE_ORDS, termOrds.nextOrd());
+        assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, termOrds.nextOrd());
       }
     }
 
@@ -513,7 +512,7 @@ public class TestFieldCache extends LuceneTestCase {
     assertEquals(0, sortedSet.nextDoc());
     assertEquals(0, sortedSet.nextOrd());
     assertEquals(1, sortedSet.nextOrd());
-    assertEquals(SortedSetDocValues.NO_MORE_ORDS, sortedSet.nextOrd());
+    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, sortedSet.nextOrd());
     assertEquals(2, sortedSet.getValueCount());
     
     bits = FieldCache.DEFAULT.getDocsWithField(ar, "sortedset", null);

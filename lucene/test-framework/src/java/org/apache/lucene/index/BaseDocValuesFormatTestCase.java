@@ -64,7 +64,7 @@ import org.apache.lucene.util.TestUtil;
 
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
-import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
+import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
@@ -2660,11 +2660,11 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
                   assertEquals(j, sortedSet.nextDoc());
                   for (int k = 0; k < values.length; k++) {
                     long ord = sortedSet.nextOrd();
-                    assertTrue(ord != SortedSetDocValues.NO_MORE_ORDS);
+                    assertTrue(ord != SortedSetDocValuesIterator.NO_MORE_ORDS);
                     BytesRef value = sortedSet.lookupOrd(ord);
                     assertEquals(values[k], value.utf8ToString());
                   }
-                  assertEquals(SortedSetDocValues.NO_MORE_ORDS, sortedSet.nextOrd());
+                  assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, sortedSet.nextOrd());
                 }
                 
                 String numValues[] = r.document(j).getValues("storedSortedNumeric");

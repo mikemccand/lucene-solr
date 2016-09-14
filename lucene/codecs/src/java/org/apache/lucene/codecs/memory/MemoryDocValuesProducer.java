@@ -37,13 +37,13 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
+import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
@@ -670,7 +670,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     final IntsRefBuilder scratchInts = new IntsRefBuilder();
     final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
     final ByteArrayDataInput input = new ByteArrayDataInput();
-    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
+    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
       BytesRef ref;
       long currentOrd;

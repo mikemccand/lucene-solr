@@ -21,7 +21,6 @@ import java.io.IOException;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -100,7 +99,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
         }
         if (doc == setValues.docID()) {
           int term;
-          while ((term = (int)setValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+          while ((term = (int)setValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
             exists = true;
             final BytesRef value = setValues.lookupOrd(term);
             parent.collectField(doc, name, parser.parse(value) );

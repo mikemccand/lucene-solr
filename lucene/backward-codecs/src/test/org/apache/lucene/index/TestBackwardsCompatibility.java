@@ -814,7 +814,7 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
         if (is42Index) {
           assertEquals(i, dvSortedSet.nextDoc());
           long ord = dvSortedSet.nextOrd();
-          assertEquals(SortedSetDocValues.NO_MORE_ORDS, dvSortedSet.nextOrd());
+          assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, dvSortedSet.nextOrd());
           term = dvSortedSet.lookupOrd(ord);
           assertEquals(expectedRef, term);
         }

@@ -358,7 +358,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
         term = ssdv.lookupOrd(ord);
         assertEquals(i * 2, Integer.parseInt(term.utf8ToString()));
       }
-      assertEquals(SortedSetDocValues.NO_MORE_ORDS, ssdv.nextOrd());
+      assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, ssdv.nextOrd());
     }
     
     reader.close();

@@ -25,7 +25,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -256,7 +255,7 @@ public final class DocValuesRangeQuery extends Query {
                   values.advance(doc);
                 }
                 if (doc == values.docID()) {
-                  for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+                  for (long ord = values.nextOrd(); ord != SortedSetDocValuesIterator.NO_MORE_ORDS; ord = values.nextOrd()) {
                     if (ord >= minOrd && ord <= maxOrd) {
                       return true;
                     }

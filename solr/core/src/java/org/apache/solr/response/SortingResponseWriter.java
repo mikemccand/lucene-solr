@@ -30,7 +30,6 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Sort;
@@ -1340,7 +1339,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
       if (vals.advance(docId) == docId) {
         ords = new ArrayList();
         long o = -1;
-        while((o = vals.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while((o = vals.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           ords.add(o);
         }
         assert ords.size() > 0;

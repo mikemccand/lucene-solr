@@ -22,7 +22,6 @@ import java.util.Locale;
 import java.util.Random;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;

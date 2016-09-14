@@ -21,7 +21,6 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.core.SolrCore;

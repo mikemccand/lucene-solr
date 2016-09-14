@@ -26,7 +26,6 @@ import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
@@ -211,7 +210,7 @@ public class DocValuesStats {
       }
       if (doc == si.docID()) {
         long ord;
-        while ((ord = si.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while ((ord = si.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           int term = (int) ord;
           if (map != null) {
             term = (int) ordMap.get(term);

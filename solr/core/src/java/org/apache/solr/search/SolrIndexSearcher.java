@@ -54,7 +54,6 @@ import org.apache.lucene.index.MultiPostingsEnum;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StoredFieldVisitor.Status;
 import org.apache.lucene.index.StoredFieldVisitor;
@@ -817,7 +816,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
         if (values != null && values.getValueCount() > 0) {
           if (values.advance(docid) == docid) {
             final List<Object> outValues = new LinkedList<Object>();
-            for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+            for (long ord = values.nextOrd(); ord != SortedSetDocValuesIterator.NO_MORE_ORDS; ord = values.nextOrd()) {
               final BytesRef value = values.lookupOrd(ord);
               outValues.add(schemaField.getType().toObject(schemaField, value));
             }

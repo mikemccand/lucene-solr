@@ -26,12 +26,15 @@ import org.apache.lucene.util.BytesRef;
  * and sorted into a dictionary of unique values. A pointer to the
  * dictionary value (ordinal) can be retrieved for each document. Ordinals
  * are dense and in increasing sorted order.
+ *
+ * @deprecated Use {@link SortedSetDocValuesIterator} instead.
  */
-public abstract class SortedSetDocValues {
+@Deprecated
+public abstract class LegacySortedSetDocValues {
   
   /** Sole constructor. (For invocation by subclass 
    * constructors, typically implicit.) */
-  protected SortedSetDocValues() {}
+  protected LegacySortedSetDocValues() {}
 
   /** When returned by {@link #nextOrd()} it means there are no more 
    *  ordinals for the document.

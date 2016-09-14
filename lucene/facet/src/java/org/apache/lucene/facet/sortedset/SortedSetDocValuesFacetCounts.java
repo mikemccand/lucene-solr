@@ -36,7 +36,6 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.ReaderUtil;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -54,7 +53,7 @@ import org.apache.lucene.util.LongValues;
  *
  *  <p><b>NOTE</b>: this class should be instantiated and
  *  then used from a single thread, because it holds a
- *  thread-private instance of {@link SortedSetDocValues}.
+ *  thread-private instance of {@link SortedSetDocValuesIterator}.
  * 
  * <p><b>NOTE:</b>: tie-break is by unicode sort order
  *
@@ -205,7 +204,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
             }
             if (doc == segValues.docID()) {
               int term = (int) segValues.nextOrd();
-              while (term != SortedSetDocValues.NO_MORE_ORDS) {
+              while (term != SortedSetDocValuesIterator.NO_MORE_ORDS) {
                 //System.out.println("      segOrd=" + segOrd + " ord=" + term + " globalOrd=" + ordinalMap.getGlobalOrd(segOrd, term));
                 counts[(int) ordMap.get(term)]++;
                 term = (int) segValues.nextOrd();
@@ -225,7 +224,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
             }
             if (doc == segValues.docID()) {
               int term = (int) segValues.nextOrd();
-              while (term != SortedSetDocValues.NO_MORE_ORDS) {
+              while (term != SortedSetDocValuesIterator.NO_MORE_ORDS) {
                 //System.out.println("      ord=" + term);
                 segCounts[term]++;
                 term = (int) segValues.nextOrd();
@@ -252,7 +251,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
           }
           if (doc == segValues.docID()) {
             int term = (int) segValues.nextOrd();
-            while (term != SortedSetDocValues.NO_MORE_ORDS) {
+            while (term != SortedSetDocValuesIterator.NO_MORE_ORDS) {
               counts[term]++;
               term = (int) segValues.nextOrd();
             }

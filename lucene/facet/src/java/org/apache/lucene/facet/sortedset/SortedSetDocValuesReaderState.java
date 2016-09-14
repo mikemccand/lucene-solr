@@ -20,11 +20,10 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 
 /** Wraps a {@link IndexReader} and resolves ords
- *  using existing {@link SortedSetDocValues} APIs without a
+ *  using existing {@link SortedSetDocValuesIterator} APIs without a
  *  separate taxonomy index.  This only supports flat facets
  *  (dimension + label), and it makes faceting a bit
  *  slower, adds some cost at reopen time, but avoids

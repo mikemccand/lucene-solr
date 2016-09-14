@@ -2510,10 +2510,10 @@ public abstract class LuceneTestCase extends Assert {
               break;
             }
             long ord;
-            while ((ord = leftValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+            while ((ord = leftValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
               assertEquals(info, ord, rightValues.nextOrd());
             }
-            assertEquals(info, SortedSetDocValues.NO_MORE_ORDS, rightValues.nextOrd());
+            assertEquals(info, SortedSetDocValuesIterator.NO_MORE_ORDS, rightValues.nextOrd());
           }
         } else {
           assertNull(info, leftValues);

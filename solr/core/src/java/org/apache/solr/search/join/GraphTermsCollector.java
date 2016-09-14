@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.SimpleCollector;
@@ -96,7 +95,7 @@ class GraphTermsCollector extends SimpleCollector implements Collector {
     if (doc == docTermOrds.docID()) {
       BytesRef edgeValue = new BytesRef();
       long ord;
-      while ((ord = docTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+      while ((ord = docTermOrds.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
         // TODO: handle non string type fields.
         edgeValue = docTermOrds.lookupOrd(ord);
         // add the edge id to the collector terms.

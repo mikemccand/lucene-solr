@@ -256,12 +256,12 @@ public class TestMultiDocValues extends LuceneTestCase {
 
         ArrayList<Long> expectedList = new ArrayList<>();
         long ord;
-        while ((ord = single.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while ((ord = single.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           expectedList.add(ord);
         }
         
         int upto = 0;
-        while ((ord = multi.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while ((ord = multi.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           assertEquals(expectedList.get(upto).longValue(), ord);
           upto++;
         }
@@ -321,12 +321,12 @@ public class TestMultiDocValues extends LuceneTestCase {
         }
         ArrayList<Long> expectedList = new ArrayList<>();
         long ord;
-        while ((ord = single.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while ((ord = single.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           expectedList.add(ord);
         }
         
         int upto = 0;
-        while ((ord = multi.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while ((ord = multi.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           assertEquals(expectedList.get(upto).longValue(), ord);
           upto++;
         }

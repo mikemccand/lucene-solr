@@ -31,7 +31,6 @@ import org.apache.lucene.index.FilterNumericDocValuesIterator;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
@@ -287,7 +286,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
       if (doc == ssdv.docID()) {
         long currOrd;
         int currentInterval = 0;
-        while ((currOrd = ssdv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
+        while ((currOrd = ssdv.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
           boolean evaluateNextInterval = true;
           while (evaluateNextInterval && currentInterval < intervals.length) {
             IntervalCompareResult result = intervals[currentInterval].includes(currOrd);

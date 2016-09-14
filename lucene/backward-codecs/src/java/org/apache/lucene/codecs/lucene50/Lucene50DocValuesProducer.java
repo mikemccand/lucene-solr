@@ -38,13 +38,13 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
+import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
@@ -777,7 +777,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     // but the addresses to the ord stream are in RAM
     final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
     
-    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
+    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
       long startOffset;
       long offset;
       long endOffset;
@@ -837,7 +837,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     final long[] table = ss.table;
     final int[] offsets = ss.tableOffsets;
 
-    return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
+    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
 
       int offset, startOffset, endOffset;
 

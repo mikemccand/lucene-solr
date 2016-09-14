@@ -1165,7 +1165,7 @@ public class MemoryIndex {
     public SortedSetDocValuesIterator getSortedSetDocValues(String field) {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.SORTED_SET);
       if (info != null) {
-        return new StupidSortedSetDocValuesIterator(new SortedSetDocValues() {
+        return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
 
           int index = 0;
 
