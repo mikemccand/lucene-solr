@@ -38,12 +38,12 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
+import org.apache.lucene.index.LegacySortedNumericDocValues;
 import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
@@ -702,7 +702,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
       final LongValues values = getNumeric(numericEntry);
       final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
       
-      return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
+      return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
         long startOffset;
         long endOffset;
         
@@ -728,7 +728,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
+      return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
         int startOffset;
         int endOffset;
         

@@ -602,45 +602,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
   }
   
-  /** Wraps a SortedNumericDocValues but with additional asserts */
-  public static class AssertingSortedNumericDocValues extends SortedNumericDocValues {
-    private final Thread creationThread = Thread.currentThread();
-    private final SortedNumericDocValues in;
-    private final int maxDoc;
-    
-    public AssertingSortedNumericDocValues(SortedNumericDocValues in, int maxDoc) {
-      this.in = in;
-      this.maxDoc = maxDoc;
-    }
-
-    @Override
-    public void setDocument(int doc) {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert doc >= 0 && doc < maxDoc;
-      in.setDocument(doc);
-      // check the values are actually sorted
-      long previous = Long.MIN_VALUE;
-      for (int i = 0; i < in.count(); i++) {
-        long v = in.valueAt(i);
-        assert v >= previous;
-        previous = v;
-      }
-    }
-
-    @Override
-    public long valueAt(int index) {
-      assertThread("Sorted numeric doc values", creationThread);
-      assert index < in.count();
-      return in.valueAt(index);
-    }
-
-    @Override
-    public int count() {
-      assertThread("Sorted numeric doc values", creationThread);
-      return in.count();
-    } 
-  }
-
   /** Wraps a SortedNumericDocValuesIterator but with additional asserts */
   public static class AssertingSortedNumericDocValuesIterator extends SortedNumericDocValuesIterator {
     private final Thread creationThread = Thread.currentThread();

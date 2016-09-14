@@ -38,11 +38,11 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
+import org.apache.lucene.index.LegacySortedNumericDocValues;
 import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
@@ -380,7 +380,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   @Override
   public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     final LegacyBinaryDocValues binary = getBinary(field);
-    return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
+    return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
       long values[];
 
       @Override

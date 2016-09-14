@@ -68,7 +68,6 @@ import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;

@@ -37,11 +37,11 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
+import org.apache.lucene.index.LegacySortedNumericDocValues;
 import org.apache.lucene.index.LegacySortedSetDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
@@ -498,7 +498,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
       final LegacyNumericDocValues docToAddress = instance.docToAddress.numerics;
       final LegacyNumericDocValues values = instance.values.numerics;
       
-      return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
+      return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
         int valueStart;
         int valueLimit;
         

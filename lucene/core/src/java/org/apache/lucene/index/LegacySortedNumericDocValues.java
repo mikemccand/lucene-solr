@@ -20,12 +20,15 @@ package org.apache.lucene.index;
 /**
  * A list of per-document numeric values, sorted 
  * according to {@link Long#compare(long, long)}.
+ *
+ * @deprecated Use {@link SortedNumericDocValuesIterator} instead.
  */
-public abstract class SortedNumericDocValues {
+@Deprecated
+public abstract class LegacySortedNumericDocValues {
   
   /** Sole constructor. (For invocation by subclass 
-   * constructors, typically implicit.) */
-  protected SortedNumericDocValues() {}
+   *  constructors, typically implicit.) */
+  protected LegacySortedNumericDocValues() {}
 
   /** 
    * Positions to the specified document 

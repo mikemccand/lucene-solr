@@ -1028,7 +1028,7 @@ public class MemoryIndex {
     int count;
 
     final LegacyNumericDocValues numericDocValues;
-    final SortedNumericDocValues sortedNumericDocValues;
+    final LegacySortedNumericDocValues sortedNumericDocValues;
 
     private NumericDocValuesProducer() {
       this.numericDocValues = new LegacyNumericDocValues() {
@@ -1037,7 +1037,7 @@ public class MemoryIndex {
           return dvLongValues[0];
         }
       };
-      this.sortedNumericDocValues = new SortedNumericDocValues() {
+      this.sortedNumericDocValues = new LegacySortedNumericDocValues() {
         @Override
         public void setDocument(int doc) {
         }
