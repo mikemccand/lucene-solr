@@ -643,7 +643,7 @@ public class MultiDocValues {
 
     /**
      * Create an ordinal map that uses the number of unique values of each
-     * {@link SortedDocValues} instance as a weight.
+     * {@link SortedDocValuesIterator} instance as a weight.
      * @see #build(Object, TermsEnum[], long[], float)
      */
     public static OrdinalMap build(Object owner, SortedDocValuesIterator[] values, float acceptableOverheadRatio) throws IOException {

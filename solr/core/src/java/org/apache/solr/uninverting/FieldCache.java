@@ -24,7 +24,6 @@ import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.IndexReader; // javadocs
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;

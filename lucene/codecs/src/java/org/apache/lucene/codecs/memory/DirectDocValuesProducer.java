@@ -36,9 +36,9 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
+import org.apache.lucene.index.LegacySortedDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -445,8 +445,8 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   // nocommit removeme
-  private SortedDocValues newSortedInstance(final LegacyNumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
-    return new SortedDocValues() {
+  private LegacySortedDocValues newSortedInstance(final LegacyNumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
+    return new LegacySortedDocValues() {
 
       @Override
       public int getOrd(int docID) {
@@ -544,7 +544,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
 
     if (instance.docToOrdAddress == null) {
-      SortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
+      LegacySortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
       return DocValues.singleton(new StupidSortedDocValuesIterator(sorted, maxDoc));
     } else {
       final LegacyNumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;

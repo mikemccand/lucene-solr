@@ -37,10 +37,10 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
+import org.apache.lucene.index.LegacySortedDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -633,12 +633,12 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return new StupidSortedDocValuesIterator(getSortedNoIterator(field), maxDoc);
   }
   
-  private SortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
+  private LegacySortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
     final LegacyBinaryDocValues binary = getBinary(field);
     NumericEntry entry = ords.get(field.name);
     final LongValues ordinals = getNumeric(entry);
-    return new SortedDocValues() {
+    return new LegacySortedDocValues() {
 
       @Override
       public int getOrd(int docID) {

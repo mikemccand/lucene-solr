@@ -177,9 +177,9 @@ public final class DocValues {
   /** 
    * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document 
    */
-  public static final SortedDocValues emptySorted() {
+  public static final LegacySortedDocValues emptyLegacySorted() {
     final BytesRef empty = new BytesRef();
-    return new SortedDocValues() {
+    return new LegacySortedDocValues() {
       @Override
       public int getOrd(int docID) {
         return -1;
@@ -478,7 +478,7 @@ public final class DocValues {
   }
   
   /**
-   * Returns SortedDocValues for the field, or {@link #emptySorted} if it has none. 
+   * Returns SortedDocValuesIterator for the field, or {@link #emptySortedIterator} if it has none. 
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#SORTED}.

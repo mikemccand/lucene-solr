@@ -506,66 +506,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     }    
   }
 
-  /** Wraps a SortedDocValues but with additional asserts */
-  public static class AssertingSortedDocValues extends SortedDocValues {
-    private final Thread creationThread = Thread.currentThread();
-    private final SortedDocValues in;
-    private final int maxDoc;
-    private final int valueCount;
-    
-    public AssertingSortedDocValues(SortedDocValues in, int maxDoc) {
-      this.in = in;
-      this.maxDoc = maxDoc;
-      this.valueCount = in.getValueCount();
-      assert valueCount >= 0 && valueCount <= maxDoc;
-    }
-
-    @Override
-    public int getOrd(int docID) {
-      assertThread("Sorted doc values", creationThread);
-      assert docID >= 0 && docID < maxDoc;
-      int ord = in.getOrd(docID);
-      assert ord >= -1 && ord < valueCount;
-      return ord;
-    }
-
-    @Override
-    public BytesRef lookupOrd(int ord) {
-      assertThread("Sorted doc values", creationThread);
-      assert ord >= 0 && ord < valueCount;
-      final BytesRef result = in.lookupOrd(ord);
-      assert result.isValid();
-      return result;
-    }
-
-    @Override
-    public int getValueCount() {
-      assertThread("Sorted doc values", creationThread);
-      int valueCount = in.getValueCount();
-      assert valueCount == this.valueCount; // should not change
-      return valueCount;
-    }
-
-    @Override
-    public BytesRef get(int docID) {
-      assertThread("Sorted doc values", creationThread);
-      assert docID >= 0 && docID < maxDoc;
-      final BytesRef result = in.get(docID);
-      assert result.isValid();
-      return result;
-    }
-
-    @Override
-    public int lookupTerm(BytesRef key) {
-      assertThread("Sorted doc values", creationThread);
-      assert key.isValid();
-      int result = in.lookupTerm(key);
-      assert result < valueCount;
-      assert key.isValid();
-      return result;
-    }
-  }
-
   /** Wraps a SortedDocValuesIterator but with additional asserts */
   public static class AssertingSortedDocValuesIterator extends SortedDocValuesIterator {
     private final Thread creationThread = Thread.currentThread();

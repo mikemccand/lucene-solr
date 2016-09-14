@@ -22,7 +22,6 @@ import java.util.Arrays;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;

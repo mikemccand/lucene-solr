@@ -36,10 +36,10 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
 import org.apache.lucene.index.LegacyNumericDocValues;
+import org.apache.lucene.index.LegacySortedDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -488,10 +488,10 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     return new StupidSortedDocValuesIterator(getSortedNonIterator(field), maxDoc);
   }
   
-  private SortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
+  private LegacySortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
     final FSTEntry entry = fsts.get(field.name);
     if (entry.numOrds == 0) {
-      return DocValues.emptySorted();
+      return DocValues.emptyLegacySorted();
     }
     FST<Long> instance;
     synchronized(this) {
@@ -516,7 +516,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     final IntsRefBuilder scratchInts = new IntsRefBuilder();
     final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
     
-    return new SortedDocValues() {
+    return new LegacySortedDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
 
       @Override

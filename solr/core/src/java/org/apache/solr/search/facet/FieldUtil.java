@@ -19,7 +19,6 @@ package org.apache.solr.search.facet;
 import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;

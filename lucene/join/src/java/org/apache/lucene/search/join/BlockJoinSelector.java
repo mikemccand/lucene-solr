@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -100,7 +99,7 @@ public class BlockJoinSelector {
     return wrap(values, selection, parents, children);
   }
 
-  /** Wraps the provided {@link SortedDocValues} in order to only select
+  /** Wraps the provided {@link SortedDocValuesIterator} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
   public static SortedDocValuesIterator wrap(final SortedDocValuesIterator values, Type selection, BitSet parents, BitSet children) {

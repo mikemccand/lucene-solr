@@ -20,7 +20,6 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.grouping.AbstractFirstPassGroupingCollector;
@@ -29,7 +28,7 @@ import org.apache.lucene.util.BytesRef;
 
 /**
  * Concrete implementation of {@link org.apache.lucene.search.grouping.AbstractFirstPassGroupingCollector} that groups based on
- * field values and more specifically uses {@link org.apache.lucene.index.SortedDocValues}
+ * field values and more specifically uses {@link org.apache.lucene.index.SortedDocValuesIterator}
  * to collect groups.
  *
  * @lucene.experimental

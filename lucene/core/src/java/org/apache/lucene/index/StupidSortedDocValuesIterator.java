@@ -25,15 +25,15 @@ import org.apache.lucene.util.FixedBitSet;
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValuesIterator}
  */
 public final class StupidSortedDocValuesIterator extends SortedDocValuesIterator {
-  private final SortedDocValues values;
+  private final LegacySortedDocValues values;
   private final int maxDoc;
   private int docID = -1;
   private int ord;
   
-  public StupidSortedDocValuesIterator(SortedDocValues values, int maxDoc) {
+  public StupidSortedDocValuesIterator(LegacySortedDocValues values, int maxDoc) {
     this.values = values;
     this.maxDoc = maxDoc;
   }

@@ -28,7 +28,6 @@ import java.util.concurrent.Future;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSet;

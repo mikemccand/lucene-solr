@@ -28,12 +28,12 @@ import org.apache.lucene.util.BytesRefBuilder;
 
 // nocommit removeme
 class SortedDocValuesTermsEnum extends TermsEnum {
-  private final SortedDocValues values;
+  private final LegacySortedDocValues values;
   private int currentOrd = -1;
   private final BytesRefBuilder scratch;
 
   /** Creates a new TermsEnum over the provided values */
-  public SortedDocValuesTermsEnum(SortedDocValues values) {
+  public SortedDocValuesTermsEnum(LegacySortedDocValues values) {
     this.values = values;
     scratch = new BytesRefBuilder();
   }

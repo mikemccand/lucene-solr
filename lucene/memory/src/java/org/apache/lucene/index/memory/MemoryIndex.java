@@ -988,13 +988,13 @@ public class MemoryIndex {
   private static final class BinaryDocValuesProducer {
 
     BytesRefHash dvBytesValuesSet;
-    final SortedDocValues sortedDocValues;
+    final LegacySortedDocValues sortedDocValues;
     final BytesRef spare = new BytesRef();
 
     int[] bytesIds;
 
     private BinaryDocValuesProducer() {
-      sortedDocValues = new SortedDocValues() {
+      sortedDocValues = new LegacySortedDocValues() {
         @Override
         public int getOrd(int docID) {
           return 0;

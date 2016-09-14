@@ -38,7 +38,6 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -458,7 +457,7 @@ public final class JoinUtil {
    * Delegates to {@link #createJoinQuery(String, Query, Query, IndexSearcher, ScoreMode, MultiDocValues.OrdinalMap, int, int)},
    * but disables the min and max filtering.
    *
-   * @param joinField   The {@link SortedDocValues} field containing the join values
+   * @param joinField   The {@link SortedDocValuesIterator} field containing the join values
    * @param fromQuery   The query containing the actual user query. Also the fromQuery can only match "from" documents.
    * @param toQuery     The query identifying all documents on the "to" side.
    * @param searcher    The index searcher used to execute the from query
@@ -491,7 +490,7 @@ public final class JoinUtil {
    * Note: min and max filtering and the avg score mode will require this join to keep track of the number of times
    * a document matches per join value. This will increase the per join cost in terms of execution time and memory.
    *
-   * @param joinField   The {@link SortedDocValues} field containing the join values
+   * @param joinField   The {@link SortedDocValuesIterator} field containing the join values
    * @param fromQuery   The query containing the actual user query. Also the fromQuery can only match "from" documents.
    * @param toQuery     The query identifying all documents on the "to" side.
    * @param searcher    The index searcher used to execute the from query

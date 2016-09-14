@@ -39,12 +39,10 @@ import org.apache.lucene.index.PointValues.Relation;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.StupidBinaryDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesUnIterator;
 import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -79,7 +77,7 @@ class FieldCacheImpl implements FieldCache {
     caches = new HashMap<>(6);
     caches.put(Long.TYPE, new LongCache(this));
     caches.put(BinaryDocValuesIterator.class, new BinaryDocValuesCache(this));
-    caches.put(SortedDocValues.class, new SortedDocValuesCache(this));
+    caches.put(SortedDocValuesIterator.class, new SortedDocValuesCache(this));
     caches.put(DocTermOrds.class, new DocTermOrdsCache(this));
     caches.put(DocsWithFieldCache.class, new DocsWithFieldCache(this));
   }
@@ -902,7 +900,7 @@ class FieldCacheImpl implements FieldCache {
       } else if (info.getIndexOptions() == IndexOptions.NONE) {
         return DocValues.emptySortedIterator();
       }
-      SortedDocValuesImpl impl = (SortedDocValuesImpl) caches.get(SortedDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
+      SortedDocValuesImpl impl = (SortedDocValuesImpl) caches.get(SortedDocValuesIterator.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
       return impl.iterator();
     }
   }
