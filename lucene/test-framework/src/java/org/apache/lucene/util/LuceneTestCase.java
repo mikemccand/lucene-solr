@@ -2544,15 +2544,6 @@ public abstract class LuceneTestCase extends Assert {
     }
   }
   
-  public void assertDocValuesEquals(String info, int num, NumericDocValues leftDocValues, NumericDocValues rightDocValues) throws IOException {
-    assertNotNull(info, leftDocValues);
-    assertNotNull(info, rightDocValues);
-    for(int docID=0;docID<num;docID++) {
-      assertEquals(leftDocValues.get(docID),
-                   rightDocValues.get(docID));
-    }
-  }
-
   public void assertDocValuesEquals(String info, int num, NumericDocValuesIterator leftDocValues, NumericDocValuesIterator rightDocValues) throws IOException {
     assertNotNull(info, leftDocValues);
     assertNotNull(info, rightDocValues);

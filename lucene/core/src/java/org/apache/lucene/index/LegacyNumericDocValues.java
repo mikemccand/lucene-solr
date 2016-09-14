@@ -19,12 +19,15 @@ package org.apache.lucene.index;
 
 /**
  * A per-document numeric value.
+ *
+ * @deprecated Use {@link NumericDocValuesIterator} instead.
  */
-public abstract class NumericDocValues {
+@Deprecated
+public abstract class LegacyNumericDocValues {
   
   /** Sole constructor. (For invocation by subclass 
    *  constructors, typically implicit.) */
-  protected NumericDocValues() {}
+  protected LegacyNumericDocValues() {}
 
   /**
    * Returns the numeric value for the specified document ID.

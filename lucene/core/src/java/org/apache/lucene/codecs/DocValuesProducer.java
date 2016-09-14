@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValues;

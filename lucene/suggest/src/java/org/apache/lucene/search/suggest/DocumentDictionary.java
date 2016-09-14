@@ -26,7 +26,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.spell.Dictionary;
 import org.apache.lucene.util.Bits;
@@ -48,7 +47,7 @@ import org.apache.lucene.util.BytesRef;
  *      The payload and contexts field are optional and are not required to be stored.
  *    </li>
  *    <li>
- *      The weight field can be stored or can be a {@link NumericDocValues}.
+ *      The weight field can be stored or can be a {@link NumericDocValuesIterator}.
  *      If the weight field is not defined, the value of the weight is <code>0</code>
  *    </li>
  *  </ul>
@@ -237,7 +236,7 @@ public class DocumentDictionary implements Dictionary {
     /** 
      * Returns the value of the <code>weightField</code> for the current document.
      * Retrieves the value for the <code>weightField</code> if it's stored (using <code>doc</code>)
-     * or if it's indexed as {@link NumericDocValues} (using <code>docId</code>) for the document.
+     * or if it's indexed as {@link NumericDocValuesIterator} (using <code>docId</code>) for the document.
      * If no value is found, then the weight is 0.
      */
     protected long getWeight(Document doc, int docId) throws IOException {

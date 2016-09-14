@@ -386,26 +386,6 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
   }
 
-  /** Wraps a NumericDocValues but with additional asserts */
-  // nocommit remove me
-  public static class AssertingNumericDocValues extends NumericDocValues {
-    private final Thread creationThread = Thread.currentThread();
-    private final NumericDocValues in;
-    private final int maxDoc;
-    
-    public AssertingNumericDocValues(NumericDocValues in, int maxDoc) {
-      this.in = in;
-      this.maxDoc = maxDoc;
-    }
-
-    @Override
-    public long get(int docID) {
-      assertThread("Numeric doc values", creationThread);
-      assert docID >= 0 && docID < maxDoc;
-      return in.get(docID);
-    }    
-  }
-
   /** Wraps a NumericDocValuesIterator but with additional asserts */
   public static class AssertingNumericDocValuesIterator extends NumericDocValuesIterator {
     private final Thread creationThread = Thread.currentThread();

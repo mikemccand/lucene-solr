@@ -27,7 +27,6 @@ import org.apache.lucene.index.DocIDMerger;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.MergeState;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;

@@ -21,7 +21,10 @@ import org.apache.lucene.util.BytesRef;
 
 /**
  * A per-document byte[]
+ *
+ * @deprecated Use {@link BinaryDocValuesIterator} instead.
  */
+@Deprecated
 public abstract class LegacyBinaryDocValues {
   
   /** Sole constructor. (For invocation by subclass 

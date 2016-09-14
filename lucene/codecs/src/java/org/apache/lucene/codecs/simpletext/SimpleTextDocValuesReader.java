@@ -36,7 +36,7 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
@@ -158,7 +158,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
 
   @Override
   public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) throws IOException {
-    NumericDocValues values = getNumericNonIterator(fieldInfo);
+    LegacyNumericDocValues values = getNumericNonIterator(fieldInfo);
     if (values == null) {
       return null;
     } else {
@@ -166,7 +166,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     }
   }
   
-  NumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
+  LegacyNumericDocValues getNumericNonIterator(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
     assert field != null;
 
@@ -180,7 +180,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
 
     decoder.setParseBigDecimal(true);
 
-    return new NumericDocValues() {
+    return new LegacyNumericDocValues() {
       @Override
       public long get(int docID) {
         try {

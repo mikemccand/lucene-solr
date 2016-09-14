@@ -23,7 +23,6 @@ import java.util.List;
 
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;

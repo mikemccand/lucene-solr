@@ -828,7 +828,7 @@ public class MemoryIndex {
     private FieldInfo fieldInfo;
 
     /** The norms for this field; computed on demand. */
-    private transient NumericDocValues norms;
+    private transient LegacyNumericDocValues norms;
 
     /**
      * Term strings and their positions for this field: Map &lt;String
@@ -1027,11 +1027,11 @@ public class MemoryIndex {
     long[] dvLongValues;
     int count;
 
-    final NumericDocValues numericDocValues;
+    final LegacyNumericDocValues numericDocValues;
     final SortedNumericDocValues sortedNumericDocValues;
 
     private NumericDocValuesProducer() {
-      this.numericDocValues = new NumericDocValues() {
+      this.numericDocValues = new LegacyNumericDocValues() {
         @Override
         public long get(int docID) {
           return dvLongValues[0];

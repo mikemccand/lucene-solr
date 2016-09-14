@@ -17,16 +17,16 @@
 package org.apache.lucene.util;
 
 
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.util.packed.PackedInts;
 
 /** Abstraction over an array of longs.
  *  This class extends NumericDocValues so that we don't need to add another
  *  level of abstraction every time we want eg. to use the {@link PackedInts}
- *  utility classes to represent a {@link NumericDocValues} instance.
+ *  utility classes to represent a {@link LegacyNumericDocValues} instance.
  *  @lucene.internal */
 // nocommit removeme...?
-public abstract class LongValues extends NumericDocValues {
+public abstract class LongValues extends LegacyNumericDocValues {
 
   /** An instance that returns the provided value. */
   public static final LongValues IDENTITY = new LongValues() {

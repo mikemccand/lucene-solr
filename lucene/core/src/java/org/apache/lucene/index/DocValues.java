@@ -77,7 +77,9 @@ public final class DocValues {
   /** 
    * An empty NumericDocValues which returns zero for every document 
    */
-  public static final NumericDocValues emptyNumeric() {
+  // nocommit remove
+  /*
+  public static final LegacyNumericDocValues emptyNumeric() {
     return new NumericDocValues() {
       @Override
       public long get(int docID) {
@@ -85,6 +87,7 @@ public final class DocValues {
       }
     };
   }
+  */
 
   /** 
    * An empty NumericDocValuesIterator which returns no documents

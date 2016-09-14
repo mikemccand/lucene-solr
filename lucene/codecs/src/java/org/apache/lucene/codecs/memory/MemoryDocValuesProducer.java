@@ -35,7 +35,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
@@ -90,7 +90,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   private final IndexInput data;
   
   // ram instances we have already loaded
-  private final Map<String,NumericDocValues> numericInstances = new HashMap<>();
+  private final Map<String,LegacyNumericDocValues> numericInstances = new HashMap<>();
   private final Map<String,BytesAndAddresses> pagedBytesInstances = new HashMap<>();
   private final Map<String,FST<Long>> fstInstances = new HashMap<>();
   private final Map<String,FixedBitSet> docsWithFieldInstances = new HashMap<>();
@@ -290,7 +290,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
 
   @Override
   public synchronized NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
-    NumericDocValues instance = numericInstances.get(field.name);
+    LegacyNumericDocValues instance = numericInstances.get(field.name);
     if (instance == null) {
       instance = loadNumeric(field);
       if (!merging) {
@@ -300,8 +300,8 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     return new StupidNumericDocValuesIterator(getDocsWithField(field), instance);
   }
 
-  private synchronized NumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
-    NumericDocValues instance = numericInstances.get(field.name);
+  private synchronized LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
+    LegacyNumericDocValues instance = numericInstances.get(field.name);
     if (instance == null) {
       instance = loadNumeric(field);
       if (!merging) {
@@ -342,7 +342,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     return getClass().getSimpleName() + "(entries=" + numEntries + ")";
   }
 
-  private NumericDocValues loadNumeric(FieldInfo field) throws IOException {
+  private LegacyNumericDocValues loadNumeric(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
     IndexInput data = this.data.clone();
     data.seek(entry.offset + entry.missingBytes);
@@ -363,7 +363,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           ramBytesUsed.addAndGet(RamUsageEstimator.sizeOf(decode) + ordsReader.ramBytesUsed());
           numericInfo.put(field.name, Accountables.namedAccountable("table compressed", ordsReader));
         }
-        return new NumericDocValues() {
+        return new LegacyNumericDocValues() {
           @Override
           public long get(int docID) {
             return decode[(int)ordsReader.get(docID)];
@@ -378,7 +378,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           ramBytesUsed.addAndGet(deltaReader.ramBytesUsed());
           numericInfo.put(field.name, Accountables.namedAccountable("delta compressed", deltaReader));
         }
-        return new NumericDocValues() {
+        return new LegacyNumericDocValues() {
           @Override
           public long get(int docID) {
             return minDelta + deltaReader.get(docID);
@@ -402,7 +402,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           ramBytesUsed.addAndGet(quotientReader.ramBytesUsed());
           numericInfo.put(field.name, Accountables.namedAccountable("gcd compressed", quotientReader));
         }
-        return new NumericDocValues() {
+        return new LegacyNumericDocValues() {
           @Override
           public long get(int docID) {
             return min + mult * quotientReader.get(docID);
@@ -506,7 +506,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    final NumericDocValues docToOrd = getNumericNonIterator(field);
+    final LegacyNumericDocValues docToOrd = getNumericNonIterator(field);
     final FST<Long> fst = instance;
     
     // per-thread resources
@@ -568,12 +568,12 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
     SortedNumericEntry entry = sortedNumerics.get(field.name);
     if (entry.singleton) {
-      NumericDocValues values = getNumericNonIterator(field);
+      LegacyNumericDocValues values = getNumericNonIterator(field);
       NumericEntry ne = numerics.get(field.name);
       Bits docsWithField = getMissingBits(field, ne.missingOffset, ne.missingBytes);
       return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, values));
     } else {
-      final NumericDocValues values = getNumericNonIterator(field);
+      final LegacyNumericDocValues values = getNumericNonIterator(field);
       final MonotonicBlockPackedReader addr;
       synchronized (this) {
         MonotonicBlockPackedReader res = addresses.get(field.name);

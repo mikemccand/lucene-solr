@@ -1582,14 +1582,14 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable {
   }
 
   /**
-   * Updates a document's {@link NumericDocValues} for <code>field</code> to the
+   * Updates a document's {@link NumericDocValuesIterator} for <code>field</code> to the
    * given <code>value</code>. You can only update fields that already exist in
    * the index, not add new fields through this method.
    * 
    * @param term
    *          the term to identify the document(s) to be updated
    * @param field
-   *          field name of the {@link NumericDocValues} field
+   *          field name of the {@link NumericDocValuesIterator} field
    * @param value
    *          new value for the field
    *

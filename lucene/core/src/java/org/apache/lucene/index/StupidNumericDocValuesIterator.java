@@ -23,22 +23,22 @@ import org.apache.lucene.util.Bits;
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link NumericDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyNumericDocValues}
  */
 public final class StupidNumericDocValuesIterator extends NumericDocValuesIterator {
   private final Bits docsWithField;
-  private final NumericDocValues values;
+  private final LegacyNumericDocValues values;
   private final int maxDoc;
   private int docID = -1;
   
-  public StupidNumericDocValuesIterator(Bits docsWithField, NumericDocValues values) {
+  public StupidNumericDocValuesIterator(Bits docsWithField, LegacyNumericDocValues values) {
     this.docsWithField = docsWithField;
     this.values = values;
     this.maxDoc = docsWithField.length();
   }
 
   /** Constructor used only for norms */
-  public StupidNumericDocValuesIterator(int maxDoc, NumericDocValues values) {
+  public StupidNumericDocValuesIterator(int maxDoc, LegacyNumericDocValues values) {
     this(new Bits.MatchAllBits(maxDoc), values);
   }
 

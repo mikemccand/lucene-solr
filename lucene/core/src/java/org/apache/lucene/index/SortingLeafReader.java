@@ -213,12 +213,12 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingNumericDocValues extends NumericDocValues {
+  private static class SortingNumericDocValues extends LegacyNumericDocValues {
 
-    private final NumericDocValues in;
+    private final LegacyNumericDocValues in;
     private final Sorter.DocMap docMap;
 
-    public SortingNumericDocValues(final NumericDocValues in, Sorter.DocMap docMap) {
+    public SortingNumericDocValues(final LegacyNumericDocValues in, Sorter.DocMap docMap) {
       this.in = in;
       this.docMap = docMap;
     }

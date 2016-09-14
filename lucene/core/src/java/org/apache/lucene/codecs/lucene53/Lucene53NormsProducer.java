@@ -27,7 +27,7 @@ import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
@@ -117,11 +117,11 @@ class Lucene53NormsProducer extends NormsProducer {
   public NumericDocValuesIterator getNorms(FieldInfo field) throws IOException {
     final NormsEntry entry = norms.get(field.number);
 
-    NumericDocValues norms;
+    LegacyNumericDocValues norms;
 
     if (entry.bytesPerValue == 0) {
       final long value = entry.offset;
-      norms = new NumericDocValues() {
+      norms = new LegacyNumericDocValues() {
           @Override
           public long get(int docID) {
             return value;
@@ -133,7 +133,7 @@ class Lucene53NormsProducer extends NormsProducer {
         switch (entry.bytesPerValue) {
         case 1: 
           slice = data.randomAccessSlice(entry.offset, maxDoc);
-          norms = new NumericDocValues() {
+          norms = new LegacyNumericDocValues() {
             @Override
             public long get(int docID) {
               try {
@@ -146,7 +146,7 @@ class Lucene53NormsProducer extends NormsProducer {
           break;
         case 2: 
           slice = data.randomAccessSlice(entry.offset, maxDoc * 2L);
-          norms = new NumericDocValues() {
+          norms = new LegacyNumericDocValues() {
             @Override
             public long get(int docID) {
               try {
@@ -159,7 +159,7 @@ class Lucene53NormsProducer extends NormsProducer {
           break;
         case 4: 
           slice = data.randomAccessSlice(entry.offset, maxDoc * 4L);
-          norms = new NumericDocValues() {
+          norms = new LegacyNumericDocValues() {
             @Override
             public long get(int docID) {
               try {
@@ -172,7 +172,7 @@ class Lucene53NormsProducer extends NormsProducer {
           break;
         case 8: 
           slice = data.randomAccessSlice(entry.offset, maxDoc * 8L);
-          norms = new NumericDocValues() {
+          norms = new LegacyNumericDocValues() {
             @Override
             public long get(int docID) {
               try {

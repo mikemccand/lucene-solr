@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;

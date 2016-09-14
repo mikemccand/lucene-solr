@@ -35,7 +35,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValues;
@@ -314,7 +314,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         final byte[] values = new byte[entry.count];
         data.readBytes(values, 0, entry.count);
         ret.bytesUsed = RamUsageEstimator.sizeOf(values);
-        ret.numerics = new NumericDocValues() {
+        ret.numerics = new LegacyNumericDocValues() {
           @Override
           public long get(int idx) {
             return values[idx];
@@ -330,7 +330,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
           values[i] = data.readShort();
         }
         ret.bytesUsed = RamUsageEstimator.sizeOf(values);
-        ret.numerics = new NumericDocValues() {
+        ret.numerics = new LegacyNumericDocValues() {
           @Override
           public long get(int idx) {
             return values[idx];
@@ -346,7 +346,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
           values[i] = data.readInt();
         }
         ret.bytesUsed = RamUsageEstimator.sizeOf(values);
-        ret.numerics = new NumericDocValues() {
+        ret.numerics = new LegacyNumericDocValues() {
           @Override
           public long get(int idx) {
             return values[idx];
@@ -362,7 +362,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
           values[i] = data.readLong();
         }
         ret.bytesUsed = RamUsageEstimator.sizeOf(values);
-        ret.numerics = new NumericDocValues() {
+        ret.numerics = new LegacyNumericDocValues() {
           @Override
           public long get(int idx) {
             return values[idx];
@@ -445,7 +445,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   // nocommit removeme
-  private SortedDocValues newSortedInstance(final NumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
+  private SortedDocValues newSortedInstance(final LegacyNumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
     return new SortedDocValues() {
 
       @Override
@@ -491,12 +491,12 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
     
     if (entry.docToAddress == null) {
-      final NumericDocValues single = instance.values.numerics;
+      final LegacyNumericDocValues single = instance.values.numerics;
       final Bits docsWithField = getMissingBits(field, entry.values.missingOffset, entry.values.missingBytes);
       return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, single));
     } else {
-      final NumericDocValues docToAddress = instance.docToAddress.numerics;
-      final NumericDocValues values = instance.values.numerics;
+      final LegacyNumericDocValues docToAddress = instance.docToAddress.numerics;
+      final LegacyNumericDocValues values = instance.values.numerics;
       
       return new StupidSortedNumericDocValuesIterator(new SortedNumericDocValues() {
         int valueStart;
@@ -547,8 +547,8 @@ class DirectDocValuesProducer extends DocValuesProducer {
       SortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
       return DocValues.singleton(new StupidSortedDocValuesIterator(sorted, maxDoc));
     } else {
-      final NumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
-      final NumericDocValues ords = instance.ords.numerics;
+      final LegacyNumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
+      final LegacyNumericDocValues ords = instance.ords.numerics;
       final LegacyBinaryDocValues values = getBinary(field);
       
       // Must make a new instance since the iterator has state:
@@ -683,7 +683,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   static class NumericRawValues implements Accountable {
-    NumericDocValues numerics;
+    LegacyNumericDocValues numerics;
     long bytesUsed;
     
     @Override

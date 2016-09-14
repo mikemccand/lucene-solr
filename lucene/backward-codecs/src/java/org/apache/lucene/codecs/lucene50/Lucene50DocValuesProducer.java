@@ -36,7 +36,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyBinaryDocValues;
-import org.apache.lucene.index.NumericDocValues;
+import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
@@ -426,7 +426,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumericNonIterator(field));
   }
 
-  private NumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
+  private LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
     return getNumeric(entry);
   }
