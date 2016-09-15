@@ -446,14 +446,14 @@ public class AssertingLeafReader extends FilterLeafReader {
     }    
   }
   
-  /** Wraps a BinaryDocValuesIterator but with additional asserts */
-  public static class AssertingBinaryDocValuesIterator extends BinaryDocValuesIterator {
+  /** Wraps a BinaryDocValues but with additional asserts */
+  public static class AssertingBinaryDocValues extends BinaryDocValues {
     private final Thread creationThread = Thread.currentThread();
-    private final BinaryDocValuesIterator in;
+    private final BinaryDocValues in;
     private final int maxDoc;
     private int lastDocID = -1;
     
-    public AssertingBinaryDocValuesIterator(BinaryDocValuesIterator in, int maxDoc) {
+    public AssertingBinaryDocValues(BinaryDocValues in, int maxDoc) {
       this.in = in;
       this.maxDoc = maxDoc;
       // should start unpositioned:
@@ -507,14 +507,14 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   /** Wraps a SortedDocValuesIterator but with additional asserts */
-  public static class AssertingSortedDocValuesIterator extends SortedDocValuesIterator {
+  public static class AssertingSortedDocValues extends SortedDocValuesIterator {
     private final Thread creationThread = Thread.currentThread();
     private final SortedDocValuesIterator in;
     private final int maxDoc;
     private final int valueCount;
     private int lastDocID = -1;
     
-    public AssertingSortedDocValuesIterator(SortedDocValuesIterator in, int maxDoc) {
+    public AssertingSortedDocValues(SortedDocValuesIterator in, int maxDoc) {
       this.in = in;
       this.maxDoc = maxDoc;
       this.valueCount = in.getValueCount();
@@ -780,13 +780,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
-    BinaryDocValuesIterator dv = super.getBinaryDocValues(field);
+  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+    BinaryDocValues dv = super.getBinaryDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.BINARY;
-      return new AssertingBinaryDocValuesIterator(dv, maxDoc());
+      return new AssertingBinaryDocValues(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.BINARY;
       return null;
@@ -800,7 +800,7 @@ public class AssertingLeafReader extends FilterLeafReader {
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.SORTED;
-      return new AssertingSortedDocValuesIterator(dv, maxDoc());
+      return new AssertingSortedDocValues(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED;
       return null;

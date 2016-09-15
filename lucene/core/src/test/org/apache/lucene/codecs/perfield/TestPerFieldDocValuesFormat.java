@@ -31,7 +31,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.BaseDocValuesFormatTestCase;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -118,7 +118,7 @@ public class TestPerFieldDocValuesFormat extends BaseDocValuesFormatTestCase {
       assertEquals(hitDocID, dv.advance(hitDocID));
       assertEquals(5, dv.longValue());
       
-      BinaryDocValuesIterator dv2 = ireader.leaves().get(0).reader().getBinaryDocValues("dv2");
+      BinaryDocValues dv2 = ireader.leaves().get(0).reader().getBinaryDocValues("dv2");
       assertEquals(hitDocID, dv2.advance(hitDocID));
       final BytesRef term = dv2.binaryValue();
       assertEquals(new BytesRef("hello world"), term);

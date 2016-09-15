@@ -431,7 +431,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     final DirectoryReader reader = DirectoryReader.open(dir);
     LeafReader r = reader.leaves().get(0).reader();
     NumericDocValues ndv = r.getNumericDocValues("ndv");
-    BinaryDocValuesIterator bdv = r.getBinaryDocValues("bdv");
+    BinaryDocValues bdv = r.getBinaryDocValues("bdv");
     SortedDocValuesIterator sdv = r.getSortedDocValues("sdv");
     SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("ssdv");
     for (int i = 0; i < r.maxDoc(); i++) {

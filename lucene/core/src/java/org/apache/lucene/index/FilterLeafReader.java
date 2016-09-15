@@ -437,7 +437,7 @@ public abstract class FilterLeafReader extends LeafReader {
   }
   
   @Override
-  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
     ensureOpen();
     return in.getBinaryDocValues(field);
   }

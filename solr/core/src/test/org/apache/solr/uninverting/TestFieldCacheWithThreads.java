@@ -30,7 +30,7 @@ import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -118,7 +118,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
                   }
                   break;
                 }
-                BinaryDocValuesIterator bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
+                BinaryDocValues bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
                 assertEquals(docID, bdv.advance(docID));
                 assertEquals(binary.get(docID), bdv.binaryValue());
                 SortedDocValuesIterator sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");

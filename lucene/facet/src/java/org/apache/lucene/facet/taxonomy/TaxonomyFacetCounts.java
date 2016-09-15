@@ -22,13 +22,13 @@ import java.util.List;
 import org.apache.lucene.facet.FacetsCollector.MatchingDocs;
 import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsConfig;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.IntsRef;
 
 /** Reads from any {@link OrdinalsReader}; use {@link
  *  FastTaxonomyFacetCounts} if you are using the
- *  default encoding from {@link BinaryDocValuesIterator}.
+ *  default encoding from {@link BinaryDocValues}.
  * 
  * @lucene.experimental */
 public class TaxonomyFacetCounts extends IntTaxonomyFacets {

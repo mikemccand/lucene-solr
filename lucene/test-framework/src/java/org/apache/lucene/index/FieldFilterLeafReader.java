@@ -114,7 +114,7 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
     return hasField(field) ? super.getBinaryDocValues(field) : null;
   }
 

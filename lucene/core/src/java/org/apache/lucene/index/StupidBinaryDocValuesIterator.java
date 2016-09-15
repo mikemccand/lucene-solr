@@ -17,17 +17,15 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.FixedBitSet;
 
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
  * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyBinaryDocValues}
  */
-public final class StupidBinaryDocValuesIterator extends BinaryDocValuesIterator {
+public final class StupidBinaryDocValuesIterator extends BinaryDocValues {
   private final Bits docsWithField;
   private final LegacyBinaryDocValues values;
   private final int maxDoc;

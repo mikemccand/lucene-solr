@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
@@ -226,7 +226,7 @@ public class QueryUtils {
       }
 
       @Override
-      public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+      public BinaryDocValues getBinaryDocValues(String field) throws IOException {
         return null;
       }
 

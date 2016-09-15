@@ -19,18 +19,17 @@ package org.apache.lucene.index;
 
 import java.io.IOException;
 
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 
 /**
- * Delegates all methods to a wrapped {@link BinaryDocValuesIterator}.
+ * Delegates all methods to a wrapped {@link BinaryDocValues}.
  */
-public abstract class FilterBinaryDocValuesIterator extends BinaryDocValuesIterator {
+public abstract class FilterBinaryDocValues extends BinaryDocValues {
 
-  protected final BinaryDocValuesIterator in;
+  protected final BinaryDocValues in;
   
   /** Sole constructor */
-  protected FilterBinaryDocValuesIterator(BinaryDocValuesIterator in) {
+  protected FilterBinaryDocValues(BinaryDocValues in) {
     this.in = in;
   }
 

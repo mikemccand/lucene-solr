@@ -35,10 +35,10 @@ public final class DocValues {
   private DocValues() {}
 
   /** 
-   * An empty {@link BinaryDocValuesIterator} which returns no documents
+   * An empty {@link BinaryDocValues} which returns no documents
    */
-  public static final BinaryDocValuesIterator emptyBinaryIterator() {
-    return new BinaryDocValuesIterator() {
+  public static final BinaryDocValues emptyBinaryIterator() {
+    return new BinaryDocValues() {
       private boolean exhausted = false;
       
       @Override
@@ -458,15 +458,15 @@ public final class DocValues {
   }
   
   /**
-   * Returns BinaryDocValuesIterator for the field, or {@link #emptyBinaryIterator} if it has none. 
+   * Returns BinaryDocValues for the field, or {@link #emptyBinaryIterator} if it has none.
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#BINARY}
    *                               or {@link DocValuesType#SORTED}.
    * @throws IOException if an I/O error occurs.
    */
-  public static BinaryDocValuesIterator getBinaryIterator(LeafReader reader, String field) throws IOException {
-    BinaryDocValuesIterator dv = reader.getBinaryDocValues(field);
+  public static BinaryDocValues getBinaryIterator(LeafReader reader, String field) throws IOException {
+    BinaryDocValues dv = reader.getBinaryDocValues(field);
     if (dv == null) {
       dv = reader.getSortedDocValues(field);
       if (dv == null) {

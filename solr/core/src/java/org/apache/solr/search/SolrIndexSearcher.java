@@ -831,7 +831,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             doc.addField(fieldName, newVal);
             break;
           case BINARY:
-            BinaryDocValuesIterator bdv = leafReader.getBinaryDocValues(fieldName);
+            BinaryDocValues bdv = leafReader.getBinaryDocValues(fieldName);
             BytesRef value;
             if (bdv.advance(docid) == docid) {
               value = BytesRef.deepCopyOf(bdv.binaryValue());

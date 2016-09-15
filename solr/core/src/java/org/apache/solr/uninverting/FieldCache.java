@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.IndexReader; // javadocs
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
@@ -295,14 +295,14 @@ interface FieldCache {
    * @return The values in the given field for each document.
    * @throws IOException  If any error occurs.
    */
-  public BinaryDocValuesIterator getTerms(LeafReader reader, String field) throws IOException;
+  public BinaryDocValues getTerms(LeafReader reader, String field) throws IOException;
 
   /** Expert: just like {@link #getTerms(org.apache.lucene.index.LeafReader,String,boolean)},
    *  but you can specify whether more RAM should be consumed in exchange for
    *  faster lookups (default is "true").  Note that the
    *  first call for a given reader and field "wins",
    *  subsequent calls will share the same cache entry. */
-  public BinaryDocValuesIterator getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException;
+  public BinaryDocValues getTerms(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException;
 
   /** Checks the internal cache for an appropriate entry, and if none
    * is found, reads the term values in <code>field</code>

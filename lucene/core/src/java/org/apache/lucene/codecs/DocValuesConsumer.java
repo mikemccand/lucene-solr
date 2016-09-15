@@ -23,7 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocIDMerger;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
@@ -241,12 +241,12 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one binary sub-reader that we are merging */
   private static class BinaryDocValuesSub extends DocIDMerger.Sub {
 
-    private final BinaryDocValuesIterator values;
+    private final BinaryDocValues values;
     private int docID = -1;
     private final int maxDoc;
     BytesRef value;
 
-    public BinaryDocValuesSub(MergeState.DocMap docMap, BinaryDocValuesIterator values, int maxDoc) {
+    public BinaryDocValuesSub(MergeState.DocMap docMap, BinaryDocValues values, int maxDoc) {
       super(docMap);
       this.values = values;
       this.maxDoc = maxDoc;
@@ -282,7 +282,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addBinaryField(mergeFieldInfo,
                    new EmptyDocValuesProducer() {
                      @Override
-                     public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfo) throws IOException {
+                     public BinaryDocValues getBinaryIterator(FieldInfo fieldInfo) throws IOException {
                        if (fieldInfo != mergeFieldInfo) {
                          throw new IllegalArgumentException("wrong fieldInfo");
                        }
@@ -290,7 +290,7 @@ public abstract class DocValuesConsumer implements Closeable {
                        List<BinaryDocValuesSub> subs = new ArrayList<>();
 
                        for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-                         BinaryDocValuesIterator values = null;
+                         BinaryDocValues values = null;
                          DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
                          if (docValuesProducer != null) {
                            FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
@@ -305,7 +305,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                        final DocIDMerger<BinaryDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
 
-                       return new BinaryDocValuesIterator() {
+                       return new BinaryDocValues() {
                          private BinaryDocValuesSub current;
                          private int docID = -1;
 

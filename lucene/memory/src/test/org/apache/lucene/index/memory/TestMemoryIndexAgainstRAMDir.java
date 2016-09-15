@@ -507,8 +507,8 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
       assertEquals(controlSortedNumericDocValues.nextValue(), sortedNumericDocValues.nextValue());
     }
 
-    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValues("binary");
-    BinaryDocValuesIterator controlBinaryDocValues = controlLeafReader.getBinaryDocValues("binary");
+    BinaryDocValues binaryDocValues = leafReader.getBinaryDocValues("binary");
+    BinaryDocValues controlBinaryDocValues = controlLeafReader.getBinaryDocValues("binary");
     assertEquals(0, binaryDocValues.nextDoc());
     assertEquals(0, controlBinaryDocValues.nextDoc());
     assertEquals(controlBinaryDocValues.binaryValue(), binaryDocValues.binaryValue());

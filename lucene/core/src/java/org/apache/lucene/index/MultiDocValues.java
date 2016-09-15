@@ -270,8 +270,8 @@ public class MultiDocValues {
     };
   }
 
-  /** Returns a BinaryDocValuesIterator for a reader's docvalues (potentially merging on-the-fly) */  
-  public static BinaryDocValuesIterator getBinaryValuesIterator(final IndexReader r, final String field) throws IOException {
+  /** Returns a BinaryDocValues for a reader's docvalues (potentially merging on-the-fly) */
+  public static BinaryDocValues getBinaryValuesIterator(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -280,12 +280,12 @@ public class MultiDocValues {
       return leaves.get(0).reader().getBinaryDocValues(field);
     }
 
-    final List<BinaryDocValuesIterator> iterators = new ArrayList<>();
+    final List<BinaryDocValues> iterators = new ArrayList<>();
     long totalCost = 0;
     boolean any = false;
     for(int i=0;i<leaves.size();i++) {
       LeafReaderContext leaf = leaves.get(i);
-      BinaryDocValuesIterator iterator = leaf.reader().getBinaryDocValues(field);
+      BinaryDocValues iterator = leaf.reader().getBinaryDocValues(field);
       if (iterator != null) {
         totalCost += iterator.cost();
         any = true;
@@ -299,9 +299,9 @@ public class MultiDocValues {
 
     final long finalTotalCost = totalCost;
 
-    return new BinaryDocValuesIterator() {
+    return new BinaryDocValues() {
       private int nextLeaf;
-      private BinaryDocValuesIterator currentValues;
+      private BinaryDocValues currentValues;
       private LeafReaderContext currentLeaf;
       private int docID = -1;
 

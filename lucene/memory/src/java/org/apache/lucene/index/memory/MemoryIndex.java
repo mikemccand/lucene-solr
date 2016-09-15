@@ -1133,7 +1133,7 @@ public class MemoryIndex {
     }
 
     @Override
-    public BinaryDocValuesIterator getBinaryDocValues(String field) {
+    public BinaryDocValues getBinaryDocValues(String field) {
       return getSortedDocValues(field, DocValuesType.BINARY);
     }
 

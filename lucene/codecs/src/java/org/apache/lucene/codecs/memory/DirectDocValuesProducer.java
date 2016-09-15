@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
@@ -403,7 +403,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public synchronized BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+  public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
     return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
   }
   

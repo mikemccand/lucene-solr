@@ -486,7 +486,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+  public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
     return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
   }
 

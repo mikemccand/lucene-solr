@@ -27,7 +27,7 @@ import java.util.TreeSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.PostingsEnum;
@@ -194,7 +194,7 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
     for (int i = 0; i < hits.scoreDocs.length; i++) {
       FieldDoc fd = (FieldDoc) hits.scoreDocs[i];
 
-      BinaryDocValuesIterator textDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), TEXT_FIELD_NAME);
+      BinaryDocValues textDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), TEXT_FIELD_NAME);
       assert textDV != null;
 
       textDV.advance(fd.doc);
@@ -204,7 +204,7 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
 
       // This will just be null if app didn't pass payloads to build():
       // TODO: maybe just stored fields?  they compress...
-      BinaryDocValuesIterator payloadsDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), "payloads");
+      BinaryDocValues payloadsDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), "payloads");
 
       BytesRef payload;
       if (payloadsDV != null) {

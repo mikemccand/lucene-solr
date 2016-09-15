@@ -2072,7 +2072,7 @@ public final class CheckIndex implements Closeable {
   }
   */
   
-  private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValuesIterator bdv) throws IOException {
+  private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValues bdv) throws IOException {
     int doc;
     if (bdv.docID() != -1) {
       throw new RuntimeException("binary dv iterator for field: " + fieldName + " should start at docID=-1, but got " + bdv.docID());

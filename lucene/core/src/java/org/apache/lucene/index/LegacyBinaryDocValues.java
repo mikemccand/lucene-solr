@@ -22,7 +22,7 @@ import org.apache.lucene.util.BytesRef;
 /**
  * A per-document byte[]
  *
- * @deprecated Use {@link BinaryDocValuesIterator} instead.
+ * @deprecated Use {@link BinaryDocValues} instead.
  */
 @Deprecated
 public abstract class LegacyBinaryDocValues {

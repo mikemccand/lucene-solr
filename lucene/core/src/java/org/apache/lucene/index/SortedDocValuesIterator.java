@@ -17,7 +17,6 @@
 package org.apache.lucene.index;
 
 
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 
 /**
@@ -33,7 +32,7 @@ import org.apache.lucene.util.BytesRef;
 
 // nocommit don't extend binary anymore?
 
-public abstract class SortedDocValuesIterator extends BinaryDocValuesIterator {
+public abstract class SortedDocValuesIterator extends BinaryDocValues {
 
   /** Sole constructor. (For invocation by subclass 
    * constructors, typically implicit.) */

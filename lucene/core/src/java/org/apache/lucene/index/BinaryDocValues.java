@@ -25,11 +25,11 @@ import org.apache.lucene.util.BytesRef;
 /**
  * A per-document numeric value.
  */
-public abstract class BinaryDocValuesIterator extends DocIdSetIterator {
+public abstract class BinaryDocValues extends DocIdSetIterator {
   
   /** Sole constructor. (For invocation by subclass 
    *  constructors, typically implicit.) */
-  protected BinaryDocValuesIterator() {}
+  protected BinaryDocValues() {}
 
   /**
    * Returns the numeric value for the current document ID.

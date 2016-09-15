@@ -30,7 +30,7 @@ import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexReader;
@@ -102,7 +102,7 @@ public final class JoinUtil {
       Function<SortedSetDocValuesIterator> mvFunction = DocValuesTermsCollector.sortedSetDocValues(fromField);
       termsWithScoreCollector = GenericTermsCollector.createCollectorMV(mvFunction, scoreMode);
     } else {
-      Function<BinaryDocValuesIterator> svFunction = DocValuesTermsCollector.binaryDocValues(fromField);
+      Function<BinaryDocValues> svFunction = DocValuesTermsCollector.binaryDocValues(fromField);
       termsWithScoreCollector = GenericTermsCollector.createCollectorSV(svFunction, scoreMode);
     }
     
@@ -144,7 +144,7 @@ public final class JoinUtil {
       Function<SortedSetDocValuesIterator> mvFunction = DocValuesTermsCollector.sortedNumericAsSortedSetDocValues(fromField,numericType);
       termsCollector = GenericTermsCollector.createCollectorMV(mvFunction, scoreMode);
     } else {
-      Function<BinaryDocValuesIterator> svFunction = DocValuesTermsCollector.numericAsBinaryDocValues(fromField,numericType);
+      Function<BinaryDocValues> svFunction = DocValuesTermsCollector.numericAsBinaryDocValues(fromField,numericType);
       termsCollector = GenericTermsCollector.createCollectorSV(svFunction, scoreMode);
     }
     

@@ -20,7 +20,7 @@ package org.apache.lucene.search;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
@@ -874,7 +874,7 @@ public abstract class FieldComparator<T> {
     
     private final BytesRef[] values;
     private final BytesRefBuilder[] tempBRs;
-    private BinaryDocValuesIterator docTerms;
+    private BinaryDocValues docTerms;
     private final String field;
     private BytesRef bottom;
     private BytesRef topValue;
@@ -932,13 +932,13 @@ public abstract class FieldComparator<T> {
       }
     }
 
-    /** Retrieves the BinaryDocValuesIterator for the field in this segment */
-    protected BinaryDocValuesIterator getBinaryDocValuesIterator(LeafReaderContext context, String field) throws IOException {
+    /** Retrieves the BinaryDocValues for the field in this segment */
+    protected BinaryDocValues getBinaryDocValuesIterator(LeafReaderContext context, String field) throws IOException {
       return DocValues.getBinaryIterator(context.reader(), field);
     }
 
     /** Check whether the given value represents <tt>null</tt>. This can be
-     *  useful if the {@link BinaryDocValuesIterator} returned by {@link #getBinaryDocValuesIterator}
+     *  useful if the {@link BinaryDocValues} returned by {@link #getBinaryDocValuesIterator}
      *  use a special value as a sentinel.
      *  <p>NOTE: The null value can only be an EMPTY {@link BytesRef}. */
     protected boolean isNull(int doc, BytesRef term) throws IOException {

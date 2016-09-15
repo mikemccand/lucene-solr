@@ -82,7 +82,7 @@ public class Test2BSortedDocValuesFixedSorted extends LuceneTestCase {
     int expectedValue = 0;
     for (LeafReaderContext context : r.leaves()) {
       LeafReader reader = context.reader();
-      BinaryDocValuesIterator dv = DocValues.getBinaryIterator(reader, "dv");
+      BinaryDocValues dv = DocValues.getBinaryIterator(reader, "dv");
       for (int i = 0; i < reader.maxDoc(); i++) {
         assertEquals(i, dv.nextDoc());
         bytes[0] = (byte)(expectedValue >> 8);

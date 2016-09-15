@@ -138,7 +138,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
 
   @Override
-  public final BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+  public final BinaryDocValues getBinaryDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getDVField(field, DocValuesType.BINARY);
     if (fi == null) {

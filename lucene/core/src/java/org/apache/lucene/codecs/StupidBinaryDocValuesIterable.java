@@ -20,11 +20,11 @@ package org.apache.lucene.codecs;
 import java.io.IOException;
 import java.util.Iterator;
 
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.util.BytesRef;
 
-/** Temporary bridge class to convert {@link BinaryDocValuesIterator} to {@code Iterable&lt;BytesRef&gt} */
+/** Temporary bridge class to convert {@link BinaryDocValues} to {@code Iterable&lt;BytesRef&gt} */
 public class StupidBinaryDocValuesIterable implements Iterable<BytesRef> {
   private final FieldInfo field;
   private final DocValuesProducer valuesProducer;
@@ -39,7 +39,7 @@ public class StupidBinaryDocValuesIterable implements Iterable<BytesRef> {
   @Override
   public Iterator<BytesRef> iterator() {
 
-    final BinaryDocValuesIterator values;
+    final BinaryDocValues values;
     try {
       values = valuesProducer.getBinaryIterator(field);
     } catch (IOException ioe) {

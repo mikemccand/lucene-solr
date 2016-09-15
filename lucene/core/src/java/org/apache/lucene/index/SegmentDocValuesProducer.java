@@ -100,7 +100,7 @@ class SegmentDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+  public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
     DocValuesProducer dvProducer = dvProducersByField.get(field.name);
     assert dvProducer != null;
     return dvProducer.getBinaryIterator(field);

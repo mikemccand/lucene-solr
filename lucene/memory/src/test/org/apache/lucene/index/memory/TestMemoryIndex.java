@@ -42,7 +42,7 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.IndexReader;
@@ -249,7 +249,7 @@ public class TestMemoryIndex extends LuceneTestCase {
     assertEquals(32L, sortedNumericDocValues.nextValue());
     assertEquals(32L, sortedNumericDocValues.nextValue());
     assertEquals(33L, sortedNumericDocValues.nextValue());
-    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValues("binary");
+    BinaryDocValues binaryDocValues = leafReader.getBinaryDocValues("binary");
     assertEquals(0, binaryDocValues.nextDoc());
     assertEquals("a", binaryDocValues.binaryValue().utf8ToString());
     SortedDocValuesIterator sortedDocValues = leafReader.getSortedDocValues("sorted");
@@ -341,7 +341,7 @@ public class TestMemoryIndex extends LuceneTestCase {
     assertEquals(0, penum.startOffset());
     assertEquals(5, penum.endOffset());
 
-    BinaryDocValuesIterator binaryDocValues = leafReader.getBinaryDocValues("text");
+    BinaryDocValues binaryDocValues = leafReader.getBinaryDocValues("text");
     assertEquals(0, binaryDocValues.nextDoc());
     assertEquals("quick brown fox", binaryDocValues.binaryValue().utf8ToString());
   }
@@ -483,7 +483,7 @@ public class TestMemoryIndex extends LuceneTestCase {
     assertArrayEquals(packedPoint, leafReader.getPointValues().getMinPackedValue("field"));
     assertArrayEquals(packedPoint, leafReader.getPointValues().getMaxPackedValue("field"));
 
-    BinaryDocValuesIterator dvs = leafReader.getBinaryDocValues("field");
+    BinaryDocValues dvs = leafReader.getBinaryDocValues("field");
     assertEquals(0, dvs.nextDoc());
     assertEquals("term", dvs.binaryValue().utf8ToString());
   }

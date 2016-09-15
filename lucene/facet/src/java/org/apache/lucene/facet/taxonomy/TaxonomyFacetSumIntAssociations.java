@@ -22,7 +22,7 @@ import java.util.List;
 import org.apache.lucene.facet.FacetsCollector.MatchingDocs;
 import org.apache.lucene.facet.FacetsCollector;
 import org.apache.lucene.facet.FacetsConfig;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 
@@ -49,7 +49,7 @@ public class TaxonomyFacetSumIntAssociations extends IntTaxonomyFacets {
   private final void sumValues(List<MatchingDocs> matchingDocs) throws IOException {
     //System.out.println("count matchingDocs=" + matchingDocs + " facetsField=" + facetsFieldName);
     for(MatchingDocs hits : matchingDocs) {
-      BinaryDocValuesIterator dv = hits.context.reader().getBinaryDocValues(indexFieldName);
+      BinaryDocValues dv = hits.context.reader().getBinaryDocValues(indexFieldName);
       if (dv == null) { // this reader does not have DocValues for the requested category list
         continue;
       }

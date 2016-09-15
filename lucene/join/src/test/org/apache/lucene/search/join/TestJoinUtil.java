@@ -50,7 +50,7 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
@@ -1224,7 +1224,7 @@ public class TestJoinUtil extends LuceneTestCase {
         searcher.search(new TermQuery(new Term("value", uniqueRandomValue)), new SimpleCollector() {
 
           private Scorer scorer;
-          private BinaryDocValuesIterator terms;
+          private BinaryDocValues terms;
 
           @Override
           public void collect(int doc) throws IOException {
@@ -1292,7 +1292,7 @@ public class TestJoinUtil extends LuceneTestCase {
       } else {
         searcher.search(new MatchAllDocsQuery(), new SimpleCollector() {
 
-          private BinaryDocValuesIterator terms;
+          private BinaryDocValues terms;
           private int docBase;
 
           @Override

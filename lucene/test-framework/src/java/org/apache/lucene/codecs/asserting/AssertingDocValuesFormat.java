@@ -25,7 +25,7 @@ import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValuesIterator;
 import org.apache.lucene.index.AssertingLeafReader;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
@@ -233,11 +233,11 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+    public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.BINARY;
-      BinaryDocValuesIterator values = in.getBinaryIterator(field);
+      BinaryDocValues values = in.getBinaryIterator(field);
       assert values != null;
-      return new AssertingLeafReader.AssertingBinaryDocValuesIterator(values, maxDoc);
+      return new AssertingLeafReader.AssertingBinaryDocValues(values, maxDoc);
     }
 
     @Override
@@ -245,7 +245,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
       assert field.getDocValuesType() == DocValuesType.SORTED;
       SortedDocValuesIterator values = in.getSorted(field);
       assert values != null;
-      return new AssertingLeafReader.AssertingSortedDocValuesIterator(values, maxDoc);
+      return new AssertingLeafReader.AssertingSortedDocValues(values, maxDoc);
     }
     
     @Override

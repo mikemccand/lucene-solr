@@ -117,7 +117,7 @@ class BinaryDocValuesWriter extends DocValuesWriter {
     dvConsumer.addBinaryField(fieldInfo,
                               new EmptyDocValuesProducer() {
                                 @Override
-                                public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfoIn) {
+                                public BinaryDocValues getBinaryIterator(FieldInfo fieldInfoIn) {
                                   if (fieldInfoIn != fieldInfo) {
                                     throw new IllegalArgumentException("wrong fieldInfo");
                                   }
@@ -127,7 +127,7 @@ class BinaryDocValuesWriter extends DocValuesWriter {
   }
 
   // iterates over the values we have in ram
-  private class BytesIterator extends BinaryDocValuesIterator {
+  private class BytesIterator extends BinaryDocValues {
     final BytesRefBuilder value = new BytesRefBuilder();
     final PackedLongValues.Iterator lengthsIterator;
     final DataInput bytesIterator = bytes.getDataInput();

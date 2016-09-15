@@ -43,7 +43,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.BaseCompressingDocValuesFormatTestCase;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
@@ -208,7 +208,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
       final SortedDocValuesIterator sorted = DocValues.getSorted(reader, "sorted");
 
-      final BinaryDocValuesIterator binary = DocValues.getBinaryIterator(reader, "binary");
+      final BinaryDocValues binary = DocValues.getBinaryIterator(reader, "binary");
 
       final SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
 

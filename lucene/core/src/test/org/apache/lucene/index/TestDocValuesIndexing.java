@@ -176,7 +176,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     w.addDocument(doc);
     w.forceMerge(1);
     DirectoryReader r = w.getReader();
-    BinaryDocValuesIterator s = DocValues.getBinaryIterator(getOnlyLeafReader(r), "field");
+    BinaryDocValues s = DocValues.getBinaryIterator(getOnlyLeafReader(r), "field");
     assertEquals(0, s.nextDoc());
     BytesRef bytes1 = s.binaryValue();
     assertEquals(bytes.length, bytes1.length);

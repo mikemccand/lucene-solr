@@ -154,28 +154,12 @@ class SortingLeafReader extends FilterLeafReader {
 
   }
 
-  private static class SortingBinaryDocValues extends LegacyBinaryDocValues {
-
-    private final LegacyBinaryDocValues in;
-    private final Sorter.DocMap docMap;
-
-    SortingBinaryDocValues(LegacyBinaryDocValues in, Sorter.DocMap docMap) {
-      this.in = in;
-      this.docMap = docMap;
-    }
-
-    @Override
-    public BytesRef get(int docID) {
-      return in.get(docMap.newToOld(docID));
-    }
-  }
-
-  private static class SortingBinaryDocValuesIterator extends BinaryDocValuesIterator {
+  private static class SortingBinaryDocValues extends BinaryDocValues {
 
     private final CachedBinaryDVs dvs;
     private int docID = -1;
 
-    public SortingBinaryDocValuesIterator(CachedBinaryDVs dvs) {
+    public SortingBinaryDocValues(CachedBinaryDVs dvs) {
       this.dvs = dvs;
     }
 
@@ -1028,8 +1012,8 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
-    final BinaryDocValuesIterator oldDocValues = in.getBinaryDocValues(field);
+  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+    final BinaryDocValues oldDocValues = in.getBinaryDocValues(field);
     if (oldDocValues == null) return null;
     CachedBinaryDVs dvs;
     synchronized (cachedBinaryDVs) {
@@ -1050,7 +1034,7 @@ class SortingLeafReader extends FilterLeafReader {
         cachedBinaryDVs.put(field, dvs);
       }
     }
-    return new SortingBinaryDocValuesIterator(dvs);
+    return new SortingBinaryDocValues(dvs);
   }
   
 

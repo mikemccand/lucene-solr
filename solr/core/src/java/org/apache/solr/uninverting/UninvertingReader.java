@@ -25,7 +25,7 @@ import org.apache.lucene.document.NumericDocValuesField; // javadocs
 import org.apache.lucene.document.SortedDocValuesField; // javadocs
 import org.apache.lucene.document.SortedSetDocValuesField; // javadocs
 import org.apache.lucene.document.StringField; // javadocs
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
@@ -294,8 +294,8 @@ public class UninvertingReader extends FilterLeafReader {
   }
 
   @Override
-  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
-    BinaryDocValuesIterator values = in.getBinaryDocValues(field);
+  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+    BinaryDocValues values = in.getBinaryDocValues(field);
     if (values != null) {
       return values;
     }

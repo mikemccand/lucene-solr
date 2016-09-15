@@ -252,7 +252,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
   
   @Override
-  public synchronized BinaryDocValuesIterator getBinaryIterator(FieldInfo field) throws IOException {
+  public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
     return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
   }
 

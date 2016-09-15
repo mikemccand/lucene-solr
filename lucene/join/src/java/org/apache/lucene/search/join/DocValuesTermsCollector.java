@@ -21,7 +21,7 @@ import java.util.function.LongConsumer;
 
 import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -52,7 +52,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
     docValues = docValuesCall.apply(context.reader());
   }
   
-  static Function<BinaryDocValuesIterator> binaryDocValues(String field) {
+  static Function<BinaryDocValues> binaryDocValues(String field) {
     return (ctx) -> DocValues.getBinaryIterator(ctx, field);
   }
 
@@ -60,14 +60,14 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
     return (ctx) -> DocValues.getSortedSet(ctx, field);
   }
   
-  static Function<BinaryDocValuesIterator> numericAsBinaryDocValues(String field, LegacyNumericType numTyp) {
+  static Function<BinaryDocValues> numericAsBinaryDocValues(String field, LegacyNumericType numTyp) {
     return (ctx) -> {
       final NumericDocValues numeric = DocValues.getNumericIterator(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);
       
-      return new BinaryDocValuesIterator() {
+      return new BinaryDocValues() {
         
         @Override
         public int docID() {

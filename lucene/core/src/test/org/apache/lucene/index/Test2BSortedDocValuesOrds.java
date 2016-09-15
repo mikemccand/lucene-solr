@@ -85,7 +85,7 @@ public class Test2BSortedDocValuesOrds extends LuceneTestCase {
     for (LeafReaderContext context : r.leaves()) {
       LeafReader reader = context.reader();
       BytesRef scratch = new BytesRef();
-      BinaryDocValuesIterator dv = DocValues.getBinaryIterator(reader, "dv");
+      BinaryDocValues dv = DocValues.getBinaryIterator(reader, "dv");
       for (int i = 0; i < reader.maxDoc(); i++) {
         assertEquals(i, dv.nextDoc());
         bytes[0] = (byte) (counter >> 24);

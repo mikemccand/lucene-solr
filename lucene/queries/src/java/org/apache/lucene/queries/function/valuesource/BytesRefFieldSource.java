@@ -19,14 +19,13 @@ package org.apache.lucene.queries.function.valuesource;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.docvalues.DocTermsIndexDocValues;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.mutable.MutableValue;
@@ -48,7 +47,7 @@ public class BytesRefFieldSource extends FieldCacheSource {
     // To be sorted or not to be sorted, that is the question
     // TODO: do it cleaner?
     if (fieldInfo != null && fieldInfo.getDocValuesType() == DocValuesType.BINARY) {
-      final BinaryDocValuesIterator binaryValues = DocValues.getBinaryIterator(readerContext.reader(), field);
+      final BinaryDocValues binaryValues = DocValues.getBinaryIterator(readerContext.reader(), field);
       return new FunctionValues() {
         int lastDocID = -1;
 

@@ -24,8 +24,8 @@ import org.apache.lucene.facet.FacetsConfig.DimConfig;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.taxonomy.OrdinalsReader.OrdinalsSegmentReader;
 import org.apache.lucene.facet.taxonomy.directory.DirectoryTaxonomyWriter.OrdinalMap;
-import org.apache.lucene.index.BinaryDocValuesIterator;
-import org.apache.lucene.index.FilterBinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
+import org.apache.lucene.index.FilterBinaryDocValues;
 import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.util.BytesRef;
@@ -76,12 +76,12 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
     
   }
   
-  private class OrdinalMappingBinaryDocValuesIterator extends FilterBinaryDocValuesIterator {
+  private class OrdinalMappingBinaryDocValuesIterator extends FilterBinaryDocValues {
     
     private final IntsRef ordinals = new IntsRef(32);
     private final OrdinalsSegmentReader ordsReader;
     
-    OrdinalMappingBinaryDocValuesIterator(OrdinalsSegmentReader ordsReader, BinaryDocValuesIterator in) throws IOException {
+    OrdinalMappingBinaryDocValuesIterator(OrdinalsSegmentReader ordsReader, BinaryDocValues in) throws IOException {
       super(in);
       this.ordsReader = ordsReader;
     }
@@ -149,7 +149,7 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+  public BinaryDocValues getBinaryDocValues(String field) throws IOException {
     if (facetFields.contains(field)) {
       final OrdinalsReader ordsReader = getOrdinalsReader(field);
       return new OrdinalMappingBinaryDocValuesIterator(ordsReader.getReader(in.getContext()), in.getBinaryDocValues(field));

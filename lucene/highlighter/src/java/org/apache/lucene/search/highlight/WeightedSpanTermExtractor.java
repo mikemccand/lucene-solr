@@ -28,7 +28,7 @@ import java.util.Set;
 
 import org.apache.lucene.analysis.CachingTokenFilter;
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.FilterLeafReader;
@@ -458,7 +458,7 @@ public class WeightedSpanTermExtractor {
     }
     
     @Override
-    public BinaryDocValuesIterator getBinaryDocValues(String field) throws IOException {
+    public BinaryDocValues getBinaryDocValues(String field) throws IOException {
       return super.getBinaryDocValues(FIELD_NAME);
     }
     

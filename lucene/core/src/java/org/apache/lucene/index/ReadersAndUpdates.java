@@ -430,7 +430,7 @@ class ReadersAndUpdates {
         // nocommit cutover to passing DocValuesProducer:
         fieldsConsumer.addBinaryField(fieldInfo, new EmptyDocValuesProducer() {
             @Override
-            public BinaryDocValuesIterator getBinaryIterator(FieldInfo fieldInfoIn) throws IOException {
+            public BinaryDocValues getBinaryIterator(FieldInfo fieldInfoIn) throws IOException {
               if (fieldInfoIn != fieldInfo) {
                 throw new IllegalArgumentException("wrong fieldInfo");
               }
@@ -439,10 +439,10 @@ class ReadersAndUpdates {
               final BinaryDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
               updatesIter.reset();
 
-              final BinaryDocValuesIterator currentValues = reader.getBinaryDocValues(field);
+              final BinaryDocValues currentValues = reader.getBinaryDocValues(field);
 
               // Merge sort of the original doc values with updated doc values:
-              return new BinaryDocValuesIterator() {
+              return new BinaryDocValues() {
                 // merged docID
                 private int docIDOut = -1;
 

@@ -1622,7 +1622,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable {
   }
 
   /**
-   * Updates a document's {@link BinaryDocValuesIterator} for <code>field</code> to the
+   * Updates a document's {@link BinaryDocValues} for <code>field</code> to the
    * given <code>value</code>. You can only update fields that already exist in
    * the index, not add new fields through this method.
    * 
@@ -1633,7 +1633,7 @@ public class IndexWriter implements Closeable, TwoPhaseCommit, Accountable {
    * @param term
    *          the term to identify the document(s) to be updated
    * @param field
-   *          field name of the {@link BinaryDocValuesIterator} field
+   *          field name of the {@link BinaryDocValues} field
    * @param value
    *          new value for the field
    *

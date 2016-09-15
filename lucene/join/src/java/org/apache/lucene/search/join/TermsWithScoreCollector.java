@@ -19,7 +19,7 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.ArrayUtil;
@@ -88,9 +88,9 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
   }
  
   // impl that works with single value per document
-  static class SV extends TermsWithScoreCollector<BinaryDocValuesIterator> {
+  static class SV extends TermsWithScoreCollector<BinaryDocValues> {
 
-    SV(Function<BinaryDocValuesIterator> docValuesCall, ScoreMode scoreMode) {
+    SV(Function<BinaryDocValues> docValuesCall, ScoreMode scoreMode) {
       super(docValuesCall, scoreMode);
     }
 
@@ -149,7 +149,7 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
 
       int[] scoreCounts = new int[INITIAL_ARRAY_SIZE];
 
-      Avg(Function<BinaryDocValuesIterator> docValuesCall) {
+      Avg(Function<BinaryDocValues> docValuesCall) {
         super(docValuesCall, ScoreMode.Avg);
       }
 

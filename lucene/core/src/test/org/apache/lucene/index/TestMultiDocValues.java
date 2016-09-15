@@ -101,8 +101,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
 
-    BinaryDocValuesIterator multi = MultiDocValues.getBinaryValuesIterator(ir, "bytes");
-    BinaryDocValuesIterator single = merged.getBinaryDocValues("bytes");
+    BinaryDocValues multi = MultiDocValues.getBinaryValuesIterator(ir, "bytes");
+    BinaryDocValues single = merged.getBinaryDocValues("bytes");
     for (int i = 0; i < numDocs; i++) {
       assertEquals(i, multi.nextDoc());
       assertEquals(i, single.nextDoc());

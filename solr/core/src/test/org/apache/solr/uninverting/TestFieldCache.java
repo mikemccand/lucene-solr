@@ -39,7 +39,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
+import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -220,7 +220,7 @@ public class TestFieldCache extends LuceneTestCase {
     termsIndex = cache.getTermsIndex(reader, "bogusfield");
 
     // getTerms
-    BinaryDocValuesIterator terms = cache.getTerms(reader, "theRandomUnicodeString");
+    BinaryDocValues terms = cache.getTerms(reader, "theRandomUnicodeString");
     for (int i = 0; i < NUM_DOCS; i++) {
       if (terms.docID() < i) {
         terms.nextDoc();
@@ -416,7 +416,7 @@ public class TestFieldCache extends LuceneTestCase {
       FieldCache.DEFAULT.getNumerics(ar, "binary", FieldCache.INT_POINT_PARSER);
     });
     
-    BinaryDocValuesIterator binary = FieldCache.DEFAULT.getTerms(ar, "binary");
+    BinaryDocValues binary = FieldCache.DEFAULT.getTerms(ar, "binary");
     assertEquals(0, binary.nextDoc());
     final BytesRef term = binary.binaryValue();
     assertEquals("binary value", term.utf8ToString());
@@ -548,7 +548,7 @@ public class TestFieldCache extends LuceneTestCase {
     NumericDocValues doubles = cache.getNumerics(ar, "bogusdoubles", FieldCache.DOUBLE_POINT_PARSER);
     assertEquals(NO_MORE_DOCS, doubles.nextDoc());
     
-    BinaryDocValuesIterator binaries = cache.getTerms(ar, "bogusterms");
+    BinaryDocValues binaries = cache.getTerms(ar, "bogusterms");
     assertEquals(NO_MORE_DOCS, binaries.nextDoc());
     
     SortedDocValuesIterator sorted = cache.getTermsIndex(ar, "bogustermsindex");
@@ -602,7 +602,7 @@ public class TestFieldCache extends LuceneTestCase {
     NumericDocValues doubles = cache.getNumerics(ar, "bogusdoubles", FieldCache.DOUBLE_POINT_PARSER);
     assertEquals(NO_MORE_DOCS, doubles.nextDoc());
     
-    BinaryDocValuesIterator binaries = cache.getTerms(ar, "bogusterms");
+    BinaryDocValues binaries = cache.getTerms(ar, "bogusterms");
     assertEquals(NO_MORE_DOCS, binaries.nextDoc());
     
     SortedDocValuesIterator sorted = cache.getTermsIndex(ar, "bogustermsindex");
