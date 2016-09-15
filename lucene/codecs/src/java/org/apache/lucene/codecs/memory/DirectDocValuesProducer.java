@@ -459,7 +459,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
+  public synchronized SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     SortedNumericRawValues instance = sortedNumericInstances.get(field.name);
     final SortedNumericEntry entry = sortedNumerics.get(field.name);
     if (instance == null) {
@@ -479,7 +479,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
       final LegacyNumericDocValues docToAddress = instance.docToAddress.numerics;
       final LegacyNumericDocValues values = instance.values.numerics;
       
-      return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
+      return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
         int valueStart;
         int valueLimit;
         

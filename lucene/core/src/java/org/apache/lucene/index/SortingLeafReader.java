@@ -495,13 +495,13 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,long[][]> cachedSortedNumericDVs = new HashMap<>();
 
-  private static class SortingSortedNumericDocValues extends SortedNumericDocValuesIterator {
-    private final SortedNumericDocValuesIterator in;
+  private static class SortingSortedNumericDocValues extends SortedNumericDocValues {
+    private final SortedNumericDocValues in;
     private final long[][] values;
     private int docID = -1;
     private int upto;
 
-    SortingSortedNumericDocValues(SortedNumericDocValuesIterator in, long[][] values) {
+    SortingSortedNumericDocValues(SortedNumericDocValues in, long[][] values) {
       this.in = in;
       this.values = values;
     }
@@ -1113,9 +1113,9 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedNumericDocValuesIterator getSortedNumericDocValues(String field)
+  public SortedNumericDocValues getSortedNumericDocValues(String field)
       throws IOException {
-    final SortedNumericDocValuesIterator oldDocValues = in.getSortedNumericDocValues(field);
+    final SortedNumericDocValues oldDocValues = in.getSortedNumericDocValues(field);
     if (oldDocValues == null) {
       return null;
     }

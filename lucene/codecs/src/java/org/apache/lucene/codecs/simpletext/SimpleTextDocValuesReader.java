@@ -359,9 +359,9 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
   
   @Override
-  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     final LegacyBinaryDocValues binary = getBinary(field);
-    return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
+    return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
       long values[];
 
       @Override

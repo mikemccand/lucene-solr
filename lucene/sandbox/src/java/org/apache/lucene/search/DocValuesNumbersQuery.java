@@ -26,7 +26,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.Bits;
 
 /**
@@ -100,7 +100,7 @@ public class DocValuesNumbersQuery extends Query {
 
       @Override
       protected Bits getMatchingDocs(LeafReaderContext context) throws IOException {
-         final SortedNumericDocValuesIterator values = DocValues.getSortedNumeric(context.reader(), field);
+         final SortedNumericDocValues values = DocValues.getSortedNumeric(context.reader(), field);
          return new Bits() {
 
            @Override

@@ -29,7 +29,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.suggest.BitsProducer;
 import org.apache.lucene.store.Directory;
@@ -84,7 +84,7 @@ public class TestPrefixCompletionQuery extends LuceneTestCase {
     public Bits getBits(final LeafReaderContext context) throws IOException {
       final int maxDoc = context.reader().maxDoc();
       FixedBitSet bits = new FixedBitSet(maxDoc);
-      final SortedNumericDocValuesIterator values = DocValues.getSortedNumeric(context.reader(), field);
+      final SortedNumericDocValues values = DocValues.getSortedNumeric(context.reader(), field);
       int docID;
       while ((docID = values.nextDoc()) != NO_MORE_DOCS) {
         final int count = values.docValueCount();

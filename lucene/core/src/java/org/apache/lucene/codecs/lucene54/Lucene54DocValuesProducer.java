@@ -832,7 +832,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   }
 
   @Override
-  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     SortedSetEntry ss = sortedNumerics.get(field.name);
     if (ss.format == SORTED_SINGLE_VALUED) {
       NumericEntry numericEntry = numerics.get(field.name);
@@ -843,7 +843,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
       } else {
         docsWithField = getLiveBits(numericEntry.missingOffset, maxDoc);
       }
-      return new SortedNumericDocValuesIterator() {
+      return new SortedNumericDocValues() {
         int docID = -1;
 
         @Override
@@ -900,7 +900,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
       final LongValues values = getNumeric(numericEntry);
       final LongValues ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
 
-      return new SortedNumericDocValuesIterator() {
+      return new SortedNumericDocValues() {
         long startOffset;
         long endOffset;
         int docID = -1;
@@ -962,7 +962,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new SortedNumericDocValuesIterator() {
+      return new SortedNumericDocValues() {
         int startOffset;
         int endOffset;
         int docID = -1;

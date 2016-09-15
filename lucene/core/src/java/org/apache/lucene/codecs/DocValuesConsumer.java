@@ -35,7 +35,7 @@ import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentWriteState; // javadocs
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
@@ -347,10 +347,10 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one sorted numeric sub-reader that we are merging */
   private static class SortedNumericDocValuesSub extends DocIDMerger.Sub {
 
-    final SortedNumericDocValuesIterator values;
+    final SortedNumericDocValues values;
     private final int maxDoc;
 
-    public SortedNumericDocValuesSub(MergeState.DocMap docMap, SortedNumericDocValuesIterator values, int maxDoc) {
+    public SortedNumericDocValuesSub(MergeState.DocMap docMap, SortedNumericDocValues values, int maxDoc) {
       super(docMap);
       this.values = values;
       this.maxDoc = maxDoc;
@@ -373,7 +373,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addSortedNumericField(mergeFieldInfo,
                           new EmptyDocValuesProducer() {
                             @Override
-                            public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo fieldInfo) {
+                            public SortedNumericDocValues getSortedNumeric(FieldInfo fieldInfo) {
                               if (fieldInfo != mergeFieldInfo) {
                                 throw new IllegalArgumentException("wrong FieldInfo");
                               }
@@ -383,7 +383,7 @@ public abstract class DocValuesConsumer implements Closeable {
                               long cost = 0;
                               for (int i=0;i<mergeState.docValuesProducers.length;i++) {
                                 DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
-                                SortedNumericDocValuesIterator values = null;
+                                SortedNumericDocValues values = null;
                                 if (docValuesProducer != null) {
                                   FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
                                   if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.SORTED_NUMERIC) {
@@ -410,7 +410,7 @@ public abstract class DocValuesConsumer implements Closeable {
                                 throw new RuntimeException(ioe);
                               }
 
-                              return new SortedNumericDocValuesIterator() {
+                              return new SortedNumericDocValues() {
 
                                 private int docID = -1;
                                 private SortedNumericDocValuesSub currentSub;

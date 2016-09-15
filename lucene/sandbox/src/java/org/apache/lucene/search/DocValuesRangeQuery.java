@@ -23,7 +23,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -149,7 +149,7 @@ public final class DocValuesRangeQuery extends Query {
       protected Bits getMatchingDocs(LeafReaderContext context) throws IOException {
         if (lowerVal instanceof Long || upperVal instanceof Long) {
 
-          final SortedNumericDocValuesIterator values = DocValues.getSortedNumeric(context.reader(), field);
+          final SortedNumericDocValues values = DocValues.getSortedNumeric(context.reader(), field);
 
           final long min;
           if (lowerVal == null) {

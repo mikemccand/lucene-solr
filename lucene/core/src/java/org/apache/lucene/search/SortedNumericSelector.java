@@ -22,7 +22,7 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FilterNumericDocValues;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 
 /** 
@@ -52,7 +52,7 @@ public class SortedNumericSelector {
    * Wraps a multi-valued SortedNumericDocValues as a single-valued view, using the specified selector 
    * and numericType.
    */
-  public static NumericDocValues wrap(SortedNumericDocValuesIterator sortedNumeric, Type selector, SortField.Type numericType) {
+  public static NumericDocValues wrap(SortedNumericDocValues sortedNumeric, Type selector, SortField.Type numericType) {
     if (numericType != SortField.Type.INT &&
         numericType != SortField.Type.LONG && 
         numericType != SortField.Type.FLOAT &&
@@ -99,12 +99,12 @@ public class SortedNumericSelector {
     }
   }
   
-  /** Wraps a SortedNumericDocValuesIterator and returns the first value (min) */
+  /** Wraps a SortedNumericDocValues and returns the first value (min) */
   static class MinValue extends NumericDocValues {
-    final SortedNumericDocValuesIterator in;
+    final SortedNumericDocValues in;
     private long value;
     
-    MinValue(SortedNumericDocValuesIterator in) {
+    MinValue(SortedNumericDocValues in) {
       this.in = in;
     }
 
@@ -142,12 +142,12 @@ public class SortedNumericSelector {
     }
   }    
 
-  /** Wraps a SortedNumericDocValuesIterator and returns the last value (max) */
+  /** Wraps a SortedNumericDocValues and returns the last value (max) */
   static class MaxValue extends NumericDocValues {
-    final SortedNumericDocValuesIterator in;
+    final SortedNumericDocValues in;
     private long value;
     
-    MaxValue(SortedNumericDocValuesIterator in) {
+    MaxValue(SortedNumericDocValues in) {
       this.in = in;
     }
 

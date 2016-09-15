@@ -21,7 +21,7 @@ import java.io.IOException;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.ConstantScoreScorer;
 import org.apache.lucene.search.ConstantScoreWeight;
@@ -124,7 +124,7 @@ final class GeoPointTermQueryConstantScoreWrapper <Q extends GeoPointMultiTermQu
         }
 
         // return two-phase iterator using docvalues to postfilter candidates
-        SortedNumericDocValuesIterator sdv = reader.getSortedNumericDocValues(query.getField());
+        SortedNumericDocValues sdv = reader.getSortedNumericDocValues(query.getField());
         TwoPhaseIterator iterator = new TwoPhaseIterator(disi) {
           @Override
           public boolean matches() throws IOException {

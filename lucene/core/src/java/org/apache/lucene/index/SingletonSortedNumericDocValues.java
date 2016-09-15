@@ -25,11 +25,11 @@ import java.io.IOException;
  * This can be used if you want to have one multi-valued implementation
  * that works for single or multi-valued types.
  */
-final class SingletonSortedNumericDocValuesIterator extends SortedNumericDocValuesIterator {
+final class SingletonSortedNumericDocValues extends SortedNumericDocValues {
   private final NumericDocValues in;
   private long value;
   
-  public SingletonSortedNumericDocValuesIterator(NumericDocValues in) {
+  public SingletonSortedNumericDocValues(NumericDocValues in) {
     this.in = in;
   }
 

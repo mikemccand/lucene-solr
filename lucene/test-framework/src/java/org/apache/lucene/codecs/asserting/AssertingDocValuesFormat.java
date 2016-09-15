@@ -31,7 +31,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.BytesRef;
@@ -139,7 +139,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     
     @Override
     public void addSortedNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-      SortedNumericDocValuesIterator values = valuesProducer.getSortedNumeric(field);
+      SortedNumericDocValues values = valuesProducer.getSortedNumeric(field);
       long valueCount = 0;
       int lastDocID = -1;
       while (true) {
@@ -248,11 +248,11 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
+    public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.SORTED_NUMERIC;
-      SortedNumericDocValuesIterator values = in.getSortedNumeric(field);
+      SortedNumericDocValues values = in.getSortedNumeric(field);
       assert values != null;
-      return new AssertingLeafReader.AssertingSortedNumericDocValuesIterator(values, maxDoc);
+      return new AssertingLeafReader.AssertingSortedNumericDocValues(values, maxDoc);
     }
     
     @Override

@@ -22,7 +22,7 @@ import java.util.Iterator;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 
@@ -240,7 +240,7 @@ public class LegacyDocValuesIterables {
       @Override
       public Iterator<Number> iterator() {
 
-        final SortedNumericDocValuesIterator values;
+        final SortedNumericDocValues values;
         try {
           values = valuesProducer.getSortedNumeric(fieldInfo);
         } catch (IOException ioe) {
@@ -285,7 +285,7 @@ public class LegacyDocValuesIterables {
       @Override
       public Iterator<Number> iterator() {
 
-        final SortedNumericDocValuesIterator values;
+        final SortedNumericDocValues values;
         try {
           values = valuesProducer.getSortedNumeric(fieldInfo);
         } catch (IOException ioe) {

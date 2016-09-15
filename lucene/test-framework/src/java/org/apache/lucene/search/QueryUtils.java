@@ -33,7 +33,7 @@ import org.apache.lucene.index.MultiReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
@@ -236,7 +236,7 @@ public class QueryUtils {
       }
 
       @Override
-      public SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException {
+      public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
         return null;
       }
 

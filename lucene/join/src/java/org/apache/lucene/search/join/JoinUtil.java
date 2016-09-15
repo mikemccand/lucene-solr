@@ -39,7 +39,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.IndexSearcher;
@@ -240,7 +240,7 @@ public final class JoinUtil {
     if (multipleValuesPerDocument) {
       collector = new SimpleCollector() {
 
-        SortedNumericDocValuesIterator sortedNumericDocValues;
+        SortedNumericDocValues sortedNumericDocValues;
         Scorer scorer;
 
         @Override

@@ -25,11 +25,11 @@ import org.apache.lucene.search.DocIdSetIterator;
  * A list of per-document numeric values, sorted 
  * according to {@link Long#compare(long, long)}.
  */
-public abstract class SortedNumericDocValuesIterator extends DocIdSetIterator {
+public abstract class SortedNumericDocValues extends DocIdSetIterator {
   
   /** Sole constructor. (For invocation by subclass 
    *  constructors, typically implicit.) */
-  protected SortedNumericDocValuesIterator() {}
+  protected SortedNumericDocValues() {}
 
   /** 
    * Retrieve the value for the current document at the specified index. 

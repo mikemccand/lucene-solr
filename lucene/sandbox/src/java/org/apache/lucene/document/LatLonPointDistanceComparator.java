@@ -23,7 +23,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
@@ -51,7 +51,7 @@ class LatLonPointDistanceComparator extends FieldComparator<Double> implements L
   final double[] values;
   double bottom;
   double topValue;
-  SortedNumericDocValuesIterator currentDocs;
+  SortedNumericDocValues currentDocs;
   
   // current bounding box(es) for the bottom distance on the PQ.
   // these are pre-encoded with LatLonPoint's encoding and 

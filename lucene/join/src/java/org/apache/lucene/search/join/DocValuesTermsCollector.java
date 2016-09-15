@@ -26,7 +26,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.util.BytesRef;
@@ -114,7 +114,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   /** this adapter is quite weird. ords are per doc index, don't use ords across different docs*/
   static Function<SortedSetDocValues> sortedNumericAsSortedSetDocValues(String field, FieldType.LegacyNumericType numTyp) {
     return (ctx) -> {
-      final SortedNumericDocValuesIterator numerics = DocValues.getSortedNumeric(ctx, field);
+      final SortedNumericDocValues numerics = DocValues.getSortedNumeric(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);

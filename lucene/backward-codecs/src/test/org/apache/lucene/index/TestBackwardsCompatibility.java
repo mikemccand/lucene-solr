@@ -765,7 +765,7 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
       if (is42Index) {
         dvSortedSet = MultiDocValues.getSortedSetValues(reader, "dvSortedSet");
       }
-      SortedNumericDocValuesIterator dvSortedNumeric = null;
+      SortedNumericDocValues dvSortedNumeric = null;
       if (is49Index) {
         dvSortedNumeric = MultiDocValues.getSortedNumericValues(reader, "dvSortedNumeric");
       }

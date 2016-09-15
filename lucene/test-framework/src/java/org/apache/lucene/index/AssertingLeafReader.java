@@ -602,15 +602,15 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
   }
   
-  /** Wraps a SortedNumericDocValuesIterator but with additional asserts */
-  public static class AssertingSortedNumericDocValuesIterator extends SortedNumericDocValuesIterator {
+  /** Wraps a SortedNumericDocValues but with additional asserts */
+  public static class AssertingSortedNumericDocValues extends SortedNumericDocValues {
     private final Thread creationThread = Thread.currentThread();
-    private final SortedNumericDocValuesIterator in;
+    private final SortedNumericDocValues in;
     private final int maxDoc;
     private int lastDocID = -1;
     private int valueUpto;
     
-    public AssertingSortedNumericDocValuesIterator(SortedNumericDocValuesIterator in, int maxDoc) {
+    public AssertingSortedNumericDocValues(SortedNumericDocValues in, int maxDoc) {
       this.in = in;
       this.maxDoc = maxDoc;
     }
@@ -808,13 +808,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public SortedNumericDocValuesIterator getSortedNumericDocValues(String field) throws IOException {
-    SortedNumericDocValuesIterator dv = super.getSortedNumericDocValues(field);
+  public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+    SortedNumericDocValues dv = super.getSortedNumericDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.SORTED_NUMERIC;
-      return new AssertingSortedNumericDocValuesIterator(dv, maxDoc());
+      return new AssertingSortedNumericDocValues(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_NUMERIC;
       return null;

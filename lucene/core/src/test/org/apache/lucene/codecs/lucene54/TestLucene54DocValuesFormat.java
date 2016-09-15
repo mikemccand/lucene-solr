@@ -56,7 +56,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -210,7 +210,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
       final BinaryDocValues binary = DocValues.getBinaryIterator(reader, "binary");
 
-      final SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
+      final SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
 
       final SortedSetDocValues sortedSet = DocValues.getSortedSet(reader, "sorted_set");
 
@@ -575,7 +575,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       w.close();
       LeafReader sr = getOnlyLeafReader(r);
       assertEquals(maxDoc, sr.maxDoc());
-      SortedNumericDocValuesIterator values = sr.getSortedNumericDocValues("snum");
+      SortedNumericDocValues values = sr.getSortedNumericDocValues("snum");
       assertNotNull(values);
       RAMInputStream in = new RAMInputStream("", buffer);
       for (int i = 0; i < maxDoc; ++i) {

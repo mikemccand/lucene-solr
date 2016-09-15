@@ -2168,7 +2168,7 @@ public final class CheckIndex implements Closeable {
     }
   }
   
-  private static void checkSortedNumericDocValues(String fieldName, int maxDoc, SortedNumericDocValuesIterator ndv) throws IOException {
+  private static void checkSortedNumericDocValues(String fieldName, int maxDoc, SortedNumericDocValues ndv) throws IOException {
     if (ndv.docID() != -1) {
       throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
     }

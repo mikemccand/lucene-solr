@@ -544,7 +544,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     SortedNumericEntry entry = sortedNumerics.get(field.name);
     if (entry.singleton) {
       LegacyNumericDocValues values = getNumericNonIterator(field);
@@ -570,7 +570,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
       if (values instanceof LongValues) {
         // probably not the greatest codec choice for this situation, but we support it
         final LongValues longValues = (LongValues) values;
-        return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
+        return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
           long startOffset;
           long endOffset;
           
@@ -591,7 +591,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           }
           }, maxDoc);
       } else {
-        return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
+        return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
           int startOffset;
           int endOffset;
         

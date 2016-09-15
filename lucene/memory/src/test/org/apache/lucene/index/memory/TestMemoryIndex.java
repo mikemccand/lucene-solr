@@ -51,7 +51,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;
@@ -241,7 +241,7 @@ public class TestMemoryIndex extends LuceneTestCase {
     NumericDocValues numericDocValues = leafReader.getNumericDocValues("numeric");
     assertEquals(0, numericDocValues.nextDoc());
     assertEquals(29L, numericDocValues.longValue());
-    SortedNumericDocValuesIterator sortedNumericDocValues = leafReader.getSortedNumericDocValues("sorted_numeric");
+    SortedNumericDocValues sortedNumericDocValues = leafReader.getSortedNumericDocValues("sorted_numeric");
     assertEquals(0, sortedNumericDocValues.nextDoc());
     assertEquals(5, sortedNumericDocValues.docValueCount());
     assertEquals(30L, sortedNumericDocValues.nextValue());

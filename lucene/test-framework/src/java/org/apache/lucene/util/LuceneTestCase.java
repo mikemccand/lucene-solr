@@ -2522,8 +2522,8 @@ public abstract class LuceneTestCase extends Assert {
       }
       
       {
-        SortedNumericDocValuesIterator leftValues = MultiDocValues.getSortedNumericValues(leftReader, field);
-        SortedNumericDocValuesIterator rightValues = MultiDocValues.getSortedNumericValues(rightReader, field);
+        SortedNumericDocValues leftValues = MultiDocValues.getSortedNumericValues(leftReader, field);
+        SortedNumericDocValues rightValues = MultiDocValues.getSortedNumericValues(rightReader, field);
         if (leftValues != null && rightValues != null) {
           while (true) {
             int docID = leftValues.nextDoc();

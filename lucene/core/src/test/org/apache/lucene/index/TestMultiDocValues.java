@@ -363,8 +363,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    SortedNumericDocValuesIterator multi = MultiDocValues.getSortedNumericValues(ir, "nums");
-    SortedNumericDocValuesIterator single = merged.getSortedNumericDocValues("nums");
+    SortedNumericDocValues multi = MultiDocValues.getSortedNumericValues(ir, "nums");
+    SortedNumericDocValues single = merged.getSortedNumericDocValues("nums");
     if (multi == null) {
       assertNull(single);
     } else {

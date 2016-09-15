@@ -382,7 +382,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getSortedNumericDocValues(String)}
    * </p> 
    * */
-  public static SortedNumericDocValuesIterator getSortedNumericValues(final IndexReader r, final String field) throws IOException {
+  public static SortedNumericDocValues getSortedNumericValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -392,12 +392,12 @@ public class MultiDocValues {
     }
 
     boolean anyReal = false;
-    final SortedNumericDocValuesIterator[] values = new SortedNumericDocValuesIterator[size];
+    final SortedNumericDocValues[] values = new SortedNumericDocValues[size];
     final int[] starts = new int[size+1];
     long totalCost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      SortedNumericDocValuesIterator v = context.reader().getSortedNumericDocValues(field);
+      SortedNumericDocValues v = context.reader().getSortedNumericDocValues(field);
       if (v == null) {
         v = DocValues.emptySortedNumeric(context.reader().maxDoc());
       } else {
@@ -415,9 +415,9 @@ public class MultiDocValues {
 
     final long finalTotalCost = totalCost;
     
-    return new SortedNumericDocValuesIterator() {
+    return new SortedNumericDocValues() {
       private int nextLeaf;
-      private SortedNumericDocValuesIterator currentValues;
+      private SortedNumericDocValues currentValues;
       private LeafReaderContext currentLeaf;
       private int docID = -1;
 

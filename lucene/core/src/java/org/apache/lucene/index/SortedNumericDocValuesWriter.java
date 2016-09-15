@@ -111,16 +111,16 @@ class SortedNumericDocValuesWriter extends DocValuesWriter {
     dvConsumer.addSortedNumericField(fieldInfo,
                                      new EmptyDocValuesProducer() {
                                        @Override
-                                       public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo fieldInfoIn) {
+                                       public SortedNumericDocValues getSortedNumeric(FieldInfo fieldInfoIn) {
                                          if (fieldInfoIn != fieldInfo) {
                                            throw new IllegalArgumentException("wrong fieldInfo");
                                          }
-                                         return new BufferedSortedNumericIterator(values, valueCounts);
+                                         return new BufferedSortedNumericDocValues(values, valueCounts);
                                        }
                                      });
   }
 
-  private static class BufferedSortedNumericIterator extends SortedNumericDocValuesIterator {
+  private static class BufferedSortedNumericDocValues extends SortedNumericDocValues {
     final PackedLongValues.Iterator valuesIter;
     final PackedLongValues.Iterator valueCountsIter;
     final int maxDoc;
@@ -129,7 +129,7 @@ class SortedNumericDocValuesWriter extends DocValuesWriter {
     private int valueCount;
     private int valueUpto;
 
-    public BufferedSortedNumericIterator(PackedLongValues values, PackedLongValues valueCounts) {
+    public BufferedSortedNumericDocValues(PackedLongValues values, PackedLongValues valueCounts) {
       valuesIter = values.iterator();
       valueCountsIter = valueCounts.iterator();
       maxDoc = Math.toIntExact(valueCounts.size());

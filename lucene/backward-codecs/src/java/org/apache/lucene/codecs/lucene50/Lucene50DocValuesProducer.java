@@ -669,7 +669,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
   
   @Override
-  public SortedNumericDocValuesIterator getSortedNumeric(FieldInfo field) throws IOException {
+  public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     SortedSetEntry ss = sortedNumerics.get(field.name);
     if (ss.format == SORTED_SINGLE_VALUED) {
       NumericEntry numericEntry = numerics.get(field.name);
@@ -681,7 +681,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
       final LongValues values = getNumeric(numericEntry);
       final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
       
-      return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
+      return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
         long startOffset;
         long endOffset;
         
@@ -707,7 +707,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new StupidSortedNumericDocValuesIterator(new LegacySortedNumericDocValues() {
+      return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
         int startOffset;
         int endOffset;
         
