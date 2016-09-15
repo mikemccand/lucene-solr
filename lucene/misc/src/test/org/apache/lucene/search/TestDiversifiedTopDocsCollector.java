@@ -32,7 +32,7 @@ import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.Term;
@@ -125,9 +125,9 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     }
 
     @Override
-    protected NumericDocValuesIterator getKeys(final LeafReaderContext context) {
+    protected NumericDocValues getKeys(final LeafReaderContext context) {
 
-      return new NumericDocValuesIterator() {
+      return new NumericDocValues() {
 
         @Override
         public int docID() {
@@ -173,8 +173,8 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     }
 
     @Override
-    protected NumericDocValuesIterator getKeys(LeafReaderContext context) {
-      return new NumericDocValuesIterator() {
+    protected NumericDocValues getKeys(LeafReaderContext context) {
+      return new NumericDocValues() {
         @Override
         public int docID() {
           return vals.docID();
@@ -464,7 +464,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     public SimScorer simScorer(SimWeight stats, LeafReaderContext context)
         throws IOException {
       final SimScorer sub = sim.simScorer(stats, context);
-      final NumericDocValuesIterator values = DocValues.getNumericIterator(context.reader(), scoreValueField);
+      final NumericDocValues values = DocValues.getNumericIterator(context.reader(), scoreValueField);
 
       return new SimScorer() {
         @Override

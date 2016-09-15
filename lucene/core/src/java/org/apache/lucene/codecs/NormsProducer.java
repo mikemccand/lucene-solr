@@ -20,7 +20,7 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.util.Accountable;
 
 
@@ -34,10 +34,10 @@ public abstract class NormsProducer implements Closeable, Accountable {
    *  constructors, typically implicit.) */
   protected NormsProducer() {}
 
-  /** Returns {@link NumericDocValuesIterator} for this field.
+  /** Returns {@link NumericDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
-  public abstract NumericDocValuesIterator getNorms(FieldInfo field) throws IOException;
+  public abstract NumericDocValues getNorms(FieldInfo field) throws IOException;
   
   /** 
    * Checks consistency of this producer

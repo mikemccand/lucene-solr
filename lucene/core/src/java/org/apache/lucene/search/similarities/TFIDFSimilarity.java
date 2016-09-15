@@ -23,7 +23,7 @@ import java.util.List;
 
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.IndexSearcher;
@@ -583,9 +583,9 @@ public abstract class TFIDFSimilarity extends Similarity {
   private final class TFIDFSimScorer extends SimScorer {
     private final IDFStats stats;
     private final float weightValue;
-    private final NumericDocValuesIterator norms;
+    private final NumericDocValues norms;
     
-    TFIDFSimScorer(IDFStats stats, NumericDocValuesIterator norms) throws IOException {
+    TFIDFSimScorer(IDFStats stats, NumericDocValues norms) throws IOException {
       this.stats = stats;
       this.weightValue = stats.queryWeight;
       this.norms = norms;
@@ -646,7 +646,7 @@ public abstract class TFIDFSimilarity extends Similarity {
     }
   }  
 
-  private Explanation explainField(int doc, Explanation freq, IDFStats stats, NumericDocValuesIterator norms) throws IOException {
+  private Explanation explainField(int doc, Explanation freq, IDFStats stats, NumericDocValues norms) throws IOException {
     Explanation tfExplanation = Explanation.match(tf(freq.getValue()), "tf(freq="+freq.getValue()+"), with freq of:", freq);
     float norm;
     if (norms != null && norms.advance(doc) == doc) {
@@ -665,7 +665,7 @@ public abstract class TFIDFSimilarity extends Similarity {
         tfExplanation, stats.idf, fieldNormExpl);
   }
 
-  private Explanation explainScore(int doc, Explanation freq, IDFStats stats, NumericDocValuesIterator norms) throws IOException {
+  private Explanation explainScore(int doc, Explanation freq, IDFStats stats, NumericDocValues norms) throws IOException {
     Explanation queryExpl = Explanation.match(stats.boost, "boost");
     Explanation fieldExpl = explainField(doc, freq, stats, norms);
     if (stats.boost == 1f) {

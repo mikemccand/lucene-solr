@@ -33,8 +33,6 @@ import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.codecs.TermVectorsReader;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
-import org.apache.lucene.util.Bits;
-import org.apache.lucene.util.IOUtils;
 
 /**
  * LeafReader implemented by codec APIs.
@@ -130,7 +128,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
 
   @Override
-  public final NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+  public final NumericDocValues getNumericDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getDVField(field, DocValuesType.NUMERIC);
     if (fi == null) {
@@ -181,7 +179,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
   
   @Override
-  public final NumericDocValuesIterator getNormValues(String field) throws IOException {
+  public final NumericDocValues getNormValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (fi == null || fi.hasNorms() == false) {

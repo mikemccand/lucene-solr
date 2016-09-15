@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocIdSet;
@@ -305,7 +305,7 @@ public class HashQParserPlugin extends QParserPlugin {
 
   private class NumericHash implements HashKey {
 
-    private NumericDocValuesIterator values;
+    private NumericDocValues values;
     private String field;
 
     public NumericHash(String field) {

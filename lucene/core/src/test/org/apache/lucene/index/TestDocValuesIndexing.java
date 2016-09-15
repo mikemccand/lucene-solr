@@ -35,7 +35,6 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
 import org.apache.lucene.util.TestUtil;
@@ -83,7 +82,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     w.close();
     LeafReader sr = getOnlyLeafReader(r3);
     assertEquals(2, sr.numDocs());
-    NumericDocValuesIterator docValues = sr.getNumericDocValues("dv");
+    NumericDocValues docValues = sr.getNumericDocValues("dv");
     assertNotNull(docValues);
     r3.close();
     d3.close();
@@ -109,7 +108,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
 
     DirectoryReader r = w.getReader();
     w.close();
-    NumericDocValuesIterator values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    NumericDocValues values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
     assertEquals(0, values.nextDoc());
     assertEquals(17, values.longValue());
     r.close();
@@ -132,7 +131,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
 
     DirectoryReader r = w.getReader();
     w.close();
-    NumericDocValuesIterator values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    NumericDocValues values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
     assertEquals(0, values.nextDoc());
     assertEquals(17, values.longValue());
     r.close();
@@ -154,7 +153,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     });
 
     DirectoryReader r = w.getReader();
-    NumericDocValuesIterator values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    NumericDocValues values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
     assertEquals(0, values.nextDoc());
     assertEquals(17, values.longValue());
     r.close();
@@ -209,7 +208,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     FieldInfos fi = MultiFields.getMergedFieldInfos(r);
     FieldInfo dvInfo = fi.fieldInfo("dv");
     assertTrue(dvInfo.getDocValuesType() != DocValuesType.NONE);
-    NumericDocValuesIterator dv = MultiDocValues.getNumericValuesIterator(r, "dv");
+    NumericDocValues dv = MultiDocValues.getNumericValuesIterator(r, "dv");
     for (int i = 0; i < 50; i++) {
       assertEquals(i, dv.nextDoc());
       assertEquals(i, dv.longValue());

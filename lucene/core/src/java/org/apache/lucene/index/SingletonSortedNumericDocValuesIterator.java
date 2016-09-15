@@ -26,15 +26,15 @@ import java.io.IOException;
  * that works for single or multi-valued types.
  */
 final class SingletonSortedNumericDocValuesIterator extends SortedNumericDocValuesIterator {
-  private final NumericDocValuesIterator in;
+  private final NumericDocValues in;
   private long value;
   
-  public SingletonSortedNumericDocValuesIterator(NumericDocValuesIterator in) {
+  public SingletonSortedNumericDocValuesIterator(NumericDocValues in) {
     this.in = in;
   }
 
-  /** Return the wrapped {@link NumericDocValuesIterator} */
-  public NumericDocValuesIterator getNumericDocValues() {
+  /** Return the wrapped {@link NumericDocValues} */
+  public NumericDocValues getNumericDocValues() {
     if (in.docID() != -1) {
       // nocommit too anal?
       throw new IllegalStateException("iterator has already been used: docID=" + in.docID());

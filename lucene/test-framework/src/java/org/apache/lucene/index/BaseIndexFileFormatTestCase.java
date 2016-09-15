@@ -333,8 +333,8 @@ abstract class BaseIndexFileFormatTestCase extends LuceneTestCase {
       consumer.addNumericField(field,
                                new EmptyDocValuesProducer() {
                                  @Override
-                                 public NumericDocValuesIterator getNumeric(FieldInfo field) {
-                                   return new NumericDocValuesIterator() {
+                                 public NumericDocValues getNumeric(FieldInfo field) {
+                                   return new NumericDocValues() {
                                      int docID = -1;
                                  
                                      @Override
@@ -386,8 +386,8 @@ abstract class BaseIndexFileFormatTestCase extends LuceneTestCase {
       consumer.addNormsField(field,
                              new NormsProducer() {
                                  @Override
-                                 public NumericDocValuesIterator getNorms(FieldInfo field) {
-                                   return new NumericDocValuesIterator() {
+                                 public NumericDocValues getNorms(FieldInfo field) {
+                                   return new NumericDocValues() {
                                      int docID = -1;
                                  
                                      @Override

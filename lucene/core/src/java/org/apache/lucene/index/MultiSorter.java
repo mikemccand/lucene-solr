@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.lucene.index.MergeState.DocMap;
-import org.apache.lucene.index.MergeState;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.util.Bits;
@@ -221,7 +220,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValuesIterator values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
           
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
@@ -269,7 +268,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValuesIterator values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
 
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
@@ -317,7 +316,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValuesIterator values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
 
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
@@ -365,7 +364,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValuesIterator values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
 
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:

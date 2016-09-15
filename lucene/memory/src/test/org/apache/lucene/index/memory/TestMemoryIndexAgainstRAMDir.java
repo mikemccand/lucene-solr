@@ -53,26 +53,8 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.BinaryDocValuesIterator;
-import org.apache.lucene.index.CompositeReader;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.Fields;
-import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.index.*;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -197,8 +179,8 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
       if (iwTerms == null) {
         assertNull(memTerms);
       } else {
-        NumericDocValuesIterator normValues = MultiDocValues.getNormValues(other, field);
-        NumericDocValuesIterator memNormValues = memIndexReader.getNormValues(field);
+        NumericDocValues normValues = MultiDocValues.getNormValues(other, field);
+        NumericDocValues memNormValues = memIndexReader.getNormValues(field);
         if (normValues != null) {
           // mem idx always computes norms on the fly
           assertNotNull(memNormValues);
@@ -510,8 +492,8 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     IndexReader controlIndexReader = DirectoryReader.open(dir);
     LeafReader controlLeafReader =  controlIndexReader.leaves().get(0).reader();
 
-    NumericDocValuesIterator numericDocValues = leafReader.getNumericDocValues("numeric");
-    NumericDocValuesIterator controlNumericDocValues = controlLeafReader.getNumericDocValues("numeric");
+    NumericDocValues numericDocValues = leafReader.getNumericDocValues("numeric");
+    NumericDocValues controlNumericDocValues = controlLeafReader.getNumericDocValues("numeric");
     assertEquals(0, numericDocValues.nextDoc());
     assertEquals(0, controlNumericDocValues.nextDoc());
     assertEquals(controlNumericDocValues.longValue(), numericDocValues.longValue());
@@ -578,9 +560,9 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     IndexReader controlIndexReader = DirectoryReader.open(dir);
     LeafReader controlLeafReader =  controlIndexReader.leaves().get(0).reader();
 
-    NumericDocValuesIterator norms = controlLeafReader.getNormValues("text");
+    NumericDocValues norms = controlLeafReader.getNormValues("text");
     assertEquals(0, norms.nextDoc());
-    NumericDocValuesIterator norms2 = leafReader.getNormValues("text");
+    NumericDocValues norms2 = leafReader.getNormValues("text");
     assertEquals(0, norms2.nextDoc());
     assertEquals(norms.longValue(), norms2.longValue());
 

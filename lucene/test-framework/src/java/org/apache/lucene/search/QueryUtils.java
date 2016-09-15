@@ -30,7 +30,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -221,7 +221,7 @@ public class QueryUtils {
       }
 
       @Override
-      public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+      public NumericDocValues getNumericDocValues(String field) throws IOException {
         return null;
       }
 
@@ -246,7 +246,7 @@ public class QueryUtils {
       }
 
       @Override
-      public NumericDocValuesIterator getNormValues(String field) throws IOException {
+      public NumericDocValues getNormValues(String field) throws IOException {
         return null;
       }
 

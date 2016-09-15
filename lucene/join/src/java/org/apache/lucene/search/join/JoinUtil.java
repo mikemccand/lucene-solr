@@ -37,7 +37,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
@@ -277,7 +277,7 @@ public final class JoinUtil {
     } else {
       collector = new SimpleCollector() {
 
-        NumericDocValuesIterator numericDocValues;
+        NumericDocValues numericDocValues;
         Scorer scorer;
         private int lastDocID = -1;
 

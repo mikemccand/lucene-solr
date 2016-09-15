@@ -2345,8 +2345,8 @@ public abstract class LuceneTestCase extends Assert {
     }
     
     for (String field : leftFields) {
-      NumericDocValuesIterator leftNorms = MultiDocValues.getNormValues(leftReader, field);
-      NumericDocValuesIterator rightNorms = MultiDocValues.getNormValues(rightReader, field);
+      NumericDocValues leftNorms = MultiDocValues.getNormValues(leftReader, field);
+      NumericDocValues rightNorms = MultiDocValues.getNormValues(rightReader, field);
       if (leftNorms != null && rightNorms != null) {
         assertDocValuesEquals(info, leftReader.maxDoc(), leftNorms, rightNorms);
       } else {
@@ -2436,8 +2436,8 @@ public abstract class LuceneTestCase extends Assert {
     for (String field : leftFields) {
       // TODO: clean this up... very messy
       {
-        NumericDocValuesIterator leftValues = MultiDocValues.getNumericValuesIterator(leftReader, field);
-        NumericDocValuesIterator rightValues = MultiDocValues.getNumericValuesIterator(rightReader, field);
+        NumericDocValues leftValues = MultiDocValues.getNumericValuesIterator(leftReader, field);
+        NumericDocValues rightValues = MultiDocValues.getNumericValuesIterator(rightReader, field);
         if (leftValues != null && rightValues != null) {
           assertDocValuesEquals(info, leftReader.maxDoc(), leftValues, rightValues);
         } else {
@@ -2544,7 +2544,7 @@ public abstract class LuceneTestCase extends Assert {
     }
   }
   
-  public void assertDocValuesEquals(String info, int num, NumericDocValuesIterator leftDocValues, NumericDocValuesIterator rightDocValues) throws IOException {
+  public void assertDocValuesEquals(String info, int num, NumericDocValues leftDocValues, NumericDocValues rightDocValues) throws IOException {
     assertNotNull(info, leftDocValues);
     assertNotNull(info, rightDocValues);
     while (true) {

@@ -35,7 +35,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.store.Directory;
@@ -91,28 +91,28 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
                 switch(threadRandom.nextInt(4)) {
                 case 0:
                   {
-                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.INT_POINT_PARSER);
+                    NumericDocValues values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.INT_POINT_PARSER);
                     assertEquals(docID, values.advance(docID));
                     assertEquals(numbers.get(docID).longValue(), values.longValue());
                   }
                   break;
                 case 1:
                   {
-                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER);
+                    NumericDocValues values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.LONG_POINT_PARSER);
                     assertEquals(docID, values.advance(docID));
                     assertEquals(numbers.get(docID).longValue(), values.longValue());
                   }
                   break;
                 case 2:
                   {
-                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.FLOAT_POINT_PARSER);
+                    NumericDocValues values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.FLOAT_POINT_PARSER);
                     assertEquals(docID, values.advance(docID));
                     assertEquals(numbers.get(docID).longValue(), values.longValue());
                   }
                   break;
                 case 3:
                   {
-                    NumericDocValuesIterator values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.DOUBLE_POINT_PARSER);
+                    NumericDocValues values = FieldCache.DEFAULT.getNumerics(ar, "number", FieldCache.DOUBLE_POINT_PARSER);
                     assertEquals(docID, values.advance(docID));
                     assertEquals(numbers.get(docID).longValue(), values.longValue());
                   }
@@ -207,7 +207,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           public void run() {
             Random random = random();            
             final SortedDocValuesIterator stringDVDirect;
-            final NumericDocValuesIterator docIDToID;
+            final NumericDocValues docIDToID;
             try {
               stringDVDirect = sr.getSortedDocValues("stringdv");
               docIDToID = sr.getNumericDocValues("id");

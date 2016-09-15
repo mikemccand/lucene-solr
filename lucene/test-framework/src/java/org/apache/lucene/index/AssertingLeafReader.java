@@ -386,14 +386,14 @@ public class AssertingLeafReader extends FilterLeafReader {
     }
   }
 
-  /** Wraps a NumericDocValuesIterator but with additional asserts */
-  public static class AssertingNumericDocValuesIterator extends NumericDocValuesIterator {
+  /** Wraps a NumericDocValues but with additional asserts */
+  public static class AssertingNumericDocValues extends NumericDocValues {
     private final Thread creationThread = Thread.currentThread();
-    private final NumericDocValuesIterator in;
+    private final NumericDocValues in;
     private final int maxDoc;
     private int lastDocID = -1;
     
-    public AssertingNumericDocValuesIterator(NumericDocValuesIterator in, int maxDoc) {
+    public AssertingNumericDocValues(NumericDocValues in, int maxDoc) {
       this.in = in;
       this.maxDoc = maxDoc;
       // should start unpositioned:
@@ -766,13 +766,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
   
   @Override
-  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
-    NumericDocValuesIterator dv = super.getNumericDocValues(field);
+  public NumericDocValues getNumericDocValues(String field) throws IOException {
+    NumericDocValues dv = super.getNumericDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.NUMERIC;
-      return new AssertingNumericDocValuesIterator(dv, maxDoc());
+      return new AssertingNumericDocValues(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.NUMERIC;
       return null;
@@ -836,13 +836,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNormValues(String field) throws IOException {
-    NumericDocValuesIterator dv = super.getNormValues(field);
+  public NumericDocValues getNormValues(String field) throws IOException {
+    NumericDocValues dv = super.getNormValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.hasNorms();
-      return new AssertingNumericDocValuesIterator(dv, maxDoc());
+      return new AssertingNumericDocValues(dv, maxDoc());
     } else {
       assert fi == null || fi.hasNorms() == false;
       return null;

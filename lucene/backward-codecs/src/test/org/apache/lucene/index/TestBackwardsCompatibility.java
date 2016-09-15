@@ -748,19 +748,19 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
 
     if (is40Index) {
       // check docvalues fields
-      NumericDocValuesIterator dvByte = MultiDocValues.getNumericValuesIterator(reader, "dvByte");
+      NumericDocValues dvByte = MultiDocValues.getNumericValuesIterator(reader, "dvByte");
       BinaryDocValuesIterator dvBytesDerefFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefFixed");
       BinaryDocValuesIterator dvBytesDerefVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefVar");
       SortedDocValuesIterator dvBytesSortedFixed = MultiDocValues.getSortedValues(reader, "dvBytesSortedFixed");
       SortedDocValuesIterator dvBytesSortedVar = MultiDocValues.getSortedValues(reader, "dvBytesSortedVar");
       BinaryDocValuesIterator dvBytesStraightFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightFixed");
       BinaryDocValuesIterator dvBytesStraightVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightVar");
-      NumericDocValuesIterator dvDouble = MultiDocValues.getNumericValuesIterator(reader, "dvDouble");
-      NumericDocValuesIterator dvFloat = MultiDocValues.getNumericValuesIterator(reader, "dvFloat");
-      NumericDocValuesIterator dvInt = MultiDocValues.getNumericValuesIterator(reader, "dvInt");
-      NumericDocValuesIterator dvLong = MultiDocValues.getNumericValuesIterator(reader, "dvLong");
-      NumericDocValuesIterator dvPacked = MultiDocValues.getNumericValuesIterator(reader, "dvPacked");
-      NumericDocValuesIterator dvShort = MultiDocValues.getNumericValuesIterator(reader, "dvShort");
+      NumericDocValues dvDouble = MultiDocValues.getNumericValuesIterator(reader, "dvDouble");
+      NumericDocValues dvFloat = MultiDocValues.getNumericValuesIterator(reader, "dvFloat");
+      NumericDocValues dvInt = MultiDocValues.getNumericValuesIterator(reader, "dvInt");
+      NumericDocValues dvLong = MultiDocValues.getNumericValuesIterator(reader, "dvLong");
+      NumericDocValues dvPacked = MultiDocValues.getNumericValuesIterator(reader, "dvPacked");
+      NumericDocValues dvShort = MultiDocValues.getNumericValuesIterator(reader, "dvShort");
       SortedSetDocValuesIterator dvSortedSet = null;
       if (is42Index) {
         dvSortedSet = MultiDocValues.getSortedSetValues(reader, "dvSortedSet");
@@ -1382,8 +1382,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
   public static final String dvUpdatesIndex = "dvupdates.6.0.0.zip";
 
   private void assertNumericDocValues(LeafReader r, String f, String cf) throws IOException {
-    NumericDocValuesIterator ndvf = r.getNumericDocValues(f);
-    NumericDocValuesIterator ndvcf = r.getNumericDocValues(cf);
+    NumericDocValues ndvf = r.getNumericDocValues(f);
+    NumericDocValues ndvcf = r.getNumericDocValues(cf);
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndvcf.nextDoc());
       assertEquals(i, ndvf.nextDoc());

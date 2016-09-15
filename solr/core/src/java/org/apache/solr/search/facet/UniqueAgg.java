@@ -24,8 +24,7 @@ import java.util.Set;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.util.Bits;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.schema.SchemaField;
 
@@ -191,7 +190,7 @@ public class UniqueAgg extends StrAggValueSource {
   class NumericAcc extends SlotAcc {
     SchemaField sf;
     LongSet[] sets;
-    NumericDocValuesIterator values;
+    NumericDocValues values;
 
     public NumericAcc(FacetContext fcontext, String field, int numSlots) throws IOException {
       super(fcontext);

@@ -26,7 +26,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.solr.uninverting.UninvertingReader;
@@ -75,7 +75,7 @@ public class Insanity {
     }
 
     @Override
-    public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+    public NumericDocValues getNumericDocValues(String field) throws IOException {
       if (insaneField.equals(field)) {
         return null;
       } else {

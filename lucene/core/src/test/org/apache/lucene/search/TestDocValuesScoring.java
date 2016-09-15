@@ -26,7 +26,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.similarities.PerFieldSimilarityWrapper;
@@ -150,7 +150,7 @@ public class TestDocValuesScoring extends LuceneTestCase {
     @Override
     public SimScorer simScorer(SimWeight stats, LeafReaderContext context) throws IOException {
       final SimScorer sub = sim.simScorer(stats, context);
-      final NumericDocValuesIterator values = DocValues.getNumericIterator(context.reader(), boostField);
+      final NumericDocValues values = DocValues.getNumericIterator(context.reader(), boostField);
       
       return new SimScorer() {
 

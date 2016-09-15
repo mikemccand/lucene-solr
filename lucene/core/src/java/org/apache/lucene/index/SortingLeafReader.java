@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.lucene.index.Sorter.DocMap;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.store.IndexInput;
@@ -213,22 +212,6 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingNumericDocValues extends LegacyNumericDocValues {
-
-    private final LegacyNumericDocValues in;
-    private final Sorter.DocMap docMap;
-
-    public SortingNumericDocValues(final LegacyNumericDocValues in, Sorter.DocMap docMap) {
-      this.in = in;
-      this.docMap = docMap;
-    }
-
-    @Override
-    public long get(int docID) {
-      return in.get(docMap.newToOld(docID));
-    }
-  }
-
   private final Map<String,CachedNumericDVs> cachedNumericDVs = new HashMap<>();
 
   private static class CachedNumericDVs {
@@ -256,12 +239,12 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,int[]> cachedSortedDVs = new HashMap<>();
 
-  private static class SortingNumericDocValuesIterator extends NumericDocValuesIterator {
+  private static class SortingNumericDocValues extends NumericDocValues {
 
     private final CachedNumericDVs dvs;
     private int docID = -1;
 
-    public SortingNumericDocValuesIterator(CachedNumericDVs dvs) {
+    public SortingNumericDocValues(CachedNumericDVs dvs) {
       this.dvs = dvs;
     }
 
@@ -1094,8 +1077,8 @@ class SortingLeafReader extends FilterLeafReader {
   private final Map<String,CachedNumericDVs> cachedNorms = new HashMap<>();
 
   @Override
-  public NumericDocValuesIterator getNormValues(String field) throws IOException {
-    final NumericDocValuesIterator oldNorms = in.getNormValues(field);
+  public NumericDocValues getNormValues(String field) throws IOException {
+    final NumericDocValues oldNorms = in.getNormValues(field);
     if (oldNorms == null) return null;
     CachedNumericDVs norms;
     synchronized (cachedNorms) {
@@ -1116,12 +1099,12 @@ class SortingLeafReader extends FilterLeafReader {
         cachedNorms.put(field, norms);
       }
     }
-    return new SortingNumericDocValuesIterator(norms);
+    return new SortingNumericDocValues(norms);
   }
 
   @Override
-  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
-    final NumericDocValuesIterator oldDocValues = in.getNumericDocValues(field);
+  public NumericDocValues getNumericDocValues(String field) throws IOException {
+    final NumericDocValues oldDocValues = in.getNumericDocValues(field);
     if (oldDocValues == null) return null;
     CachedNumericDVs dvs;
     synchronized (cachedNumericDVs) {
@@ -1142,7 +1125,7 @@ class SortingLeafReader extends FilterLeafReader {
         cachedNumericDVs.put(field, dvs);
       }
     }
-    return new SortingNumericDocValuesIterator(dvs);
+    return new SortingNumericDocValues(dvs);
   }
 
   @Override

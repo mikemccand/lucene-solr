@@ -28,7 +28,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyNumericDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.store.ChecksumIndexInput;
@@ -114,7 +114,7 @@ class Lucene53NormsProducer extends NormsProducer {
   }
 
   @Override
-  public NumericDocValuesIterator getNorms(FieldInfo field) throws IOException {
+  public NumericDocValues getNorms(FieldInfo field) throws IOException {
     final NormsEntry entry = norms.get(field.number);
 
     LegacyNumericDocValues norms;

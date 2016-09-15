@@ -27,12 +27,11 @@ import java.util.Locale;
 
 import org.apache.lucene.document.FieldType.LegacyNumericType;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.FilterNumericDocValuesIterator;
+import org.apache.lucene.index.FilterNumericDocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
@@ -183,7 +182,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
 
     final Iterator<LeafReaderContext> ctxIt = leaves.iterator();
     LeafReaderContext ctx = null;
-    NumericDocValuesIterator longs = null;
+    NumericDocValues longs = null;
     for (DocIterator docsIt = docs.iterator(); docsIt.hasNext(); ) {
       final int doc = docsIt.nextDoc();
       if (ctx == null || doc >= ctx.docBase + ctx.reader().maxDoc()) {
@@ -200,7 +199,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
             break;
           case FLOAT:
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new FilterNumericDocValuesIterator(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
+            longs = new FilterNumericDocValues(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
               @Override
               public long longValue() {
                 long bits = super.longValue();
@@ -211,7 +210,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
             break;
           case DOUBLE:
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new FilterNumericDocValuesIterator(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
+            longs = new FilterNumericDocValues(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
               @Override
               public long longValue() {
                 long bits = super.longValue();
@@ -750,7 +749,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
      * and/or non-numeric field make sure you call {@link #updateContext(SortedDocValuesIterator)}
      * or {@link #updateContext(SortedSetDocValuesIterator)} (depending on the DV type). It
      * is OK to call this method without other previous calls on numeric fields
-     * (with {@link NumericDocValuesIterator})
+     * (with {@link NumericDocValues})
      *
      * @param value For numeric single value fields, this {@code value}
      *              should be the {@code long} representation of the value of the document

@@ -21,11 +21,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.TimSorter;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
@@ -246,7 +244,7 @@ final class Sorter {
     case LONG:
       {
         long[] values = new long[maxDoc];
-        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Long) sortField.getMissingValue());
@@ -277,7 +275,7 @@ final class Sorter {
     case INT:
       {
         int[] values = new int[maxDoc];
-        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Integer) sortField.getMissingValue());
@@ -309,7 +307,7 @@ final class Sorter {
     case DOUBLE:
       {
         double[] values = new double[maxDoc];
-        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Double) sortField.getMissingValue());
@@ -340,7 +338,7 @@ final class Sorter {
     case FLOAT:
       {
         float[] values = new float[maxDoc];
-        NumericDocValuesIterator dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Float) sortField.getMissingValue());

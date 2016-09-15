@@ -56,7 +56,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SegmentReadState;
@@ -577,7 +577,7 @@ public class TestPointQueries extends LuceneTestCase {
                 System.out.println(Thread.currentThread().getName() + ":  hitCount: " + hits.cardinality());
               }
       
-              NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+              NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
               
               for(int docID=0;docID<r.maxDoc();docID++) {
                 assertEquals(docID, docIDToID.nextDoc());
@@ -837,7 +837,7 @@ public class TestPointQueries extends LuceneTestCase {
                 }
               }
 
-              NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+              NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
 
               int failCount = 0;
               for(int docID=0;docID<r.maxDoc();docID++) {

@@ -327,7 +327,7 @@ class ReadersAndUpdates {
         // write the numeric updates to a new gen'd docvalues file
         fieldsConsumer.addNumericField(fieldInfo, new EmptyDocValuesProducer() {
             @Override
-            public NumericDocValuesIterator getNumeric(FieldInfo fieldInfoIn) throws IOException {
+            public NumericDocValues getNumeric(FieldInfo fieldInfoIn) throws IOException {
               if (fieldInfoIn != fieldInfo) {
                 throw new IllegalArgumentException("wrong fieldInfo");
               }
@@ -335,11 +335,11 @@ class ReadersAndUpdates {
 
               final NumericDocValuesFieldUpdates.Iterator updatesIter = fieldUpdates.iterator();
 
-              final NumericDocValuesIterator currentValues = reader.getNumericDocValues(field);
+              final NumericDocValues currentValues = reader.getNumericDocValues(field);
               updatesIter.reset();
 
               // Merge sort of the original doc values with updated doc values:
-              return new NumericDocValuesIterator() {
+              return new NumericDocValues() {
                 // merged docID
                 private int docIDOut = -1;
 

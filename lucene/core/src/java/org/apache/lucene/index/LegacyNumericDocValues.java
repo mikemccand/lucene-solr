@@ -20,7 +20,7 @@ package org.apache.lucene.index;
 /**
  * A per-document numeric value.
  *
- * @deprecated Use {@link NumericDocValuesIterator} instead.
+ * @deprecated Use {@link NumericDocValues} instead.
  */
 @Deprecated
 public abstract class LegacyNumericDocValues {

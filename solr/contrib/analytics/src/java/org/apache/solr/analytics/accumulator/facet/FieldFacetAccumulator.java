@@ -19,10 +19,9 @@ package org.apache.solr.analytics.accumulator.facet;
 import java.io.IOException;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.analytics.accumulator.FacetingAccumulator;
 import org.apache.solr.analytics.accumulator.ValueAccumulator;
@@ -49,7 +48,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
   protected final boolean dateField;
   protected SortedSetDocValuesIterator setValues;
   protected SortedDocValuesIterator sortValues; 
-  protected NumericDocValuesIterator numValues;
+  protected NumericDocValues numValues;
   
   public FieldFacetAccumulator(SolrIndexSearcher searcher, FacetValueAccumulator parent, SchemaField schemaField) throws IOException {  
     if( !schemaField.hasDocValues() ){

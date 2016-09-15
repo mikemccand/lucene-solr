@@ -20,9 +20,8 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -201,14 +200,14 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     docsWithValue.set(18);
     longs[18] = 10;
 
-    final NumericDocValuesIterator mins = BlockJoinSelector.wrap(DocValues.singleton(new CannedNumericDocValuesIterator(longs, docsWithValue)), BlockJoinSelector.Type.MIN, parents, children);
+    final NumericDocValues mins = BlockJoinSelector.wrap(DocValues.singleton(new CannedNumericDocValues(longs, docsWithValue)), BlockJoinSelector.Type.MIN, parents, children);
     assertEquals(5, mins.nextDoc());
     assertEquals(3, mins.longValue());
     assertEquals(15, mins.nextDoc());
     assertEquals(10, mins.longValue());
     assertEquals(NO_MORE_DOCS, mins.nextDoc());
 
-    final NumericDocValuesIterator maxs = BlockJoinSelector.wrap(DocValues.singleton(new CannedNumericDocValuesIterator(longs, docsWithValue)), BlockJoinSelector.Type.MAX, parents, children);
+    final NumericDocValues maxs = BlockJoinSelector.wrap(DocValues.singleton(new CannedNumericDocValues(longs, docsWithValue)), BlockJoinSelector.Type.MAX, parents, children);
     assertEquals(5, maxs.nextDoc());
     assertEquals(7, maxs.longValue());
     assertEquals(15, maxs.nextDoc());
@@ -216,12 +215,12 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     assertEquals(NO_MORE_DOCS, maxs.nextDoc());
   }
 
-  private static class CannedNumericDocValuesIterator extends NumericDocValuesIterator {
+  private static class CannedNumericDocValues extends NumericDocValues {
     final Bits docsWithValue;
     final long[] values;
     int docID = -1;
 
-    public CannedNumericDocValuesIterator(long[] values, Bits docsWithValue) {
+    public CannedNumericDocValues(long[] values, Bits docsWithValue) {
       this.values = values;
       this.docsWithValue = docsWithValue;
     }

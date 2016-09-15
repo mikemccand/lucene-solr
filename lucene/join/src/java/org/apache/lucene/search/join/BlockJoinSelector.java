@@ -18,20 +18,16 @@ package org.apache.lucene.search.join;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSelector;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-
-import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /** Select a value from a block of documents.
  *  @lucene.internal */
@@ -195,8 +191,8 @@ public class BlockJoinSelector {
   /** Wraps the provided {@link SortedNumericDocValuesIterator} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
-  public static NumericDocValuesIterator wrap(SortedNumericDocValuesIterator sortedNumerics, Type selection, BitSet parents, BitSet children) {
-    NumericDocValuesIterator values;
+  public static NumericDocValues wrap(SortedNumericDocValuesIterator sortedNumerics, Type selection, BitSet parents, BitSet children) {
+    NumericDocValues values;
     switch (selection) {
       case MIN:
         values = SortedNumericSelector.wrap(sortedNumerics, SortedNumericSelector.Type.MIN, SortField.Type.LONG);
@@ -260,11 +256,11 @@ public class BlockJoinSelector {
   }
   */
 
-  /** Wraps the provided {@link NumericDocValuesIterator}, iterating over only
+  /** Wraps the provided {@link NumericDocValues}, iterating over only
    *  child documents, in order to only select one value per parent among
    *  its {@code children} using the configured {@code selection} type. */
-  public static NumericDocValuesIterator wrap(final NumericDocValuesIterator values, Type selection, BitSet parents, BitSet children) {
-    return new NumericDocValuesIterator() {
+  public static NumericDocValues wrap(final NumericDocValues values, Type selection, BitSet parents, BitSet children) {
+    return new NumericDocValues() {
 
       private int parentDocID = -1;
       private long value;

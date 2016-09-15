@@ -36,7 +36,7 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionQuery;
 import org.apache.lucene.queries.function.FunctionValues;
@@ -704,7 +704,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
 
     private LeafReaderContext[] contexts;
     private FixedBitSet collapsedSet;
-    private NumericDocValuesIterator collapseValues;
+    private NumericDocValues collapseValues;
     private IntLongHashMap cmap;
     private int maxDoc;
     private int nullPolicy;
@@ -1098,7 +1098,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
    */
   private static class IntFieldValueCollector extends DelegatingCollector {
     private LeafReaderContext[] contexts;
-    private NumericDocValuesIterator collapseValues;
+    private NumericDocValues collapseValues;
     private int maxDoc;
     private int nullValue;
     private int nullPolicy;
@@ -1548,7 +1548,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class OrdIntStrategy extends OrdFieldValueStrategy {
 
     private final String field;
-    private NumericDocValuesIterator minMaxValues;
+    private NumericDocValues minMaxValues;
     private IntCompare comp;
     private int nullVal;
     private int[] ordVals;
@@ -1639,7 +1639,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class OrdFloatStrategy extends OrdFieldValueStrategy {
 
     private final String field;
-    private NumericDocValuesIterator minMaxValues;
+    private NumericDocValues minMaxValues;
     private FloatCompare comp;
     private float nullVal;
     private float[] ordVals;
@@ -1734,7 +1734,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class OrdLongStrategy extends OrdFieldValueStrategy {
 
     private final String field;
-    private NumericDocValuesIterator minMaxVals;
+    private NumericDocValues minMaxVals;
     private LongCompare comp;
     private long nullVal;
     private long[] ordVals;
@@ -2137,7 +2137,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class IntIntStrategy extends IntFieldValueStrategy {
 
     private final String field;
-    private NumericDocValuesIterator minMaxVals;
+    private NumericDocValues minMaxVals;
     private int[] testValues;
     private IntCompare comp;
     private int nullCompVal;
@@ -2249,7 +2249,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
   private static class IntFloatStrategy extends IntFieldValueStrategy {
 
     private final String field;
-    private NumericDocValuesIterator minMaxVals;
+    private NumericDocValues minMaxVals;
     private float[] testValues;
     private FloatCompare comp;
     private float nullCompVal;

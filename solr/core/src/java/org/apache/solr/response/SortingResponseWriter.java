@@ -28,7 +28,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -853,7 +853,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class IntValue implements SortValue {
 
-    protected NumericDocValuesIterator vals;
+    protected NumericDocValues vals;
     protected String field;
     protected int currentValue;
     protected IntComp comp;
@@ -944,7 +944,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class LongValue implements SortValue {
 
-    protected NumericDocValuesIterator vals;
+    protected NumericDocValues vals;
     protected String field;
     protected long currentValue;
     protected LongComp comp;
@@ -1036,7 +1036,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class FloatValue implements SortValue {
 
-    protected NumericDocValuesIterator vals;
+    protected NumericDocValues vals;
     protected String field;
     protected float currentValue;
     protected FloatComp comp;
@@ -1126,7 +1126,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class DoubleValue implements SortValue {
 
-    protected NumericDocValuesIterator vals;
+    protected NumericDocValues vals;
     protected String field;
     protected double currentValue;
     protected DoubleComp comp;
@@ -1303,7 +1303,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
       int val;
       if (vals.advance(docId) == docId) {
         val = (int) vals.longValue();
@@ -1388,7 +1388,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
       long val;
       if (vals.advance(docId) == docId) {
         val = vals.longValue();
@@ -1415,7 +1415,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
       long val;
       if (vals.advance(docId) == docId) {
         val = vals.longValue();
@@ -1479,7 +1479,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
       int val;
       if (vals.advance(docId) == docId) {
         val = (int)vals.longValue();
@@ -1506,7 +1506,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValuesIterator vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
       long val;
       if (vals.advance(docId) == docId) {
         val = vals.longValue();

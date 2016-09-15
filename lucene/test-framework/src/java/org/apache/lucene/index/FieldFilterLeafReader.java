@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.FilterIterator;
 
 /**
@@ -135,7 +134,7 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNormValues(String field) throws IOException {
+  public NumericDocValues getNormValues(String field) throws IOException {
     return hasField(field) ? super.getNormValues(field) : null;
   }
 

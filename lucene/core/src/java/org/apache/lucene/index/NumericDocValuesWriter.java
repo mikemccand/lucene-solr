@@ -90,17 +90,17 @@ class NumericDocValuesWriter extends DocValuesWriter {
     dvConsumer.addNumericField(fieldInfo,
                                new EmptyDocValuesProducer() {
                                  @Override
-                                 public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) {
+                                 public NumericDocValues getNumeric(FieldInfo fieldInfo) {
                                    if (fieldInfo != NumericDocValuesWriter.this.fieldInfo) {
                                      throw new IllegalArgumentException("wrong fieldInfo");
                                    }
-                                   return new NumericIterator(maxDoc, values, docsWithField);
+                                   return new BufferedNumericDocValues(maxDoc, values, docsWithField);
                                  }
                                });
   }
 
   // iterates over the values we have in ram
-  private static class NumericIterator extends NumericDocValuesIterator {
+  private static class BufferedNumericDocValues extends NumericDocValues {
     final PackedLongValues.Iterator iter;
     final FixedBitSet docsWithField;
     final int size;
@@ -108,7 +108,7 @@ class NumericDocValuesWriter extends DocValuesWriter {
     private long value;
     private int docID = -1;
     
-    NumericIterator(int maxDoc, PackedLongValues values, FixedBitSet docsWithFields) {
+    BufferedNumericDocValues(int maxDoc, PackedLongValues values, FixedBitSet docsWithFields) {
       this.maxDoc = maxDoc;
       this.iter = values.iterator();
       this.size = (int) values.size();

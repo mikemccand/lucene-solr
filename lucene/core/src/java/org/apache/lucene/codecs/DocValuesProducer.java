@@ -22,14 +22,11 @@ import java.io.IOException;
 
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidBinaryDocValuesIterator;
-import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.util.Accountable;
-import org.apache.lucene.util.Bits;
 
 /** Abstract API that produces numeric, binary, sorted, sortedset,
  *  and sortednumeric docvalues.
@@ -42,11 +39,11 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
    *  constructors, typically implicit.) */
   protected DocValuesProducer() {}
 
-  /** Returns {@link NumericDocValuesIterator} for this field.
+  /** Returns {@link NumericDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
   // nocommit make abstract
-  public abstract NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException;
+  public abstract NumericDocValues getNumeric(FieldInfo field) throws IOException;
 
   /** Returns {@link BinaryDocValuesIterator} for this field.
    *  The returned instance need not be thread-safe: it will only be

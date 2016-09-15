@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.docvalues.FloatDocValues;
@@ -61,7 +61,7 @@ public class NormValueSource extends ValueSource {
     if (similarity == null) {
       throw new UnsupportedOperationException("requires a TFIDFSimilarity (such as ClassicSimilarity)");
     }
-    final NumericDocValuesIterator norms = readerContext.reader().getNormValues(field);
+    final NumericDocValues norms = readerContext.reader().getNormValues(field);
 
     if (norms == null) {
       return new ConstDoubleDocValues(0.0, this);

@@ -32,20 +32,18 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.MergeState;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentWriteState; // javadocs
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongBitSet;
 import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.packed.PackedInts;
 
-import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /** 
@@ -154,9 +152,9 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one numeric sub-reader that we are merging */
   private static class NumericDocValuesSub extends DocIDMerger.Sub {
 
-    private final NumericDocValuesIterator values;
+    private final NumericDocValues values;
 
-    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValuesIterator values) {
+    public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValues values) {
       super(docMap);
       this.values = values;
       assert values.docID() == -1;
@@ -178,7 +176,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addNumericField(mergeFieldInfo,
                     new EmptyDocValuesProducer() {
                       @Override
-                      public NumericDocValuesIterator getNumeric(FieldInfo fieldInfo) throws IOException {
+                      public NumericDocValues getNumeric(FieldInfo fieldInfo) throws IOException {
                         if (fieldInfo != mergeFieldInfo) {
                           throw new IllegalArgumentException("wrong fieldInfo");
                         }
@@ -186,7 +184,7 @@ public abstract class DocValuesConsumer implements Closeable {
                         List<NumericDocValuesSub> subs = new ArrayList<>();
                         assert mergeState.docMaps.length == mergeState.docValuesProducers.length;
                         for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-                          NumericDocValuesIterator values = null;
+                          NumericDocValues values = null;
                           DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
                           if (docValuesProducer != null) {
                             FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
@@ -201,7 +199,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                         final DocIDMerger<NumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
 
-                        return new NumericDocValuesIterator() {
+                        return new NumericDocValues() {
                           private int docID = -1;
                           private NumericDocValuesSub current;
 

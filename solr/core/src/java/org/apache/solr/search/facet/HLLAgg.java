@@ -21,8 +21,7 @@ import org.apache.solr.util.hll.HLL;
 import org.apache.solr.util.hll.HLLType;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.util.Bits;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.solr.common.util.Hash;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.schema.SchemaField;
@@ -111,7 +110,7 @@ public class HLLAgg extends StrAggValueSource {
   class NumericAcc extends SlotAcc {
     SchemaField sf;
     HLL[] sets;
-    NumericDocValuesIterator values;
+    NumericDocValues values;
 
     public NumericAcc(FacetContext fcontext, String field, int numSlots) throws IOException {
       super(fcontext);

@@ -936,12 +936,12 @@ public class MemoryIndex {
       }
     }
 
-    NumericDocValuesIterator getNormDocValues() {
+    NumericDocValues getNormDocValues() {
       FieldInvertState invertState = new FieldInvertState(fieldInfo.name, fieldInfo.number,
                                                           numTokens, numOverlapTokens, 0, boost);
       final long value = normSimilarity.computeNorm(invertState);
       if (DEBUG) System.err.println("MemoryIndexReader.norms: " + fieldInfo.name + ":" + value + ":" + numTokens);
-      return new NumericDocValuesIterator() {
+      return new NumericDocValues() {
           private int docID = -1;
 
           @Override
@@ -1124,7 +1124,7 @@ public class MemoryIndex {
     }
 
     @Override
-    public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+    public NumericDocValues getNumericDocValues(String field) throws IOException {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.NUMERIC);
       if (info == null) {
         return null;
@@ -1630,7 +1630,7 @@ public class MemoryIndex {
     }
     
     @Override
-    public NumericDocValuesIterator getNormValues(String field) {
+    public NumericDocValues getNormValues(String field) {
       Info info = fields.get(field);
       if (info == null) {
         return null;

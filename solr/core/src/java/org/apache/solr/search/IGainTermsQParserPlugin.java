@@ -24,7 +24,7 @@ import java.util.TreeSet;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -95,7 +95,7 @@ public class IGainTermsQParserPlugin extends QParserPlugin {
     private int numTerms;
     private int count;
 
-    private NumericDocValuesIterator leafOutcomeValue;
+    private NumericDocValues leafOutcomeValue;
     private SparseFixedBitSet positiveSet;
     private SparseFixedBitSet negativeSet;
 

@@ -29,29 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValuesIterator;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.IndexFileNames;
-import org.apache.lucene.index.LegacyBinaryDocValues;
-import org.apache.lucene.index.LegacyNumericDocValues;
-import org.apache.lucene.index.LegacySortedDocValues;
-import org.apache.lucene.index.LegacySortedNumericDocValues;
-import org.apache.lucene.index.LegacySortedSetDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
-import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidBinaryDocValuesIterator;
-import org.apache.lucene.index.StupidNumericDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesIterator;
-import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
-import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
-import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.index.*;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RandomAccessInput;
@@ -422,7 +401,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   @Override
-  public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
+  public NumericDocValues getNumeric(FieldInfo field) throws IOException {
     return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumericNonIterator(field));
   }
 

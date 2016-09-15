@@ -39,7 +39,7 @@ import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
 import org.apache.lucene.index.LegacySortedNumericDocValues;
 import org.apache.lucene.index.LegacySortedSetDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -291,7 +291,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
+  public synchronized NumericDocValues getNumeric(FieldInfo field) throws IOException {
     NumericRawValues instance = numericInstances.get(field.name);
     if (instance == null) {
       // Lazy load

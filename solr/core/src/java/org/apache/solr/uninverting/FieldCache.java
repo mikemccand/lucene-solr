@@ -23,7 +23,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.IndexReader; // javadocs
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
@@ -264,7 +264,7 @@ interface FieldCache {
   public Bits getDocsWithField(LeafReader reader, String field, Parser parser) throws IOException;
 
   /**
-   * Returns a {@link NumericDocValuesIterator} over the values found in documents in the given
+   * Returns a {@link NumericDocValues} over the values found in documents in the given
    * field. If the field was indexed as {@link NumericDocValuesField}, it simply
    * uses {@link org.apache.lucene.index.LeafReader#getNumericDocValues(String)} to read the values.
    * Otherwise, it checks the internal cache for an appropriate entry, and if
@@ -284,7 +284,7 @@ interface FieldCache {
    * @throws IOException
    *           If any error occurs.
    */
-  public NumericDocValuesIterator getNumerics(LeafReader reader, String field, Parser parser) throws IOException;
+  public NumericDocValues getNumerics(LeafReader reader, String field, Parser parser) throws IOException;
   
   /** Checks the internal cache for an appropriate entry, and if none
    * is found, reads the term values in <code>field</code>

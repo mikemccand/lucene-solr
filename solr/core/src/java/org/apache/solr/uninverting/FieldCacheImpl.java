@@ -29,11 +29,10 @@ import java.util.WeakHashMap;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
-import org.apache.lucene.index.EmptyDocValuesProducer;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues.IntersectVisitor;
 import org.apache.lucene.index.PointValues.Relation;
 import org.apache.lucene.index.PointValues;
@@ -41,8 +40,6 @@ import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidBinaryDocValuesIterator;
-import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -56,8 +53,6 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.packed.GrowableWriter;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
-
-import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * Expert: The default cache implementation, storing all values in memory.
@@ -601,11 +596,11 @@ class FieldCacheImpl implements FieldCache {
   }
 
   @Override
-  public NumericDocValuesIterator getNumerics(LeafReader reader, String field, Parser parser) throws IOException {
+  public NumericDocValues getNumerics(LeafReader reader, String field, Parser parser) throws IOException {
     if (parser == null) {
       throw new NullPointerException();
     }
-    final NumericDocValuesIterator valuesIn = reader.getNumericDocValues(field);
+    final NumericDocValues valuesIn = reader.getNumericDocValues(field);
     if (valuesIn != null) {
       return valuesIn;
     } else {
@@ -663,8 +658,8 @@ class FieldCacheImpl implements FieldCache {
       return values.ramBytesUsed() + RamUsageEstimator.NUM_BYTES_OBJECT_REF + Long.BYTES;
     }
 
-    public NumericDocValuesIterator iterator(final Bits docsWithField) {
-      return new NumericDocValuesIterator() {
+    public NumericDocValues iterator(final Bits docsWithField) {
+      return new NumericDocValues() {
         int docID = -1;
 
         @Override

@@ -34,7 +34,7 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -335,7 +335,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
       }
     } else {
       groupSet = new LongHashSet(docList.size());
-      NumericDocValuesIterator collapseValues = contexts.get(currentContext).reader().getNumericDocValues(field);
+      NumericDocValues collapseValues = contexts.get(currentContext).reader().getNumericDocValues(field);
       int count = 0;
       for(int i=0; i<globalDocs.length; i++) {
         int globalDoc = globalDocs[i];
@@ -610,7 +610,7 @@ public class ExpandComponent extends SearchComponent implements PluginInfoInitia
   }
 
   private class NumericGroupExpandCollector implements Collector, GroupCollector {
-    private NumericDocValuesIterator docValues;
+    private NumericDocValues docValues;
 
     private String field;
     private LongObjectHashMap<Collector> groups;

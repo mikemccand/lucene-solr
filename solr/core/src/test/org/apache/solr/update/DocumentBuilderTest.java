@@ -21,7 +21,7 @@ import java.util.List;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.util.TestUtil;
 import org.apache.solr.SolrTestCaseJ4;
@@ -356,9 +356,9 @@ public class DocumentBuilderTest extends SolrTestCaseJ4 {
 
       ClassicSimilarity sim = (ClassicSimilarity) searcher.getSimilarity(true);
       
-      NumericDocValuesIterator titleNorms = reader.getNormValues("title");
-      NumericDocValuesIterator fooNorms = reader.getNormValues("foo_t");
-      NumericDocValuesIterator textNorms =  reader.getNormValues("text");
+      NumericDocValues titleNorms = reader.getNormValues("title");
+      NumericDocValues fooNorms = reader.getNormValues("foo_t");
+      NumericDocValues textNorms =  reader.getNormValues("text");
 
       assertEquals(docid, titleNorms.advance(docid));
       assertEquals(expectedNorm(sim, 2, TITLE_BOOST * DOC_BOOST),

@@ -200,7 +200,7 @@ public final class SlowCodecReaderWrapper {
     return new NormsProducer() {
 
       @Override
-      public NumericDocValuesIterator getNorms(FieldInfo field) throws IOException {
+      public NumericDocValues getNorms(FieldInfo field) throws IOException {
         return reader.getNormValues(field.name);
       }
 
@@ -224,7 +224,7 @@ public final class SlowCodecReaderWrapper {
     return new DocValuesProducer() {
 
       @Override
-      public NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {  
+      public NumericDocValues getNumeric(FieldInfo field) throws IOException {
         return reader.getNumericDocValues(field.name);
       }
 

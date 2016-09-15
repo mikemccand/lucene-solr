@@ -23,9 +23,8 @@ import java.io.IOException;
 import org.apache.lucene.index.BinaryDocValuesIterator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 
@@ -144,7 +143,7 @@ public abstract class FieldComparator<T> {
   public static abstract class NumericComparator<T extends Number> extends SimpleFieldComparator<T> {
     protected final T missingValue;
     protected final String field;
-    protected NumericDocValuesIterator currentReaderValues;
+    protected NumericDocValues currentReaderValues;
     private int lastDocID = -1;
     
     public NumericComparator(String field, T missingValue) {
@@ -166,7 +165,7 @@ public abstract class FieldComparator<T> {
     }
     
     /** Retrieves the NumericDocValues for the field in this segment */
-    protected NumericDocValuesIterator getNumericDocValues(LeafReaderContext context, String field) throws IOException {
+    protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
       return DocValues.getNumericIterator(context.reader(), field);
     }
   }

@@ -278,8 +278,8 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
     DirectoryReader ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator expected = r.getNumericDocValues("dv");
-      NumericDocValuesIterator actual = r.getNormValues("indexed");
+      NumericDocValues expected = r.getNumericDocValues("dv");
+      NumericDocValues actual = r.getNormValues("indexed");
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, expected.nextDoc());
         assertEquals(i, actual.nextDoc());
@@ -295,8 +295,8 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
     ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator expected = r.getNumericDocValues("dv");
-      NumericDocValuesIterator actual = r.getNormValues("indexed");
+      NumericDocValues expected = r.getNumericDocValues("dv");
+      NumericDocValues actual = r.getNormValues("indexed");
       for (int i = 0; i < r.maxDoc(); i++) {
         assertEquals(i, expected.nextDoc());
         assertEquals(i, actual.nextDoc());
@@ -401,7 +401,7 @@ public abstract class BaseNormsFormatTestCase extends BaseIndexFileFormatTestCas
 
     // Confusingly, norms should exist, and should all be 0, even though we deleted all docs that had the field "content".  They should not
     // be undead:
-    NumericDocValuesIterator norms = MultiDocValues.getNormValues(r, "content");
+    NumericDocValues norms = MultiDocValues.getNormValues(r, "content");
     assertNotNull(norms);
     for(int i=0;i<r.maxDoc();i++) {
       assertEquals(i, norms.nextDoc());

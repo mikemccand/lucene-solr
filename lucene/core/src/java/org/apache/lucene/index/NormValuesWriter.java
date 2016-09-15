@@ -73,11 +73,11 @@ class NormValuesWriter {
     normsConsumer.addNormsField(fieldInfo,
                                 new NormsProducer() {
                                   @Override
-                                  public NumericDocValuesIterator getNorms(FieldInfo fieldInfo2) {
+                                  public NumericDocValues getNorms(FieldInfo fieldInfo2) {
                                    if (fieldInfo != NormValuesWriter.this.fieldInfo) {
                                      throw new IllegalArgumentException("wrong fieldInfo");
                                    }
-                                   return new NormsIterator(maxDoc, values);
+                                   return new BufferedNorms(maxDoc, values);
                                   }
 
                                   @Override
@@ -98,14 +98,14 @@ class NormValuesWriter {
   // TODO: norms should only visit docs that had a field indexed!!
   
   // iterates over the values we have in ram
-  private static class NormsIterator extends NumericDocValuesIterator {
+  private static class BufferedNorms extends NumericDocValues {
     final PackedLongValues.Iterator iter;
     final int size;
     final int maxDoc;
     private int docID = -1;
     private long value;
     
-    NormsIterator(int maxDoc, PackedLongValues values) {
+    BufferedNorms(int maxDoc, PackedLongValues values) {
       this.maxDoc = maxDoc;
       this.iter = values.iterator();
       this.size = (int) values.size();

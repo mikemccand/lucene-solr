@@ -121,7 +121,7 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
         for (int field = 0; field < fieldValues.length; field++) {
           String f = "f" + field;
           BinaryDocValuesIterator bdv = r.getBinaryDocValues(f);
-          NumericDocValuesIterator ndv = r.getNumericDocValues(f);
+          NumericDocValues ndv = r.getNumericDocValues(f);
           if (field < numNDVFields) {
             assertNotNull(ndv);
             assertNull(bdv);
@@ -263,7 +263,7 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
       LeafReader r = context.reader();
       for (int i = 0; i < numFields; i++) {
         BinaryDocValuesIterator bdv = r.getBinaryDocValues("f" + i);
-        NumericDocValuesIterator control = r.getNumericDocValues("cf" + i);
+        NumericDocValues control = r.getNumericDocValues("cf" + i);
         Bits liveDocs = r.getLiveDocs();
         for (int j = 0; j < r.maxDoc(); j++) {
           if (liveDocs == null || liveDocs.get(j)) {
@@ -311,7 +311,7 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
       for (LeafReaderContext context : reader.leaves()) {
         LeafReader r = context.reader();
         BinaryDocValuesIterator fbdv = r.getBinaryDocValues("f");
-        NumericDocValuesIterator cfndv = r.getNumericDocValues("cf");
+        NumericDocValues cfndv = r.getNumericDocValues("cf");
         for (int j = 0; j < r.maxDoc(); j++) {
           assertEquals(j, cfndv.nextDoc());
           assertEquals(j, fbdv.nextDoc());
@@ -382,7 +382,7 @@ public class TestMixedDocValuesUpdates extends LuceneTestCase {
       for (int i = 0; i < numBinaryFields; i++) {
         LeafReader r = context.reader();
         BinaryDocValuesIterator f = r.getBinaryDocValues("f" + i);
-        NumericDocValuesIterator cf = r.getNumericDocValues("cf" + i);
+        NumericDocValues cf = r.getNumericDocValues("cf" + i);
         for (int j = 0; j < r.maxDoc(); j++) {
           assertEquals(j, cf.nextDoc());
           assertEquals(j, f.nextDoc());

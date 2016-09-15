@@ -17,22 +17,42 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.search.DocIdSetIterator;
-
-// nocommit rename
+import java.io.IOException;
 
 /**
- * A per-document numeric value.
+ * Delegates all methods to a wrapped {@link NumericDocValues}.
  */
-public abstract class NumericDocValuesIterator extends DocIdSetIterator {
-  
-  /** Sole constructor. (For invocation by subclass 
-   *  constructors, typically implicit.) */
-  protected NumericDocValuesIterator() {}
+public abstract class FilterNumericDocValues extends NumericDocValues {
 
-  /**
-   * Returns the numeric value for the current document ID.
-   * @return numeric value
-   */
-  public abstract long longValue();
+  protected final NumericDocValues in;
+  
+  /** Sole constructor */
+  protected FilterNumericDocValues(NumericDocValues in) {
+    this.in = in;
+  }
+
+  @Override
+  public int docID() {
+    return in.docID();
+  }
+  
+  @Override
+  public int nextDoc() throws IOException {
+    return in.nextDoc();
+  }
+
+  @Override
+  public int advance(int target) throws IOException {
+    return in.advance(target);
+  }
+  
+  @Override
+  public long cost() {
+    return in.cost();
+  }
+
+  @Override
+  public long longValue() {
+    return in.longValue();
+  }
 }

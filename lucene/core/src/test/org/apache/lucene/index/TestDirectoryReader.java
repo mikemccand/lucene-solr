@@ -569,8 +569,8 @@ public class TestDirectoryReader extends LuceneTestCase {
     // check norms
     for(FieldInfo fieldInfo : fieldInfos1) {
       String curField = fieldInfo.name;
-      NumericDocValuesIterator norms1 = MultiDocValues.getNormValues(index1, curField);
-      NumericDocValuesIterator norms2 = MultiDocValues.getNormValues(index2, curField);
+      NumericDocValues norms1 = MultiDocValues.getNormValues(index1, curField);
+      NumericDocValues norms2 = MultiDocValues.getNormValues(index2, curField);
       if (norms1 != null && norms2 != null) {
         // todo: generalize this (like TestDuelingCodecs assert)
         for (int i = 0; i < index1.maxDoc(); i++) {

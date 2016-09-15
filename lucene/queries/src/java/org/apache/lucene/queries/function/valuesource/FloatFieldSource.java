@@ -21,12 +21,11 @@ import java.util.Map;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.docvalues.FloatDocValues;
 import org.apache.lucene.search.SortField.Type;
 import org.apache.lucene.search.SortField;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.mutable.MutableValue;
 import org.apache.lucene.util.mutable.MutableValueFloat;
 
@@ -53,7 +52,7 @@ public class FloatFieldSource extends FieldCacheSource {
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
 
-    final NumericDocValuesIterator arr = DocValues.getNumericIterator(readerContext.reader(), field);
+    final NumericDocValues arr = DocValues.getNumericIterator(readerContext.reader(), field);
     
     return new FloatDocValues(this) {
       int lastDocID;

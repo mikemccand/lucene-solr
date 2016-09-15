@@ -23,7 +23,7 @@ import java.util.List;
 
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Explanation;
 import org.apache.lucene.search.TermStatistics;
@@ -268,9 +268,9 @@ public abstract class SimilarityBase extends Similarity {
    */
   private class BasicSimScorer extends SimScorer {
     private final BasicStats stats;
-    private final NumericDocValuesIterator norms;
+    private final NumericDocValues norms;
     
-    BasicSimScorer(BasicStats stats, NumericDocValuesIterator norms) throws IOException {
+    BasicSimScorer(BasicStats stats, NumericDocValues norms) throws IOException {
       this.stats = stats;
       this.norms = norms;
     }

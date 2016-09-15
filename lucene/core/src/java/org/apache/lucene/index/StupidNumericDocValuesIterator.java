@@ -17,7 +17,6 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
@@ -25,7 +24,7 @@ import org.apache.lucene.util.Bits;
 /**
  * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyNumericDocValues}
  */
-public final class StupidNumericDocValuesIterator extends NumericDocValuesIterator {
+public final class StupidNumericDocValuesIterator extends NumericDocValues {
   private final Bits docsWithField;
   private final LegacyNumericDocValues values;
   private final int maxDoc;

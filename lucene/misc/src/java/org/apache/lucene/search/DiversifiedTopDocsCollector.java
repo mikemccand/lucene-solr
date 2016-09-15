@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.DiversifiedTopDocsCollector.ScoreDocKey;
 import org.apache.lucene.util.PriorityQueue;
 
@@ -79,7 +79,7 @@ public abstract class DiversifiedTopDocsCollector extends
   /**
    * Get a source of values used for grouping keys
    */
-  protected abstract NumericDocValuesIterator getKeys(LeafReaderContext context);
+  protected abstract NumericDocValues getKeys(LeafReaderContext context);
 
   @Override
   public boolean needsScores() {
@@ -110,7 +110,7 @@ public abstract class DiversifiedTopDocsCollector extends
   }
 
   protected ScoreDocKey insert(ScoreDocKey addition, int docBase,
-      NumericDocValuesIterator keys) throws IOException {
+      NumericDocValues keys) throws IOException {
     if ((globalQueue.size() >= numHits)
         && (globalQueue.lessThan(addition, globalQueue.top()))) {
       // Queue is full and proposed addition is not a globally
@@ -189,7 +189,7 @@ public abstract class DiversifiedTopDocsCollector extends
   public LeafCollector getLeafCollector(LeafReaderContext context)
       throws IOException {
     final int base = context.docBase;
-    final NumericDocValuesIterator keySource = getKeys(context);
+    final NumericDocValues keySource = getKeys(context);
 
     return new LeafCollector() {
       Scorer scorer;

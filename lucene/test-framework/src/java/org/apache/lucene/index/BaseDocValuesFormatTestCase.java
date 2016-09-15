@@ -55,7 +55,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.BytesRefHash;
@@ -122,7 +121,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       Document hitDoc = isearcher.doc(hits.scoreDocs[i].doc);
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
-      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
+      NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
       int docID = hits.scoreDocs[i].doc;
       assertEquals(docID, dv.advance(docID));
       assertEquals(5, dv.longValue());
@@ -158,7 +157,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
       
-      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
+      NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
       assertEquals(docID, dv.advance(docID));
       assertEquals(Float.floatToRawIntBits(5.7f), dv.longValue());
     }
@@ -193,7 +192,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       Document hitDoc = isearcher.doc(docID);
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
-      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv1");
+      NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv1");
       assertEquals(docID, dv.advance(docID));
       assertEquals(5, dv.longValue());
       dv = ireader.leaves().get(0).reader().getNumericDocValues("dv2");
@@ -271,7 +270,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       Document hitDoc = isearcher.doc(docID);
       assertEquals(text, hitDoc.get("fieldname"));
       assert ireader.leaves().size() == 1;
-      NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv1");
+      NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv1");
       assertEquals(docID, dv.advance(docID));
       assertEquals(5, dv.longValue());
       BinaryDocValuesIterator dv2 = ireader.leaves().get(0).reader().getBinaryDocValues("dv2");
@@ -315,7 +314,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       int ord = dv.ordValue();
       BytesRef scratch = dv.lookupOrd(ord);
       assertEquals(new BytesRef("hello hello"), scratch);
-      NumericDocValuesIterator dv2 = ireader.leaves().get(0).reader().getNumericDocValues("dv2");
+      NumericDocValues dv2 = ireader.leaves().get(0).reader().getNumericDocValues("dv2");
       assertEquals(docID, dv2.advance(docID));
       assertEquals(5, dv2.longValue());
       BinaryDocValuesIterator dv3 = ireader.leaves().get(0).reader().getBinaryDocValues("dv3");
@@ -360,7 +359,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       int ord = dv.ordValue();
       scratch = dv.lookupOrd(ord);
       assertEquals(new BytesRef("hello hello"), scratch);
-      NumericDocValuesIterator dv2 = ireader.leaves().get(0).reader().getNumericDocValues("dv3");
+      NumericDocValues dv2 = ireader.leaves().get(0).reader().getNumericDocValues("dv3");
       assertEquals(docID, dv2.advance(docID));
       assertEquals(5, dv2.longValue());
       BinaryDocValuesIterator dv3 = ireader.leaves().get(0).reader().getBinaryDocValues("dv1");
@@ -391,7 +390,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     // Now search the index:
     IndexReader ireader = DirectoryReader.open(directory); // read-only=true
     assert ireader.leaves().size() == 1;
-    NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
+    NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
     assertEquals(0, dv.nextDoc());
     assertEquals(1, dv.longValue());
     assertEquals(1, dv.nextDoc());
@@ -423,7 +422,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     // Now search the index:
     IndexReader ireader = DirectoryReader.open(directory); // read-only=true
     assert ireader.leaves().size() == 1;
-    NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
+    NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
     for(int i=0;i<2;i++) {
       Document doc2 = ireader.leaves().get(0).reader().document(i);
       long expected;
@@ -459,7 +458,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     // Now search the index:
     IndexReader ireader = DirectoryReader.open(directory); // read-only=true
     assert ireader.leaves().size() == 1;
-    NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
+    NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
     assertEquals(0, dv.nextDoc());
     assertEquals(Long.MIN_VALUE, dv.longValue());
     assertEquals(1, dv.nextDoc());
@@ -488,7 +487,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     // Now search the index:
     IndexReader ireader = DirectoryReader.open(directory); // read-only=true
     assert ireader.leaves().size() == 1;
-    NumericDocValuesIterator dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
+    NumericDocValues dv = ireader.leaves().get(0).reader().getNumericDocValues("dv");
     assertEquals(0, dv.nextDoc());
     assertEquals(-8841491950446638677L, dv.longValue());
     assertEquals(1, dv.nextDoc());
@@ -1105,7 +1104,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     TopDocs search = searcher.search(query.build(), 10);
     assertEquals(5, search.totalHits);
     ScoreDoc[] scoreDocs = search.scoreDocs;
-    NumericDocValuesIterator docValues = getOnlyLeafReader(reader).getNumericDocValues("docId");
+    NumericDocValues docValues = getOnlyLeafReader(reader).getNumericDocValues("docId");
     for (int i = 0; i < scoreDocs.length; i++) {
       assertEquals(i, scoreDocs[i].doc);
       assertEquals(i, docValues.advance(i));
@@ -1268,7 +1267,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     DirectoryReader ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      NumericDocValuesIterator docValues = r.getNumericDocValues("dv");
+      NumericDocValues docValues = r.getNumericDocValues("dv");
       for (int i = 0; i < r.maxDoc(); i++) {
         long storedValue = Long.parseLong(r.document(i).get("stored"));
         assertEquals(i, docValues.nextDoc());
@@ -2298,7 +2297,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     IndexReader ir = DirectoryReader.open(directory);
     assertEquals(1, ir.leaves().size());
     LeafReader ar = ir.leaves().get(0).reader();
-    NumericDocValuesIterator dv = ar.getNumericDocValues("dv1");
+    NumericDocValues dv = ar.getNumericDocValues("dv1");
     assertEquals(0, dv.nextDoc());
     assertEquals(0, dv.longValue());
     assertEquals(NO_MORE_DOCS, dv.nextDoc());
@@ -2325,7 +2324,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     IndexReader ir = DirectoryReader.open(directory);
     assertEquals(1, ir.leaves().size());
     LeafReader ar = ir.leaves().get(0).reader();
-    NumericDocValuesIterator dv = ar.getNumericDocValues("dv1");
+    NumericDocValues dv = ar.getNumericDocValues("dv1");
     assertEquals(0, dv.nextDoc());
     assertEquals(0, dv.longValue());
     assertEquals(NO_MORE_DOCS, dv.nextDoc());
@@ -2356,7 +2355,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     IndexReader ir = DirectoryReader.open(directory);
     assertEquals(1, ir.leaves().size());
     LeafReader ar = ir.leaves().get(0).reader();
-    NumericDocValuesIterator dv = ar.getNumericDocValues("dv1");
+    NumericDocValues dv = ar.getNumericDocValues("dv1");
     assertEquals(0, dv.nextDoc());
     assertEquals(0, dv.longValue());
     assertEquals(2, dv.nextDoc());
@@ -2513,7 +2512,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
               LeafReader r = context.reader();
               BinaryDocValuesIterator binaries = r.getBinaryDocValues("dvBin");
               SortedDocValuesIterator sorted = r.getSortedDocValues("dvSorted");
-              NumericDocValuesIterator numerics = r.getNumericDocValues("dvNum");
+              NumericDocValues numerics = r.getNumericDocValues("dvNum");
               for (int j = 0; j < r.maxDoc(); j++) {
                 BytesRef binaryValue = r.document(j).getBinaryValue("storedBin");
                 assertEquals(j, binaries.nextDoc());
@@ -2630,7 +2629,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
               LeafReader r = context.reader();
               BinaryDocValuesIterator binaries = r.getBinaryDocValues("dvBin");
               SortedDocValuesIterator sorted = r.getSortedDocValues("dvSorted");
-              NumericDocValuesIterator numerics = r.getNumericDocValues("dvNum");
+              NumericDocValues numerics = r.getNumericDocValues("dvNum");
               SortedSetDocValuesIterator sortedSet = r.getSortedSetDocValues("dvSortedSet");
               SortedNumericDocValuesIterator sortedNumeric = r.getSortedNumericDocValues("dvSortedNumeric");
               for (int j = 0; j < r.maxDoc(); j++) {
@@ -2867,7 +2866,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     DirectoryReader ireader = iwriter.getReader();
     iwriter.close();
     
-    NumericDocValuesIterator dv = getOnlyLeafReader(ireader).getNumericDocValues("field");
+    NumericDocValues dv = getOnlyLeafReader(ireader).getNumericDocValues("field");
     assertEquals(NO_MORE_DOCS, dv.nextDoc());
     
     ireader.close();
@@ -3225,7 +3224,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     DirectoryReader ireader = iwriter.getReader();
     iwriter.close();
 
-    NumericDocValuesIterator dv = getOnlyLeafReader(ireader).getNumericDocValues("field");
+    NumericDocValues dv = getOnlyLeafReader(ireader).getNumericDocValues("field");
     assertEquals(NO_MORE_DOCS, dv.nextDoc());
 
     ireader.close();

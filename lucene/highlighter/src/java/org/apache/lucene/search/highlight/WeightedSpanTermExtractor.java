@@ -35,7 +35,7 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
@@ -453,7 +453,7 @@ public class WeightedSpanTermExtractor {
     }
 
     @Override
-    public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+    public NumericDocValues getNumericDocValues(String field) throws IOException {
       return super.getNumericDocValues(FIELD_NAME);
     }
     
@@ -468,7 +468,7 @@ public class WeightedSpanTermExtractor {
     }
     
     @Override
-    public NumericDocValuesIterator getNormValues(String field) throws IOException {
+    public NumericDocValues getNormValues(String field) throws IOException {
       return super.getNormValues(FIELD_NAME);
     }
   }

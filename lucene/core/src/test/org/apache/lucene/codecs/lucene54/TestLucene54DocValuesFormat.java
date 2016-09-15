@@ -52,7 +52,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValuesIterator;
@@ -66,7 +66,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMFile;
 import org.apache.lucene.store.RAMInputStream;
 import org.apache.lucene.store.RAMOutputStream;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.LongValues;
@@ -205,7 +204,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
     for (LeafReaderContext context : indexReader.leaves()) {
       final LeafReader reader = context.reader();
-      final NumericDocValuesIterator numeric = DocValues.getNumericIterator(reader, "numeric");
+      final NumericDocValues numeric = DocValues.getNumericIterator(reader, "numeric");
 
       final SortedDocValuesIterator sorted = DocValues.getSorted(reader, "sorted");
 

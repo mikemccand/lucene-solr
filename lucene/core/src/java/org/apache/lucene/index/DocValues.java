@@ -90,10 +90,10 @@ public final class DocValues {
   */
 
   /** 
-   * An empty NumericDocValuesIterator which returns no documents
+   * An empty NumericDocValues which returns no documents
    */
-  public static final NumericDocValuesIterator emptyNumericIterator() {
-    return new NumericDocValuesIterator() {
+  public static final NumericDocValues emptyNumericIterator() {
+    return new NumericDocValues() {
       private boolean exhausted = false;
       
       @Override
@@ -130,11 +130,11 @@ public final class DocValues {
   }
 
   /** 
-   * A NumericDocValuesIterator which returns alldocuments with value 0
+   * A NumericDocValues which returns alldocuments with value 0
    */
   // nocommit move this horrible thing to be private to NormsConsumer?  remove it?
-  public static final NumericDocValuesIterator allZerosNumericIterator(final int maxDoc) {
-    return new NumericDocValuesIterator() {
+  public static final NumericDocValues allZerosNumericIterator(final int maxDoc) {
+    return new NumericDocValues() {
       int docID = -1;
       
       @Override
@@ -367,9 +367,9 @@ public final class DocValues {
   
   /** 
    * Returns a single-valued view of the SortedNumericDocValuesIterator, if it was previously
-   * wrapped with {@link #singleton(NumericDocValuesIterator)}, or null. 
+   * wrapped with {@link #singleton(NumericDocValues)}, or null.
    */
-  public static NumericDocValuesIterator unwrapSingleton(SortedNumericDocValuesIterator dv) {
+  public static NumericDocValues unwrapSingleton(SortedNumericDocValuesIterator dv) {
     if (dv instanceof SingletonSortedNumericDocValuesIterator) {
       return ((SingletonSortedNumericDocValuesIterator)dv).getNumericDocValues();
     } else {
@@ -380,7 +380,7 @@ public final class DocValues {
   /**
    * Returns a multi-valued view over the provided NumericDocValues
    */
-  public static SortedNumericDocValuesIterator singleton(NumericDocValuesIterator dv) {
+  public static SortedNumericDocValuesIterator singleton(NumericDocValues dv) {
     return new SingletonSortedNumericDocValuesIterator(dv);
   }
   
@@ -441,14 +441,14 @@ public final class DocValues {
   }
   
   /**
-   * Returns NumericDocValuesIterator for the field, or {@link #emptyNumericIterator()} if it has none. 
+   * Returns NumericDocValues for the field, or {@link #emptyNumericIterator()} if it has none.
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#NUMERIC}.
    * @throws IOException if an I/O error occurs.
    */
-  public static NumericDocValuesIterator getNumericIterator(LeafReader reader, String field) throws IOException {
-    NumericDocValuesIterator dv = reader.getNumericDocValues(field);
+  public static NumericDocValues getNumericIterator(LeafReader reader, String field) throws IOException {
+    NumericDocValues dv = reader.getNumericDocValues(field);
     if (dv == null) {
       checkField(reader, field, DocValuesType.NUMERIC);
       return emptyNumericIterator();
@@ -505,7 +505,7 @@ public final class DocValues {
   public static SortedNumericDocValuesIterator getSortedNumeric(LeafReader reader, String field) throws IOException {
     SortedNumericDocValuesIterator dv = reader.getSortedNumericDocValues(field);
     if (dv == null) {
-      NumericDocValuesIterator single = reader.getNumericDocValues(field);
+      NumericDocValues single = reader.getNumericDocValues(field);
       if (single == null) {
         checkField(reader, field, DocValuesType.SORTED_NUMERIC, DocValuesType.NUMERIC);
         return emptySortedNumeric(reader.maxDoc());

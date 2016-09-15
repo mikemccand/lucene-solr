@@ -23,11 +23,10 @@ import java.util.Map;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.docvalues.LongDocValues;
 import org.apache.lucene.queries.function.valuesource.LongFieldSource;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LegacyNumericUtils;
 import org.apache.lucene.util.mutable.MutableValue;
@@ -58,7 +57,7 @@ public class DateFieldSource extends LongFieldSource {
 
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-    final NumericDocValuesIterator arr = DocValues.getNumericIterator(readerContext.reader(), field);
+    final NumericDocValues arr = DocValues.getNumericIterator(readerContext.reader(), field);
     return new LongDocValues(this) {
 
       private long getDocValue(int doc) throws IOException {

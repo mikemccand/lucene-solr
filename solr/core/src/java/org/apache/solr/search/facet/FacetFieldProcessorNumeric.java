@@ -23,10 +23,9 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BitUtil;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.PriorityQueue;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.schema.SchemaField;
@@ -287,7 +286,7 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
       allBucketsAcc = new SpecialSlotAcc(fcontext, collectAcc, allBucketsSlot, otherAccs, 0);
     }
 
-    NumericDocValuesIterator values = null;
+    NumericDocValues values = null;
 
     // TODO: factor this code out so it can be shared...
     final List<LeafReaderContext> leaves = fcontext.searcher.getIndexReader().leaves();

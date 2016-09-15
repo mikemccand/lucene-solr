@@ -16,15 +16,14 @@
  */
 package org.apache.lucene.spatial.vector;
 
+import org.apache.lucene.index.NumericDocValues;
 import org.locationtech.spatial4j.distance.DistanceCalculator;
 import org.locationtech.spatial4j.shape.Point;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
-import org.apache.lucene.util.Bits;
 
 import java.io.IOException;
 import java.util.Map;
@@ -65,8 +64,8 @@ public class DistanceValueSource extends ValueSource {
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
     LeafReader reader = readerContext.reader();
 
-    final NumericDocValuesIterator ptX = DocValues.getNumericIterator(reader, strategy.getFieldNameX());
-    final NumericDocValuesIterator ptY = DocValues.getNumericIterator(reader, strategy.getFieldNameY());
+    final NumericDocValues ptX = DocValues.getNumericIterator(reader, strategy.getFieldNameX());
+    final NumericDocValues ptY = DocValues.getNumericIterator(reader, strategy.getFieldNameY());
 
     return new FunctionValues() {
 
@@ -77,7 +76,7 @@ public class DistanceValueSource extends ValueSource {
       private final double nullValue =
           (strategy.getSpatialContext().isGeo() ? 180 * multiplier : Double.MAX_VALUE);
 
-      private double getDocValue(NumericDocValuesIterator values, int doc) throws IOException {
+      private double getDocValue(NumericDocValues values, int doc) throws IOException {
         int curDocID = values.docID();
         if (doc > curDocID) {
           curDocID = values.advance(doc);

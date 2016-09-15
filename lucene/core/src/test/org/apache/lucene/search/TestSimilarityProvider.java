@@ -24,7 +24,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInvertState;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.similarities.PerFieldSimilarityWrapper;
@@ -74,8 +74,8 @@ public class TestSimilarityProvider extends LuceneTestCase {
   public void testBasics() throws Exception {
     // sanity check of norms writer
     // TODO: generalize
-    NumericDocValuesIterator fooNorms = MultiDocValues.getNormValues(reader, "foo");
-    NumericDocValuesIterator barNorms = MultiDocValues.getNormValues(reader, "bar");
+    NumericDocValues fooNorms = MultiDocValues.getNormValues(reader, "foo");
+    NumericDocValues barNorms = MultiDocValues.getNormValues(reader, "bar");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, fooNorms.nextDoc());
       assertEquals(i, barNorms.nextDoc());

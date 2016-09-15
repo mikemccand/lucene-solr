@@ -41,7 +41,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Term;
@@ -758,7 +758,7 @@ public class TestGrouping extends LuceneTestCase {
       final DirectoryReader r = w.getReader();
       w.close();
       
-      NumericDocValuesIterator values = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues values = MultiDocValues.getNumericValuesIterator(r, "id");
       int[] docIDToID = new int[r.maxDoc()];
       for(int i=0;i<r.maxDoc();i++) {
         assertEquals(i, values.nextDoc());

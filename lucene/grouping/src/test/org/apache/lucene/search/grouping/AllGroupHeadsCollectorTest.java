@@ -38,7 +38,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.function.ValueSource;
@@ -283,7 +283,7 @@ public class AllGroupHeadsCollectorTest extends LuceneTestCase {
       final DirectoryReader r = w.getReader();
       w.close();
 
-      NumericDocValuesIterator values = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues values = MultiDocValues.getNumericValuesIterator(r, "id");
       final int[] docIDToFieldId = new int[numDocs];
       final int[] fieldIdToDocID = new int[numDocs];
       for (int i = 0; i < numDocs; i++) {

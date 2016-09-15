@@ -22,7 +22,7 @@ import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.LuceneTestCase;
 
@@ -48,7 +48,7 @@ public class TestFieldCacheReopen extends LuceneTestCase {
     // Open reader1
     DirectoryReader r = DirectoryReader.open(dir);
     LeafReader r1 = getOnlyLeafReader(r);
-    final NumericDocValuesIterator ints = FieldCache.DEFAULT.getNumerics(r1, "number", FieldCache.INT_POINT_PARSER);
+    final NumericDocValues ints = FieldCache.DEFAULT.getNumerics(r1, "number", FieldCache.INT_POINT_PARSER);
     assertEquals(0, ints.nextDoc());
     assertEquals(17, ints.longValue());
   
@@ -61,7 +61,7 @@ public class TestFieldCacheReopen extends LuceneTestCase {
     assertNotNull(r2);
     r.close();
     LeafReader sub0 = r2.leaves().get(0).reader();
-    final NumericDocValuesIterator ints2 = FieldCache.DEFAULT.getNumerics(sub0, "number", FieldCache.INT_POINT_PARSER);
+    final NumericDocValues ints2 = FieldCache.DEFAULT.getNumerics(sub0, "number", FieldCache.INT_POINT_PARSER);
     r2.close();
     assertEquals(0, ints2.nextDoc());
     assertEquals(17, ints2.longValue());

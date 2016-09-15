@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 
-/** Temporary bridge class to convert {@link NumericDocValuesIterator} to {@code Iterable&lt;Number&gt} */
+/** Temporary bridge class to convert {@link NumericDocValues} to {@code Iterable&lt;Number&gt} */
 public class StupidNormsIterable implements Iterable<Number> {
   private final FieldInfo field;
   private final NormsProducer normsProducer;
@@ -38,7 +38,7 @@ public class StupidNormsIterable implements Iterable<Number> {
   @Override
   public Iterator<Number> iterator() {
 
-    final NumericDocValuesIterator values;
+    final NumericDocValues values;
     try {
       values = normsProducer.getNorms(field);
     } catch (IOException ioe) {

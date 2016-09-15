@@ -37,9 +37,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.geo.GeoUtils;
-import org.apache.lucene.geo.Polygon;
-import org.apache.lucene.geo.Rectangle;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
@@ -47,7 +44,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
@@ -831,7 +828,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
-      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();
@@ -969,7 +966,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
-      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();
@@ -1101,7 +1098,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
-      NumericDocValuesIterator docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();

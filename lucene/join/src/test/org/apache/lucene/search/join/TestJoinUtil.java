@@ -61,7 +61,7 @@ import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.NoMergePolicy;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValuesIterator;
@@ -91,7 +91,6 @@ import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.BitSetIterator;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.LuceneTestCase;
@@ -483,7 +482,7 @@ public class TestJoinUtil extends LuceneTestCase {
             if (fieldScorer == null) {
               return null;
             }
-            NumericDocValuesIterator price = context.reader().getNumericDocValues(priceField);
+            NumericDocValues price = context.reader().getNumericDocValues(priceField);
             return new FilterScorer(fieldScorer, this) {
               @Override
               public float score() throws IOException {

@@ -27,7 +27,7 @@ import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
@@ -104,7 +104,7 @@ public class TermVectorLeafReader extends LeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNumericDocValues(String field) throws IOException {
+  public NumericDocValues getNumericDocValues(String field) throws IOException {
     return null;
   }
 
@@ -129,7 +129,7 @@ public class TermVectorLeafReader extends LeafReader {
   }
 
   @Override
-  public NumericDocValuesIterator getNormValues(String field) throws IOException {
+  public NumericDocValues getNormValues(String field) throws IOException {
     return null;//Is this needed?  See MemoryIndex for a way to do it.
   }
 

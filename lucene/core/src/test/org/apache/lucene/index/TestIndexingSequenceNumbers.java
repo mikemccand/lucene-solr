@@ -434,7 +434,7 @@ public class TestIndexingSequenceNumbers extends LuceneTestCase {
       for(int id=0;id<idCount;id++) {
         //System.out.println("TEST: check id=" + id + " expectedThreadID=" + expectedThreadIDs[id]);
         TopDocs hits = s.search(new TermQuery(new Term("id", ""+id)), 1);
-        NumericDocValuesIterator docValues = MultiDocValues.getNumericValuesIterator(r, "thread");
+        NumericDocValues docValues = MultiDocValues.getNumericValuesIterator(r, "thread");
 
         // We pre-add all ids up front:
         assert expectedThreadIDs[id] != -1;

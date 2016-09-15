@@ -19,7 +19,6 @@ package org.apache.lucene.index;
 
 import java.io.IOException;
 
-import org.apache.lucene.index.IndexReader.ReaderClosedListener;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
 
@@ -240,12 +239,12 @@ public abstract class LeafReader extends IndexReader {
     return postings(term, PostingsEnum.FREQS);
   }
 
-  /** Returns {@link NumericDocValuesIterator} for this field, or
+  /** Returns {@link NumericDocValues} for this field, or
    *  null if no numeric doc values were indexed for
    *  this field.  The returned instance should only be
    *  used by a single thread.  This will never return null. */
   // nocommit fix AssertingXXXReader to assert that this indeed never returns null
-  public abstract NumericDocValuesIterator getNumericDocValues(String field) throws IOException;
+  public abstract NumericDocValues getNumericDocValues(String field) throws IOException;
 
   /** Returns {@link BinaryDocValuesIterator} for this field, or
    *  null if no binary doc values were indexed for
@@ -271,11 +270,11 @@ public abstract class LeafReader extends IndexReader {
    *  used by a single thread. */
   public abstract SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException;
 
-  /** Returns {@link NumericDocValuesIterator} representing norms
-   *  for this field, or null if no {@link NumericDocValuesIterator}
+  /** Returns {@link NumericDocValues} representing norms
+   *  for this field, or null if no {@link NumericDocValues}
    *  were indexed. The returned instance should only be
    *  used by a single thread. */
-  public abstract NumericDocValuesIterator getNormValues(String field) throws IOException;
+  public abstract NumericDocValues getNormValues(String field) throws IOException;
 
   /**
    * Get the {@link FieldInfos} describing all fields in

@@ -22,11 +22,10 @@ import java.util.Map;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.search.Explanation;
-import org.apache.lucene.util.Bits;
 import org.locationtech.spatial4j.shape.Rectangle;
 
 /**
@@ -51,10 +50,10 @@ class BBoxValueSource extends ValueSource {
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
     LeafReader reader = readerContext.reader();
-    final NumericDocValuesIterator minX = DocValues.getNumericIterator(reader, strategy.field_minX);
-    final NumericDocValuesIterator minY = DocValues.getNumericIterator(reader, strategy.field_minY);
-    final NumericDocValuesIterator maxX = DocValues.getNumericIterator(reader, strategy.field_maxX);
-    final NumericDocValuesIterator maxY = DocValues.getNumericIterator(reader, strategy.field_maxY);
+    final NumericDocValues minX = DocValues.getNumericIterator(reader, strategy.field_minX);
+    final NumericDocValues minY = DocValues.getNumericIterator(reader, strategy.field_minY);
+    final NumericDocValues maxX = DocValues.getNumericIterator(reader, strategy.field_maxX);
+    final NumericDocValues maxY = DocValues.getNumericIterator(reader, strategy.field_maxY);
 
     //reused
     final Rectangle rect = strategy.getSpatialContext().makeRectangle(0,0,0,0);
@@ -62,7 +61,7 @@ class BBoxValueSource extends ValueSource {
     return new FunctionValues() {
       private int lastDocID = -1;
 
-      private double getDocValue(NumericDocValuesIterator values, int doc) throws IOException {
+      private double getDocValue(NumericDocValues values, int doc) throws IOException {
         int curDocID = values.docID();
         if (doc > curDocID) {
           curDocID = values.advance(doc);

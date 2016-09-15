@@ -39,7 +39,7 @@ import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.LegacySortedDocValues;
 import org.apache.lucene.index.LegacySortedNumericDocValues;
 import org.apache.lucene.index.LegacySortedSetDocValues;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SortedDocValuesIterator;
@@ -289,7 +289,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized NumericDocValuesIterator getNumeric(FieldInfo field) throws IOException {
+  public synchronized NumericDocValues getNumeric(FieldInfo field) throws IOException {
     LegacyNumericDocValues instance = numericInstances.get(field.name);
     if (instance == null) {
       instance = loadNumeric(field);

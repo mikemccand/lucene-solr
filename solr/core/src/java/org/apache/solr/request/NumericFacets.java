@@ -28,9 +28,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.FilterNumericDocValuesIterator;
+import org.apache.lucene.index.FilterNumericDocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -143,7 +143,7 @@ final class NumericFacets {
     final HashTable hashTable = new HashTable();
     final Iterator<LeafReaderContext> ctxIt = leaves.iterator();
     LeafReaderContext ctx = null;
-    NumericDocValuesIterator longs = null;
+    NumericDocValues longs = null;
     Bits docsWithField = null;
     int missingCount = 0;
     for (DocIterator docsIt = docs.iterator(); docsIt.hasNext(); ) {
@@ -162,7 +162,7 @@ final class NumericFacets {
             break;
           case FLOAT:
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new FilterNumericDocValuesIterator(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
+            longs = new FilterNumericDocValues(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
               @Override
               public long longValue() {
                 long bits = super.longValue();
@@ -173,7 +173,7 @@ final class NumericFacets {
             break;
           case DOUBLE:
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new FilterNumericDocValuesIterator(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
+            longs = new FilterNumericDocValues(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
               @Override
               public long longValue() {
                 long bits = super.longValue();

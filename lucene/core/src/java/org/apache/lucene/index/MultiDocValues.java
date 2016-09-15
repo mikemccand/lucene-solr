@@ -27,7 +27,6 @@ import org.apache.lucene.index.MultiTermsEnum.TermsEnumIndex;
 import org.apache.lucene.index.MultiTermsEnum.TermsEnumWithSlice;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.InPlaceMergeSorter;
 import org.apache.lucene.util.LongValues;
@@ -60,7 +59,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getNormValues(String)}
    * </p> 
    */
-  public static NumericDocValuesIterator getNormValues(final IndexReader r, final String field) throws IOException {
+  public static NumericDocValues getNormValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -74,10 +73,10 @@ public class MultiDocValues {
     }
 
     boolean anyReal = false;
-    final List<NumericDocValuesIterator> values = new ArrayList<>();
+    final List<NumericDocValues> values = new ArrayList<>();
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      NumericDocValuesIterator v = context.reader().getNormValues(field);
+      NumericDocValues v = context.reader().getNormValues(field);
       if (v != null) {
         anyReal = true;
       } else {
@@ -89,9 +88,9 @@ public class MultiDocValues {
     // FieldInfo.hasNorms was true:
     assert anyReal;
 
-    return new NumericDocValuesIterator() {
+    return new NumericDocValues() {
       private int nextLeaf;
-      private NumericDocValuesIterator currentValues;
+      private NumericDocValues currentValues;
       private LeafReaderContext currentLeaf;
       private int docID = -1;
 
@@ -164,8 +163,8 @@ public class MultiDocValues {
     };
   }
 
-  /** Returns a NumericDocValuesIterator for a reader's docvalues (potentially merging on-the-fly) */
-  public static NumericDocValuesIterator getNumericValuesIterator(final IndexReader r, final String field) throws IOException {
+  /** Returns a NumericDocValues for a reader's docvalues (potentially merging on-the-fly) */
+  public static NumericDocValues getNumericValuesIterator(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -174,13 +173,13 @@ public class MultiDocValues {
       return leaves.get(0).reader().getNumericDocValues(field);
     }
 
-    final List<NumericDocValuesIterator> iterators = new ArrayList<>();
+    final List<NumericDocValues> iterators = new ArrayList<>();
     // nocommit this cost could be costly to compute?  should we only do it if user calls cost?
     long totalCost = 0;
     boolean any = false;
     for(int i=0;i<leaves.size();i++) {
       LeafReaderContext leaf = leaves.get(i);
-      NumericDocValuesIterator iterator = leaf.reader().getNumericDocValues(field);
+      NumericDocValues iterator = leaf.reader().getNumericDocValues(field);
       if (iterator != null) {
         totalCost += iterator.cost();
         any = true;
@@ -194,9 +193,9 @@ public class MultiDocValues {
 
     final long finalTotalCost = totalCost;
 
-    return new NumericDocValuesIterator() {
+    return new NumericDocValues() {
       private int nextLeaf;
-      private NumericDocValuesIterator currentValues;
+      private NumericDocValues currentValues;
       private LeafReaderContext currentLeaf;
       private int docID = -1;
 

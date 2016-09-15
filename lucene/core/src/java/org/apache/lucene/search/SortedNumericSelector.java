@@ -20,8 +20,8 @@ package org.apache.lucene.search;
 import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.FilterNumericDocValuesIterator;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.FilterNumericDocValues;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.util.NumericUtils;
 
@@ -52,15 +52,15 @@ public class SortedNumericSelector {
    * Wraps a multi-valued SortedNumericDocValues as a single-valued view, using the specified selector 
    * and numericType.
    */
-  public static NumericDocValuesIterator wrap(SortedNumericDocValuesIterator sortedNumeric, Type selector, SortField.Type numericType) {
+  public static NumericDocValues wrap(SortedNumericDocValuesIterator sortedNumeric, Type selector, SortField.Type numericType) {
     if (numericType != SortField.Type.INT &&
         numericType != SortField.Type.LONG && 
         numericType != SortField.Type.FLOAT &&
         numericType != SortField.Type.DOUBLE) {
       throw new IllegalArgumentException("numericType must be a numeric type");
     }
-    final NumericDocValuesIterator view;
-    NumericDocValuesIterator singleton = DocValues.unwrapSingleton(sortedNumeric);
+    final NumericDocValues view;
+    NumericDocValues singleton = DocValues.unwrapSingleton(sortedNumeric);
     if (singleton != null) {
       // it's actually single-valued in practice, but indexed as multi-valued,
       // so just sort on the underlying single-valued dv directly.
@@ -81,14 +81,14 @@ public class SortedNumericSelector {
     // undo the numericutils sortability
     switch(numericType) {
       case FLOAT:
-        return new FilterNumericDocValuesIterator(view) {
+        return new FilterNumericDocValues(view) {
           @Override
           public long longValue() {
             return NumericUtils.sortableFloatBits((int) in.longValue());
           }
         };
       case DOUBLE:
-        return new FilterNumericDocValuesIterator(view) {
+        return new FilterNumericDocValues(view) {
           @Override
           public long longValue() {
             return NumericUtils.sortableDoubleBits(in.longValue());
@@ -100,7 +100,7 @@ public class SortedNumericSelector {
   }
   
   /** Wraps a SortedNumericDocValuesIterator and returns the first value (min) */
-  static class MinValue extends NumericDocValuesIterator {
+  static class MinValue extends NumericDocValues {
     final SortedNumericDocValuesIterator in;
     private long value;
     
@@ -143,7 +143,7 @@ public class SortedNumericSelector {
   }    
 
   /** Wraps a SortedNumericDocValuesIterator and returns the last value (max) */
-  static class MaxValue extends NumericDocValuesIterator {
+  static class MaxValue extends NumericDocValues {
     final SortedNumericDocValuesIterator in;
     private long value;
     

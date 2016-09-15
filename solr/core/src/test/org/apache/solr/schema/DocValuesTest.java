@@ -29,7 +29,7 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValuesIterator;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.util.NumericUtils;
@@ -86,7 +86,7 @@ public class DocValuesTest extends SolrTestCaseJ4 {
         assertEquals(DocValuesType.SORTED, infos.fieldInfo("stringdv").getDocValuesType());
         assertEquals(DocValuesType.SORTED, infos.fieldInfo("booldv").getDocValuesType());
 
-        NumericDocValuesIterator dvs = reader.getNumericDocValues("floatdv");
+        NumericDocValues dvs = reader.getNumericDocValues("floatdv");
         assertEquals(0, dvs.nextDoc());
         assertEquals((long) Float.floatToIntBits(1), dvs.longValue());
         dvs = reader.getNumericDocValues("intdv");
