@@ -21,7 +21,7 @@ import java.io.PrintStream;
 
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.join.DocValuesTermsCollector.Function;
@@ -36,7 +36,7 @@ interface GenericTermsCollector extends Collector {
   
   float[] getScoresPerTerm();
   
-  static GenericTermsCollector createCollectorMV(Function<SortedSetDocValuesIterator> mvFunction,
+  static GenericTermsCollector createCollectorMV(Function<SortedSetDocValues> mvFunction,
       ScoreMode mode) {
     
     switch (mode) {
@@ -49,10 +49,10 @@ interface GenericTermsCollector extends Collector {
     }
   }
 
-  static Function<SortedSetDocValuesIterator> verbose(PrintStream out, Function<SortedSetDocValuesIterator> mvFunction){
+  static Function<SortedSetDocValues> verbose(PrintStream out, Function<SortedSetDocValues> mvFunction){
     return (ctx) -> {
-      final SortedSetDocValuesIterator target = mvFunction.apply(ctx);
-      return new SortedSetDocValuesIterator() {
+      final SortedSetDocValues target = mvFunction.apply(ctx);
+      return new SortedSetDocValues() {
         
         @Override
         public int docID() {

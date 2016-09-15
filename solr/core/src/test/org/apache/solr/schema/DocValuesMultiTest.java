@@ -21,7 +21,7 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.solr.SolrTestCaseJ4;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.search.SolrIndexSearcher;
@@ -71,17 +71,17 @@ public class DocValuesMultiTest extends SolrTestCaseJ4 {
         assertEquals(DocValuesType.SORTED_SET, infos.fieldInfo("floatdv").getDocValuesType());
         assertEquals(DocValuesType.SORTED_SET, infos.fieldInfo("intdv").getDocValuesType());
 
-        SortedSetDocValuesIterator dv = reader.getSortedSetDocValues("stringdv");
+        SortedSetDocValues dv = reader.getSortedSetDocValues("stringdv");
         assertEquals(0, dv.nextDoc());
         assertEquals(0, dv.nextOrd());
         assertEquals(1, dv.nextOrd());
-        assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, dv.nextOrd());
+        assertEquals(SortedSetDocValues.NO_MORE_ORDS, dv.nextOrd());
 
         dv = reader.getSortedSetDocValues("booldv");
         assertEquals(0, dv.nextDoc());
         assertEquals(0, dv.nextOrd());
         assertEquals(1, dv.nextOrd());
-        assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, dv.nextOrd());
+        assertEquals(SortedSetDocValues.NO_MORE_ORDS, dv.nextOrd());
 
 
       } finally {

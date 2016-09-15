@@ -512,7 +512,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
 
   @Override
-  public synchronized SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
+  public synchronized SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
     SortedSetRawValues instance = sortedSetInstances.get(field.name);
     final SortedSetEntry entry = sortedSets.get(field.name);
     if (instance == null) {
@@ -533,7 +533,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
       final LegacyBinaryDocValues values = getBinary(field);
       
       // Must make a new instance since the iterator has state:
-      return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
+      return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
         int ordStart;
         int ordUpto;
         int ordLimit;

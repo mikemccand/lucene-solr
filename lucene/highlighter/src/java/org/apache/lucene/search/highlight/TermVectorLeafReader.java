@@ -31,7 +31,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.Sort;
@@ -124,7 +124,7 @@ public class TermVectorLeafReader extends LeafReader {
   }
 
   @Override
-  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
+  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
     return null;
   }
 

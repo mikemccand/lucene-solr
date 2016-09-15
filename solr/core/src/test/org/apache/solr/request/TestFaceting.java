@@ -22,7 +22,7 @@ import java.util.Locale;
 import java.util.Random;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
@@ -82,7 +82,7 @@ public class TestFaceting extends SolrTestCaseJ4 {
     createIndex(size);
     req = lrf.makeRequest("q","*:*");
 
-    SortedSetDocValuesIterator dv = DocValues.getSortedSet(req.getSearcher().getLeafReader(), proto.field());
+    SortedSetDocValues dv = DocValues.getSortedSet(req.getSearcher().getLeafReader(), proto.field());
 
     assertEquals(size, dv.getValueCount());
 
@@ -712,16 +712,16 @@ public class TestFaceting extends SolrTestCaseJ4 {
     RefCounted<SolrIndexSearcher> currentSearcherRef = h.getCore().getSearcher();
     try {
       SolrIndexSearcher currentSearcher = currentSearcherRef.get();
-      SortedSetDocValuesIterator ui0 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f0_ws");
-      SortedSetDocValuesIterator ui1 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f1_ws");
-      SortedSetDocValuesIterator ui2 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f2_ws");
-      SortedSetDocValuesIterator ui3 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f3_ws");
-      SortedSetDocValuesIterator ui4 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f4_ws");
-      SortedSetDocValuesIterator ui5 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f5_ws");
-      SortedSetDocValuesIterator ui6 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f6_ws");
-      SortedSetDocValuesIterator ui7 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f7_ws");
-      SortedSetDocValuesIterator ui8 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f8_ws");
-      SortedSetDocValuesIterator ui9 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f9_ws");
+      SortedSetDocValues ui0 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f0_ws");
+      SortedSetDocValues ui1 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f1_ws");
+      SortedSetDocValues ui2 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f2_ws");
+      SortedSetDocValues ui3 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f3_ws");
+      SortedSetDocValues ui4 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f4_ws");
+      SortedSetDocValues ui5 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f5_ws");
+      SortedSetDocValues ui6 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f6_ws");
+      SortedSetDocValues ui7 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f7_ws");
+      SortedSetDocValues ui8 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f8_ws");
+      SortedSetDocValues ui9 = DocValues.getSortedSet(currentSearcher.getLeafReader(), "f9_ws");
 
       assertQ("check threading, more threads than fields",
           req(methodParam

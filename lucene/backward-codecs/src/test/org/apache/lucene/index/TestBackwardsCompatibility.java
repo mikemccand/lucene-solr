@@ -761,7 +761,7 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
       NumericDocValues dvLong = MultiDocValues.getNumericValuesIterator(reader, "dvLong");
       NumericDocValues dvPacked = MultiDocValues.getNumericValuesIterator(reader, "dvPacked");
       NumericDocValues dvShort = MultiDocValues.getNumericValuesIterator(reader, "dvShort");
-      SortedSetDocValuesIterator dvSortedSet = null;
+      SortedSetDocValues dvSortedSet = null;
       if (is42Index) {
         dvSortedSet = MultiDocValues.getSortedSetValues(reader, "dvSortedSet");
       }
@@ -814,7 +814,7 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
         if (is42Index) {
           assertEquals(i, dvSortedSet.nextDoc());
           long ord = dvSortedSet.nextOrd();
-          assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, dvSortedSet.nextOrd());
+          assertEquals(SortedSetDocValues.NO_MORE_ORDS, dvSortedSet.nextOrd());
           term = dvSortedSet.lookupOrd(ord);
           assertEquals(expectedRef, term);
         }

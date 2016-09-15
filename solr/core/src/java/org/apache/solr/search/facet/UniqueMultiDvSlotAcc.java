@@ -21,27 +21,27 @@ import java.io.IOException;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.LongValues;
 import org.apache.solr.search.SolrIndexSearcher;
 
 class UniqueMultiDvSlotAcc extends UniqueSlotAcc {
-  final SortedSetDocValuesIterator topLevel;
-  final SortedSetDocValuesIterator[] subDvs;
+  final SortedSetDocValues topLevel;
+  final SortedSetDocValues[] subDvs;
   final MultiDocValues.OrdinalMap ordMap;
   LongValues toGlobal;
-  SortedSetDocValuesIterator subDv;
+  SortedSetDocValues subDv;
 
   public UniqueMultiDvSlotAcc(FacetContext fcontext, String field, int numSlots, HLLAgg.HLLFactory factory) throws IOException {
     super(fcontext, field, numSlots, factory);
     SolrIndexSearcher searcher = fcontext.qcontext.searcher();
     topLevel = FieldUtil.getSortedSetDocValues(fcontext.qcontext, searcher.getSchema().getField(field), null);
     nTerms = (int) topLevel.getValueCount();
-    if (topLevel instanceof MultiDocValues.MultiSortedSetDocValuesIterator) {
-      ordMap = ((MultiDocValues.MultiSortedSetDocValuesIterator) topLevel).mapping;
-      subDvs = ((MultiDocValues.MultiSortedSetDocValuesIterator) topLevel).values;
+    if (topLevel instanceof MultiDocValues.MultiSortedSetDocValues) {
+      ordMap = ((MultiDocValues.MultiSortedSetDocValues) topLevel).mapping;
+      subDvs = ((MultiDocValues.MultiSortedSetDocValues) topLevel).values;
     } else {
       ordMap = null;
       subDvs = null;

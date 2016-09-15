@@ -37,7 +37,7 @@ import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.TimSorter;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
 
-import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
+import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
@@ -419,14 +419,14 @@ class SortingLeafReader extends FilterLeafReader {
   // TODO: pack long[][] into an int[] (offset) and long[] instead:
   private final Map<String,long[][]> cachedSortedSetDVs = new HashMap<>();
 
-  private static class SortingSortedSetDocValues extends SortedSetDocValuesIterator {
+  private static class SortingSortedSetDocValues extends SortedSetDocValues {
 
-    private final SortedSetDocValuesIterator in;
+    private final SortedSetDocValues in;
     private final long[][] ords;
     private int docID = -1;
     private int ordUpto;
 
-    SortingSortedSetDocValues(SortedSetDocValuesIterator in, long[][] ords) {
+    SortingSortedSetDocValues(SortedSetDocValues in, long[][] ords) {
       this.in = in;
       this.ords = ords;
     }
@@ -1167,8 +1167,8 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
-    SortedSetDocValuesIterator oldDocValues = in.getSortedSetDocValues(field);
+  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+    SortedSetDocValues oldDocValues = in.getSortedSetDocValues(field);
     if (oldDocValues == null) {
       return null;
     }

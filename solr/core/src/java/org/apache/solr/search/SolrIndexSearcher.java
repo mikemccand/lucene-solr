@@ -793,11 +793,11 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
       }
 
       if (schemaField.multiValued()) {
-        final SortedSetDocValuesIterator values = reader.getSortedSetDocValues(fieldName);
+        final SortedSetDocValues values = reader.getSortedSetDocValues(fieldName);
         if (values != null && values.getValueCount() > 0) {
           if (values.advance(docid) == docid) {
             final List<Object> outValues = new LinkedList<Object>();
-            for (long ord = values.nextOrd(); ord != SortedSetDocValuesIterator.NO_MORE_ORDS; ord = values.nextOrd()) {
+            for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
               final BytesRef value = values.lookupOrd(ord);
               outValues.add(schemaField.getType().toObject(schemaField, value));
             }

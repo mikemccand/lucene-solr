@@ -22,7 +22,7 @@ import java.util.Map;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.docvalues.DocTermsIndexDocValues;
 import org.apache.lucene.search.SortField;
@@ -56,7 +56,7 @@ public class SortedSetFieldSource extends FieldCacheSource {
   
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-    SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(readerContext.reader(), field);
+    SortedSetDocValues sortedSet = DocValues.getSortedSet(readerContext.reader(), field);
     SortedDocValues view = SortedSetSelector.wrap(sortedSet, selector);
     return new DocTermsIndexDocValues(this.field, this, view) {
       @Override

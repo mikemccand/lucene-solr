@@ -36,7 +36,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentWriteState; // javadocs
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -629,11 +629,11 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one sorted set sub-reader that we are merging */
   private static class SortedSetDocValuesSub extends DocIDMerger.Sub {
 
-    private final SortedSetDocValuesIterator values;
+    private final SortedSetDocValues values;
     private final int maxDoc;
     private final LongValues map;
 
-    public SortedSetDocValuesSub(MergeState.DocMap docMap, SortedSetDocValuesIterator values, int maxDoc, LongValues map) {
+    public SortedSetDocValuesSub(MergeState.DocMap docMap, SortedSetDocValues values, int maxDoc, LongValues map) {
       super(docMap);
       this.values = values;
       this.maxDoc = maxDoc;
@@ -659,9 +659,9 @@ public abstract class DocValuesConsumer implements Closeable {
    */
   public void mergeSortedSetField(FieldInfo mergeFieldInfo, final MergeState mergeState) throws IOException {
 
-    List<SortedSetDocValuesIterator> toMerge = new ArrayList<>();
+    List<SortedSetDocValues> toMerge = new ArrayList<>();
     for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-      SortedSetDocValuesIterator values = null;
+      SortedSetDocValues values = null;
       DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
       if (docValuesProducer != null) {
         FieldInfo fieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
@@ -679,7 +679,7 @@ public abstract class DocValuesConsumer implements Closeable {
     TermsEnum liveTerms[] = new TermsEnum[toMerge.size()];
     long[] weights = new long[liveTerms.length];
     for (int sub = 0; sub < liveTerms.length; sub++) {
-      SortedSetDocValuesIterator dv = toMerge.get(sub);
+      SortedSetDocValues dv = toMerge.get(sub);
       Bits liveDocs = mergeState.liveDocs[sub];
       int maxDoc = mergeState.maxDocs[sub];
       if (liveDocs == null) {
@@ -691,7 +691,7 @@ public abstract class DocValuesConsumer implements Closeable {
         while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
           if (liveDocs.get(docID)) {
             long ord;
-            while ((ord = dv.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+            while ((ord = dv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
               bitset.set(ord);
             }
           }
@@ -708,7 +708,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addSortedSetField(mergeFieldInfo,
                       new EmptyDocValuesProducer() {
                         @Override
-                        public SortedSetDocValuesIterator getSortedSet(FieldInfo fieldInfo) {
+                        public SortedSetDocValues getSortedSet(FieldInfo fieldInfo) {
                           if (fieldInfo != mergeFieldInfo) {
                             throw new IllegalArgumentException("wrong FieldInfo");
                           }
@@ -720,7 +720,7 @@ public abstract class DocValuesConsumer implements Closeable {
                           long cost = 0;
                           
                           for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-                            SortedSetDocValuesIterator values = null;
+                            SortedSetDocValues values = null;
                             DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
                             if (docValuesProducer != null) {
                               FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
@@ -748,7 +748,7 @@ public abstract class DocValuesConsumer implements Closeable {
                           
                           final long finalCost = cost;
 
-                          return new SortedSetDocValuesIterator() {
+                          return new SortedSetDocValues() {
                             private int docID = -1;
                             private SortedSetDocValuesSub currentSub;
 

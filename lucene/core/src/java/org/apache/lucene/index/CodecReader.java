@@ -169,7 +169,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
   }
 
   @Override
-  public final SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
+  public final SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
     ensureOpen();
     FieldInfo fi = getDVField(field, DocValuesType.SORTED_SET);
     if (fi == null) {

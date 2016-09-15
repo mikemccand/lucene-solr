@@ -30,11 +30,11 @@ import org.apache.lucene.util.BytesRef;
  * dictionary value (ordinal) can be retrieved for each document. Ordinals
  * are dense and in increasing sorted order.
  */
-public abstract class SortedSetDocValuesIterator extends DocIdSetIterator {
+public abstract class SortedSetDocValues extends DocIdSetIterator {
   
   /** Sole constructor. (For invocation by subclass 
    * constructors, typically implicit.) */
-  protected SortedSetDocValuesIterator() {}
+  protected SortedSetDocValues() {}
 
   /** When returned by {@link #nextOrd()} it means there are no more 
    * ordinals for the document.

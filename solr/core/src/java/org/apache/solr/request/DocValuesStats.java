@@ -23,10 +23,10 @@ import java.util.Map;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
+import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -80,13 +80,13 @@ public class DocValuesStats {
     // TODO: remove multiValuedFieldCache(), check dv type / uninversion type?
     final boolean multiValued = schemaField.multiValued() || ft.multiValuedFieldCache();
 
-    SortedSetDocValuesIterator si; // for term lookups only
+    SortedSetDocValues si; // for term lookups only
     OrdinalMap ordinalMap = null; // for mapping per-segment ords to global ones
     if (multiValued) {
       si = searcher.getLeafReader().getSortedSetDocValues(fieldName);
       
-      if (si instanceof MultiSortedSetDocValuesIterator) {
-        ordinalMap = ((MultiSortedSetDocValuesIterator)si).mapping;
+      if (si instanceof MultiSortedSetDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedSetDocValues)si).mapping;
       }
     } else {
       SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
@@ -123,7 +123,7 @@ public class DocValuesStats {
         int docBase = leaf.docBase;
         
         if (multiValued) {
-          SortedSetDocValuesIterator sub = leaf.reader().getSortedSetDocValues(fieldName);
+          SortedSetDocValues sub = leaf.reader().getSortedSetDocValues(fieldName);
           if (sub == null) {
             sub = DocValues.emptySortedSet();
           }
@@ -199,7 +199,7 @@ public class DocValuesStats {
   
   /** accumulates per-segment multi-valued stats */
   
-  static int accumMulti(int counts[], int docBase, FieldFacetStats[] facetStats, SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static int accumMulti(int counts[], int docBase, FieldFacetStats[] facetStats, SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordMap = map == null ? null : map.getGlobalOrds(subIndex);
     int missingDocCount = 0;
     int doc;
@@ -209,7 +209,7 @@ public class DocValuesStats {
       }
       if (doc == si.docID()) {
         long ord;
-        while ((ord = si.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = si.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           int term = (int) ord;
           if (map != null) {
             term = (int) ordMap.get(term);

@@ -26,12 +26,12 @@ import java.io.IOException;
  * {@link SortedSetDocValues}. */
 
 class SortedSetDocValuesIteratorTermsEnum extends TermsEnum {
-  private final SortedSetDocValuesIterator values;
+  private final SortedSetDocValues values;
   private long currentOrd = -1;
   private final BytesRefBuilder scratch;
 
   /** Creates a new TermsEnum over the provided values */
-  public SortedSetDocValuesIteratorTermsEnum(SortedSetDocValuesIterator values) {
+  public SortedSetDocValuesIteratorTermsEnum(SortedSetDocValues values) {
     this.values = values;
     scratch = new BytesRefBuilder();
   }

@@ -522,17 +522,17 @@ public class TestMemoryIndexAgainstRAMDir extends BaseTokenStreamTestCase {
     assertEquals(controlSortedDocValues.ordValue(), sortedDocValues.ordValue());
     assertEquals(controlSortedDocValues.lookupOrd(0), sortedDocValues.lookupOrd(0));
 
-    SortedSetDocValuesIterator sortedSetDocValues = leafReader.getSortedSetDocValues("sorted_set");
+    SortedSetDocValues sortedSetDocValues = leafReader.getSortedSetDocValues("sorted_set");
     assertEquals(0, sortedSetDocValues.nextDoc());
-    SortedSetDocValuesIterator controlSortedSetDocValues = controlLeafReader.getSortedSetDocValues("sorted_set");
+    SortedSetDocValues controlSortedSetDocValues = controlLeafReader.getSortedSetDocValues("sorted_set");
     assertEquals(0, controlSortedSetDocValues.nextDoc());
     assertEquals(controlSortedSetDocValues.getValueCount(), sortedSetDocValues.getValueCount());
-    for (long controlOrd = controlSortedSetDocValues.nextOrd(); controlOrd != SortedSetDocValuesIterator.NO_MORE_ORDS;
+    for (long controlOrd = controlSortedSetDocValues.nextOrd(); controlOrd != SortedSetDocValues.NO_MORE_ORDS;
          controlOrd = controlSortedSetDocValues.nextOrd()) {
       assertEquals(controlOrd, sortedSetDocValues.nextOrd());
       assertEquals(controlSortedSetDocValues.lookupOrd(controlOrd), sortedSetDocValues.lookupOrd(controlOrd));
     }
-    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, sortedSetDocValues.nextOrd());
+    assertEquals(SortedSetDocValues.NO_MORE_ORDS, sortedSetDocValues.nextOrd());
 
     indexReader.close();
     controlIndexReader.close();

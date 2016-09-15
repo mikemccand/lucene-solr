@@ -391,7 +391,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
 
   @Override
-  public SortedSetDocValuesIterator getSortedSet(FieldInfo fieldInfo) throws IOException {
+  public SortedSetDocValues getSortedSet(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
 
     // SegmentCoreReaders already verifies this field is
@@ -402,7 +402,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final BytesRefBuilder scratch = new BytesRefBuilder();
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
     
-    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
+    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
       String[] currentOrds = new String[0];
       int currentIndex = 0;
       final BytesRefBuilder term = new BytesRefBuilder();

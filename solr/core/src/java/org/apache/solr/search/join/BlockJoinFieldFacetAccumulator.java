@@ -24,7 +24,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRefBuilder;
@@ -44,9 +44,9 @@ class BlockJoinFieldFacetAccumulator {
   private FieldType fieldType;
   private int currentSegment = -1;
   // for term lookups only
-  private SortedSetDocValuesIterator topSSDV;
+  private SortedSetDocValues topSSDV;
   private int[] globalCounts;
-  private SortedSetDocValuesIterator segmentSSDV;
+  private SortedSetDocValues segmentSSDV;
   // elems are : facet value counter<<32 | last parent doc num 
   private long[] segmentAccums = new long[0];
   // for mapping per-segment ords to global ones
@@ -61,8 +61,8 @@ class BlockJoinFieldFacetAccumulator {
     ordinalMap = null;
     if (schemaField.multiValued()) {
       topSSDV = searcher.getLeafReader().getSortedSetDocValues(fieldName);
-      if (topSSDV instanceof MultiDocValues.MultiSortedSetDocValuesIterator) {
-        ordinalMap = ((MultiDocValues.MultiSortedSetDocValuesIterator) topSSDV).mapping;
+      if (topSSDV instanceof MultiDocValues.MultiSortedSetDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedSetDocValues) topSSDV).mapping;
       }
     } else {
       SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);

@@ -297,9 +297,9 @@ public final class DocValues {
   /** 
    * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document
    */
-  public static final SortedSetDocValuesIterator emptySortedSet() {
+  public static final SortedSetDocValues emptySortedSet() {
     final BytesRef empty = new BytesRef();
-    return new SortedSetDocValuesIterator() {
+    return new SortedSetDocValues() {
       
       private boolean exhausted = false;
       
@@ -349,17 +349,17 @@ public final class DocValues {
   /** 
    * Returns a multi-valued iterator view over the provided SortedDocValues 
    */
-  public static SortedSetDocValuesIterator singleton(SortedDocValues dv) {
-    return new SingletonSortedSetDocValuesIterator(dv);
+  public static SortedSetDocValues singleton(SortedDocValues dv) {
+    return new SingletonSortedSetDocValues(dv);
   }
   
   /** 
-   * Returns a single-valued view of the SortedSetDocValuesIterator, if it was previously
+   * Returns a single-valued view of the SortedSetDocValues, if it was previously
    * wrapped with {@link #singleton(SortedDocValues)}, or null.
    */
-  public static SortedDocValues unwrapSingleton(SortedSetDocValuesIterator dv) {
-    if (dv instanceof SingletonSortedSetDocValuesIterator) {
-      return ((SingletonSortedSetDocValuesIterator)dv).getSortedDocValues();
+  public static SortedDocValues unwrapSingleton(SortedSetDocValues dv) {
+    if (dv instanceof SingletonSortedSetDocValues) {
+      return ((SingletonSortedSetDocValues)dv).getSortedDocValues();
     } else {
       return null;
     }
@@ -400,7 +400,7 @@ public final class DocValues {
   /**
    * Returns a Bits representing all documents from <code>dv</code> that have a value.
    */
-  public static Bits docsWithValue(final SortedSetDocValuesIterator dv, final int maxDoc) throws IOException {
+  public static Bits docsWithValue(final SortedSetDocValues dv, final int maxDoc) throws IOException {
     // nocommit remove this entire method!!!
     FixedBitSet bits = new FixedBitSet(maxDoc);
     int docID;
@@ -523,8 +523,8 @@ public final class DocValues {
    *                               or {@link DocValuesType#SORTED}.
    * @throws IOException if an I/O error occurs.
    */
-  public static SortedSetDocValuesIterator getSortedSet(LeafReader reader, String field) throws IOException {
-    SortedSetDocValuesIterator dv = reader.getSortedSetDocValues(field);
+  public static SortedSetDocValues getSortedSet(LeafReader reader, String field) throws IOException {
+    SortedSetDocValues dv = reader.getSortedSetDocValues(field);
     // nocommit fixme!
     if (dv == null) {
       SortedDocValues sorted = reader.getSortedDocValues(field);

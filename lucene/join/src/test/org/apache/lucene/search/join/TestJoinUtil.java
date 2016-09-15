@@ -65,7 +65,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -1185,7 +1185,7 @@ public class TestJoinUtil extends LuceneTestCase {
         searcher.search(new TermQuery(new Term("value", uniqueRandomValue)), new SimpleCollector() {
 
           private Scorer scorer;
-          private SortedSetDocValuesIterator docTermOrds;
+          private SortedSetDocValues docTermOrds;
 
           @Override
           public void collect(int doc) throws IOException {
@@ -1194,7 +1194,7 @@ public class TestJoinUtil extends LuceneTestCase {
             }
             if (doc == docTermOrds.docID()) {
               long ord;
-              while ((ord = docTermOrds.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+              while ((ord = docTermOrds.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
                 final BytesRef joinValue = docTermOrds.lookupOrd(ord);
                 JoinScore joinScore = joinValueToJoinScores.get(joinValue);
                 if (joinScore == null) {

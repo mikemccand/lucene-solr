@@ -433,7 +433,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     NumericDocValues ndv = r.getNumericDocValues("ndv");
     BinaryDocValues bdv = r.getBinaryDocValues("bdv");
     SortedDocValues sdv = r.getSortedDocValues("sdv");
-    SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("ssdv");
+    SortedSetDocValues ssdv = r.getSortedSetDocValues("ssdv");
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(17, ndv.longValue());
@@ -453,7 +453,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
         term = ssdv.lookupOrd(ord);
         assertEquals(i * 2, Integer.parseInt(term.utf8ToString()));
       }
-      assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, ssdv.nextOrd());
+      assertEquals(SortedSetDocValues.NO_MORE_ORDS, ssdv.nextOrd());
     }
     
     reader.close();

@@ -30,7 +30,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
@@ -88,7 +88,7 @@ public class DatasetSplitter {
       if (classValues != null) {
         valueCount = classValues.getValueCount();
       } else {
-        SortedSetDocValuesIterator sortedSetDocValues = leave.reader().getSortedSetDocValues(classFieldName);
+        SortedSetDocValues sortedSetDocValues = leave.reader().getSortedSetDocValues(classFieldName);
         if (sortedSetDocValues != null) {
           valueCount = sortedSetDocValues.getValueCount();
         }

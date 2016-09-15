@@ -1162,10 +1162,10 @@ public class MemoryIndex {
     }
     
     @Override
-    public SortedSetDocValuesIterator getSortedSetDocValues(String field) {
+    public SortedSetDocValues getSortedSetDocValues(String field) {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.SORTED_SET);
       if (info != null) {
-        return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
+        return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
 
           int index = 0;
 

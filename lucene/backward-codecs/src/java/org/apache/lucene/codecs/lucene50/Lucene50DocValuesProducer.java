@@ -734,7 +734,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   @Override
-  public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
+  public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
     SortedSetEntry ss = sortedSets.get(field.name);
     switch (ss.format) {
       case SORTED_SINGLE_VALUED:
@@ -748,7 +748,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     }
   }
 
-  private SortedSetDocValuesIterator getSortedSetWithAddresses(FieldInfo field) throws IOException {
+  private SortedSetDocValues getSortedSetWithAddresses(FieldInfo field) throws IOException {
     final long valueCount = binaries.get(field.name).count;
     // we keep the byte[]s and list of ords on disk, these could be large
     final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
@@ -756,7 +756,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     // but the addresses to the ord stream are in RAM
     final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
     
-    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
+    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
       long startOffset;
       long offset;
       long endOffset;
@@ -808,7 +808,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     }, maxDoc);
   }
 
-  private SortedSetDocValuesIterator getSortedSetTable(FieldInfo field, SortedSetEntry ss) throws IOException {
+  private SortedSetDocValues getSortedSetTable(FieldInfo field, SortedSetEntry ss) throws IOException {
     final long valueCount = binaries.get(field.name).count;
     final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
     final LongValues ordinals = getNumeric(ords.get(field.name));
@@ -816,7 +816,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     final long[] table = ss.table;
     final int[] offsets = ss.tableOffsets;
 
-    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
+    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
 
       int offset, startOffset, endOffset;
 

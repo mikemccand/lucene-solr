@@ -616,7 +616,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
+  public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
     SortedSetEntry sortedSetEntry = sortedSets.get(field.name);
     if (sortedSetEntry.singleton) {
       return DocValues.singleton(getSorted(field));
@@ -649,7 +649,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     final IntsRefBuilder scratchInts = new IntsRefBuilder();
     final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
     final ByteArrayDataInput input = new ByteArrayDataInput();
-    return new StupidSortedSetDocValuesIterator(new LegacySortedSetDocValues() {
+    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
       BytesRef ref;
       long currentOrd;

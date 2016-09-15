@@ -22,7 +22,7 @@ import java.util.Map;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.docvalues.DoubleDocValues;
@@ -71,7 +71,7 @@ public class TrieDoubleField extends TrieField implements DoubleValueFieldType {
       public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
         SortedSetFieldSource thisAsSortedSetFieldSource = this; // needed for nested anon class ref
         
-        SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(readerContext.reader(), field);
+        SortedSetDocValues sortedSet = DocValues.getSortedSet(readerContext.reader(), field);
         SortedDocValues view = SortedSetSelector.wrap(sortedSet, selector);
         
         return new DoubleDocValues(thisAsSortedSetFieldSource) {

@@ -23,10 +23,10 @@ import java.util.Iterator;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 
-import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
+import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
 import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /** Bridge helper methods for legacy codecs to map sorted doc values to iterables. */
@@ -56,7 +56,7 @@ public class LegacyDocValuesIterables {
   }
 
   /** Iterates over all unique values in this doc values */
-  public static Iterable<BytesRef> valuesIterable(final SortedSetDocValuesIterator values) {
+  public static Iterable<BytesRef> valuesIterable(final SortedSetDocValues values) {
     return new Iterable<BytesRef>() {
       @Override
       public Iterator<BytesRef> iterator() {
@@ -129,7 +129,7 @@ public class LegacyDocValuesIterables {
       @Override
       public Iterator<Number> iterator() {
 
-        final SortedSetDocValuesIterator values;
+        final SortedSetDocValues values;
         try {
           values = valuesProducer.getSortedSet(fieldInfo);
         } catch (IOException ioe) {
@@ -181,7 +181,7 @@ public class LegacyDocValuesIterables {
       @Override
       public Iterator<Number> iterator() {
 
-        final SortedSetDocValuesIterator values;
+        final SortedSetDocValues values;
         try {
           values = valuesProducer.getSortedSet(fieldInfo);
         } catch (IOException ioe) {

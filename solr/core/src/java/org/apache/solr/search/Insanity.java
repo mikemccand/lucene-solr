@@ -28,7 +28,7 @@ import org.apache.lucene.index.FilterLeafReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.solr.uninverting.UninvertingReader;
 
 /** 
@@ -102,7 +102,7 @@ public class Insanity {
     }
 
     @Override
-    public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
+    public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
       if (insaneField.equals(field)) {
         return null;
       } else {

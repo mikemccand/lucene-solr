@@ -39,7 +39,7 @@ import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -1183,11 +1183,11 @@ class FieldCacheImpl implements FieldCache {
 
   // TODO: this if DocTermsIndex was already created, we
   // should share it...
-  public SortedSetDocValuesIterator getDocTermOrds(LeafReader reader, String field, BytesRef prefix) throws IOException {
+  public SortedSetDocValues getDocTermOrds(LeafReader reader, String field, BytesRef prefix) throws IOException {
     // not a general purpose filtering mechanism...
     assert prefix == null || prefix == INT32_TERM_PREFIX || prefix == INT64_TERM_PREFIX;
     
-    SortedSetDocValuesIterator dv = reader.getSortedSetDocValues(field);
+    SortedSetDocValues dv = reader.getSortedSetDocValues(field);
     if (dv != null) {
       return dv;
     }

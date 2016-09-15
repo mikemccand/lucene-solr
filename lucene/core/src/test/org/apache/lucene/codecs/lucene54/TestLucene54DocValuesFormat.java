@@ -57,7 +57,7 @@ import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
@@ -212,7 +212,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
       final SortedNumericDocValuesIterator sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
 
-      final SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(reader, "sorted_set");
+      final SortedSetDocValues sortedSet = DocValues.getSortedSet(reader, "sorted_set");
 
       for (int i = 0; i < reader.maxDoc(); ++i) {
         final Document doc = reader.document(i);
@@ -246,7 +246,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
         int sortedSetCount = 0;
         while (true) {
           long ord = sortedSet.nextOrd();
-          if (ord == SortedSetDocValuesIterator.NO_MORE_ORDS) {
+          if (ord == SortedSetDocValues.NO_MORE_ORDS) {
             break;
           }
           assertTrue(valueSet.contains(Long.parseLong(sortedSet.lookupOrd(ord).utf8ToString())));
@@ -329,7 +329,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       LeafReader r = context.reader();
       Terms terms = r.terms("indexed");
       if (terms != null) {
-        SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("dv");
+        SortedSetDocValues ssdv = r.getSortedSetDocValues("dv");
         assertEquals(terms.size(), ssdv.getValueCount());
         TermsEnum expected = terms.iterator();
         TermsEnum actual = r.getSortedSetDocValues("dv").termsEnum();
@@ -525,7 +525,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       w.close();
       LeafReader sr = getOnlyLeafReader(r);
       assertEquals(maxDoc, sr.maxDoc());
-      SortedSetDocValuesIterator values = sr.getSortedSetDocValues("sset");
+      SortedSetDocValues values = sr.getSortedSetDocValues("sset");
       assertNotNull(values);
       RAMInputStream in = new RAMInputStream("", buffer);
       BytesRefBuilder b = new BytesRefBuilder();
@@ -540,7 +540,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
           assertEquals(b.get(), values.lookupOrd(values.nextOrd()));
         }
 
-        assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, values.nextOrd());
+        assertEquals(SortedSetDocValues.NO_MORE_ORDS, values.nextOrd());
       }
       r.close();
       dir.close();

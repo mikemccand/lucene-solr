@@ -27,13 +27,13 @@ import org.apache.lucene.util.BytesRef;
  * This can be used if you want to have one multi-valued implementation
  * that works for single or multi-valued types.
  */
-final class SingletonSortedSetDocValuesIterator extends SortedSetDocValuesIterator {
+final class SingletonSortedSetDocValues extends SortedSetDocValues {
   private final SortedDocValues in;
   private long currentOrd;
   private long ord;
   
   /** Creates a multi-valued view over the provided SortedDocValues */
-  public SingletonSortedSetDocValuesIterator(SortedDocValues in) {
+  public SingletonSortedSetDocValues(SortedDocValues in) {
     this.in = in;
   }
 

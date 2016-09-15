@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
@@ -199,9 +199,9 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
   }
 
   // impl that works with multiple values per document
-  static class MV extends TermsWithScoreCollector<SortedSetDocValuesIterator> {
+  static class MV extends TermsWithScoreCollector<SortedSetDocValues> {
 
-    MV(Function<SortedSetDocValuesIterator> docValuesCall, ScoreMode scoreMode) {
+    MV(Function<SortedSetDocValues> docValuesCall, ScoreMode scoreMode) {
       super(docValuesCall, scoreMode);
     }
 
@@ -212,7 +212,7 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
       }
       if (doc == docValues.docID()) {
         long ord;
-        while ((ord = docValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = docValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           int termID = collectedTerms.add(docValues.lookupOrd(ord));
           if (termID < 0) {
             termID = -termID - 1;
@@ -249,7 +249,7 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
 
       int[] scoreCounts = new int[INITIAL_ARRAY_SIZE];
 
-      Avg(Function<SortedSetDocValuesIterator> docValuesCall) {
+      Avg(Function<SortedSetDocValues> docValuesCall) {
         super(docValuesCall, ScoreMode.Avg);
       }
 
@@ -260,7 +260,7 @@ abstract class TermsWithScoreCollector<DV> extends DocValuesTermsCollector<DV>
         }
         if (doc == docValues.docID()) {
           long ord;
-          while ((ord = docValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+          while ((ord = docValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
             int termID = collectedTerms.add(docValues.lookupOrd(ord));
             if (termID < 0) {
               termID = -termID - 1;

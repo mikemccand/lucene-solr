@@ -22,7 +22,7 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.Bits;
@@ -77,7 +77,7 @@ public final class DocValuesRewriteMethod extends MultiTermQuery.RewriteMethod {
       return new RandomAccessWeight(this, boost) {
         @Override
         protected Bits getMatchingDocs(LeafReaderContext context) throws IOException {
-          final SortedSetDocValuesIterator fcsi = DocValues.getSortedSet(context.reader(), query.field);
+          final SortedSetDocValues fcsi = DocValues.getSortedSet(context.reader(), query.field);
           TermsEnum termsEnum = query.getTermsEnum(new Terms() {
             
             @Override
@@ -150,7 +150,7 @@ public final class DocValuesRewriteMethod extends MultiTermQuery.RewriteMethod {
                   fcsi.advance(doc);
                 }
                 if (doc == fcsi.docID()) {
-                  for (long ord = fcsi.nextOrd(); ord != SortedSetDocValuesIterator.NO_MORE_ORDS; ord = fcsi.nextOrd()) {
+                  for (long ord = fcsi.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = fcsi.nextOrd()) {
                     if (termSet.get(ord)) {
                       return true;
                     }

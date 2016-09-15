@@ -233,8 +233,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    SortedSetDocValuesIterator multi = MultiDocValues.getSortedSetValues(ir, "bytes");
-    SortedSetDocValuesIterator single = merged.getSortedSetDocValues("bytes");
+    SortedSetDocValues multi = MultiDocValues.getSortedSetValues(ir, "bytes");
+    SortedSetDocValues single = merged.getSortedSetDocValues("bytes");
     if (multi == null) {
       assertNull(single);
     } else {
@@ -255,12 +255,12 @@ public class TestMultiDocValues extends LuceneTestCase {
 
         ArrayList<Long> expectedList = new ArrayList<>();
         long ord;
-        while ((ord = single.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = single.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           expectedList.add(ord);
         }
         
         int upto = 0;
-        while ((ord = multi.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = multi.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           assertEquals(expectedList.get(upto).longValue(), ord);
           upto++;
         }
@@ -299,8 +299,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    SortedSetDocValuesIterator multi = MultiDocValues.getSortedSetValues(ir, "bytes");
-    SortedSetDocValuesIterator single = merged.getSortedSetDocValues("bytes");
+    SortedSetDocValues multi = MultiDocValues.getSortedSetValues(ir, "bytes");
+    SortedSetDocValues single = merged.getSortedSetDocValues("bytes");
     if (multi == null) {
       assertNull(single);
     } else {
@@ -320,12 +320,12 @@ public class TestMultiDocValues extends LuceneTestCase {
         }
         ArrayList<Long> expectedList = new ArrayList<>();
         long ord;
-        while ((ord = single.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = single.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           expectedList.add(ord);
         }
         
         int upto = 0;
-        while ((ord = multi.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = multi.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           assertEquals(expectedList.get(upto).longValue(), ord);
           upto++;
         }

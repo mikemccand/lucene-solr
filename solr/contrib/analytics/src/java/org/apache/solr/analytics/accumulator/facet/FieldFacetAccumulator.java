@@ -21,7 +21,7 @@ import java.io.IOException;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.analytics.accumulator.FacetingAccumulator;
 import org.apache.solr.analytics.accumulator.ValueAccumulator;
@@ -46,7 +46,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
   protected final boolean multiValued;
   protected final boolean numField;
   protected final boolean dateField;
-  protected SortedSetDocValuesIterator setValues;
+  protected SortedSetDocValues setValues;
   protected SortedDocValues sortValues;
   protected NumericDocValues numValues;
   
@@ -98,7 +98,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
         }
         if (doc == setValues.docID()) {
           int term;
-          while ((term = (int)setValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+          while ((term = (int)setValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
             exists = true;
             final BytesRef value = setValues.lookupOrd(term);
             parent.collectField(doc, name, parser.parse(value) );

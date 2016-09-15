@@ -24,7 +24,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -38,7 +38,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
   static boolean unwrap_singleValued_multiDv = true;  // only set to false for test coverage
 
   boolean multiValuedField;
-  SortedSetDocValuesIterator si;  // only used for term lookups (for both single and multi-valued)
+  SortedSetDocValues si;  // only used for term lookups (for both single and multi-valued)
   MultiDocValues.OrdinalMap ordinalMap = null; // maps per-segment ords to global ords
 
 
@@ -54,8 +54,8 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
   protected void findStartAndEndOrds() throws IOException {
     if (multiValuedField) {
       si = FieldUtil.getSortedSetDocValues(fcontext.qcontext, sf, null);
-      if (si instanceof MultiDocValues.MultiSortedSetDocValuesIterator) {
-        ordinalMap = ((MultiDocValues.MultiSortedSetDocValuesIterator)si).mapping;
+      if (si instanceof MultiDocValues.MultiSortedSetDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedSetDocValues)si).mapping;
       }
     } else {
       // multi-valued view
@@ -129,7 +129,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
       DocIdSetIterator disi = dis.iterator();
 
       SortedDocValues singleDv = null;
-      SortedSetDocValuesIterator multiDv = null;
+      SortedSetDocValues multiDv = null;
       if (multiValuedField) {
         // TODO: get sub from multi?
         multiDv = subCtx.reader().getSortedSetDocValues(sf.getName());
@@ -214,7 +214,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
   }
 
 
-  private void collectPerSeg(SortedSetDocValuesIterator multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectPerSeg(SortedSetDocValues multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int segMax = (int)multiDv.getValueCount();
     final int[] counts = getCountArr( segMax );
 
@@ -268,7 +268,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     }
   }
 
-  private void collectDocs(SortedSetDocValuesIterator multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectDocs(SortedSetDocValues multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
       if (doc > multiDv.docID()) {
@@ -284,7 +284,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     }
   }
 
-  private void collectCounts(SortedSetDocValuesIterator multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectCounts(SortedSetDocValues multiDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
       if (doc > multiDv.docID()) {

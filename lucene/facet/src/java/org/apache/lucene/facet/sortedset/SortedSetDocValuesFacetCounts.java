@@ -33,10 +33,10 @@ import org.apache.lucene.facet.TopOrdAndIntQueue;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState.OrdRange;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
+import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.ReaderUtil;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LongValues;
@@ -53,7 +53,7 @@ import org.apache.lucene.util.LongValues;
  *
  *  <p><b>NOTE</b>: this class should be instantiated and
  *  then used from a single thread, because it holds a
- *  thread-private instance of {@link SortedSetDocValuesIterator}.
+ *  thread-private instance of {@link SortedSetDocValues}.
  * 
  * <p><b>NOTE:</b>: tie-break is by unicode sort order
  *
@@ -61,7 +61,7 @@ import org.apache.lucene.util.LongValues;
 public class SortedSetDocValuesFacetCounts extends Facets {
 
   final SortedSetDocValuesReaderState state;
-  final SortedSetDocValuesIterator dv;
+  final SortedSetDocValues dv;
   final String field;
   final int[] counts;
 
@@ -151,8 +151,8 @@ public class SortedSetDocValuesFacetCounts extends Facets {
     // TODO: is this right?  really, we need a way to
     // verify that this ordinalMap "matches" the leaves in
     // matchingDocs...
-    if (dv instanceof MultiSortedSetDocValuesIterator && matchingDocs.size() > 1) {
-      ordinalMap = ((MultiSortedSetDocValuesIterator) dv).mapping;
+    if (dv instanceof MultiDocValues.MultiSortedSetDocValues && matchingDocs.size() > 1) {
+      ordinalMap = ((MultiSortedSetDocValues) dv).mapping;
     } else {
       ordinalMap = null;
     }
@@ -171,7 +171,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
         throw new IllegalStateException("the SortedSetDocValuesReaderState provided to this class does not match the reader being searched; you must create a new SortedSetDocValuesReaderState every time you open a new IndexReader");
       }
       
-      SortedSetDocValuesIterator segValues = reader.getSortedSetDocValues(field);
+      SortedSetDocValues segValues = reader.getSortedSetDocValues(field);
       if (segValues == null) {
         continue;
       }
@@ -204,7 +204,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
             }
             if (doc == segValues.docID()) {
               int term = (int) segValues.nextOrd();
-              while (term != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+              while (term != SortedSetDocValues.NO_MORE_ORDS) {
                 //System.out.println("      segOrd=" + segOrd + " ord=" + term + " globalOrd=" + ordinalMap.getGlobalOrd(segOrd, term));
                 counts[(int) ordMap.get(term)]++;
                 term = (int) segValues.nextOrd();
@@ -224,7 +224,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
             }
             if (doc == segValues.docID()) {
               int term = (int) segValues.nextOrd();
-              while (term != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+              while (term != SortedSetDocValues.NO_MORE_ORDS) {
                 //System.out.println("      ord=" + term);
                 segCounts[term]++;
                 term = (int) segValues.nextOrd();
@@ -251,7 +251,7 @@ public class SortedSetDocValuesFacetCounts extends Facets {
           }
           if (doc == segValues.docID()) {
             int term = (int) segValues.nextOrd();
-            while (term != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+            while (term != SortedSetDocValues.NO_MORE_ORDS) {
               counts[term]++;
               term = (int) segValues.nextOrd();
             }

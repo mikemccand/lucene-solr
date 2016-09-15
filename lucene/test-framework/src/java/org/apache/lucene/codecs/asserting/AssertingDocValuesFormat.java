@@ -23,7 +23,6 @@ import java.util.Iterator;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.AssertingLeafReader.AssertingSortedSetDocValuesIterator;
 import org.apache.lucene.index.AssertingLeafReader;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValuesType;
@@ -33,7 +32,7 @@ import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
@@ -165,7 +164,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     
     @Override
     public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-      SortedSetDocValuesIterator values = valuesProducer.getSortedSet(field);
+      SortedSetDocValues values = valuesProducer.getSortedSet(field);
       long valueCount = values.getValueCount();
       BytesRef lastValue = null;
       for (long i=0;i<valueCount;i++) {
@@ -190,7 +189,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
         long lastOrd = -1;
         while (true) {
           long ord = values.nextOrd();
-          if (ord == SortedSetDocValuesIterator.NO_MORE_ORDS) {
+          if (ord == SortedSetDocValues.NO_MORE_ORDS) {
             break;
           }
           assert ord >= 0 && ord < valueCount: "ord=" + ord + " is not in bounds 0 .." + (valueCount-1);
@@ -257,11 +256,11 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
     
     @Override
-    public SortedSetDocValuesIterator getSortedSet(FieldInfo field) throws IOException {
+    public SortedSetDocValues getSortedSet(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.SORTED_SET;
-      SortedSetDocValuesIterator values = in.getSortedSet(field);
+      SortedSetDocValues values = in.getSortedSet(field);
       assert values != null;
-      return new AssertingSortedSetDocValuesIterator(values, maxDoc);
+      return new AssertingLeafReader.AssertingSortedSetDocValues(values, maxDoc);
     }
     
     @Override

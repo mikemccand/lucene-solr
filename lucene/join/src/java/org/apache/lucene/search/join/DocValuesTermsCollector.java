@@ -27,7 +27,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
@@ -56,7 +56,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
     return (ctx) -> DocValues.getBinaryIterator(ctx, field);
   }
 
-  static Function<SortedSetDocValuesIterator> sortedSetDocValues(String field) {
+  static Function<SortedSetDocValues> sortedSetDocValues(String field) {
     return (ctx) -> DocValues.getSortedSet(ctx, field);
   }
   
@@ -112,14 +112,14 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   }
   
   /** this adapter is quite weird. ords are per doc index, don't use ords across different docs*/
-  static Function<SortedSetDocValuesIterator> sortedNumericAsSortedSetDocValues(String field, FieldType.LegacyNumericType numTyp) {
+  static Function<SortedSetDocValues> sortedNumericAsSortedSetDocValues(String field, FieldType.LegacyNumericType numTyp) {
     return (ctx) -> {
       final SortedNumericDocValuesIterator numerics = DocValues.getSortedNumeric(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);
       
-      return new SortedSetDocValuesIterator() {
+      return new SortedSetDocValues() {
 
         int index = -1;
         

@@ -19,7 +19,7 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 
 import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefHash;
 
@@ -54,9 +54,9 @@ abstract class TermsCollector<DV> extends DocValuesTermsCollector<DV> {
   }
   
   // impl that works with multiple values per document
-  static class MV extends TermsCollector<SortedSetDocValuesIterator> {
+  static class MV extends TermsCollector<SortedSetDocValues> {
     
-    MV(Function<SortedSetDocValuesIterator> docValuesCall) {
+    MV(Function<SortedSetDocValues> docValuesCall) {
       super(docValuesCall);
     }
 
@@ -67,7 +67,7 @@ abstract class TermsCollector<DV> extends DocValuesTermsCollector<DV> {
         docValues.advance(doc);
       }
       if (doc == docValues.docID()) {
-        while ((ord = docValues.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+        while ((ord = docValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
           final BytesRef term = docValues.lookupOrd(ord);
           collectorTerms.add(term);
         }

@@ -159,16 +159,16 @@ class SortedSetDocValuesWriter extends DocValuesWriter {
     dvConsumer.addSortedSetField(fieldInfo,
                                  new EmptyDocValuesProducer() {
                                    @Override
-                                   public SortedSetDocValuesIterator getSortedSet(FieldInfo fieldInfoIn) {
+                                   public SortedSetDocValues getSortedSet(FieldInfo fieldInfoIn) {
                                      if (fieldInfoIn != fieldInfo) {
                                        throw new IllegalArgumentException("wrong fieldInfo");
                                      }
-                                     return new BufferedSortedSetIterator(sortedValues, ordMap, hash, ords, ordCounts, maxCount);
+                                     return new BufferedSortedSetDocValues(sortedValues, ordMap, hash, ords, ordCounts, maxCount);
                                    }
                                  });
   }
 
-  private static class BufferedSortedSetIterator extends SortedSetDocValuesIterator {
+  private static class BufferedSortedSetDocValues extends SortedSetDocValues {
     private int docID = -1;
     final int[] sortedValues;
     final int[] ordMap;
@@ -183,7 +183,7 @@ class SortedSetDocValuesWriter extends DocValuesWriter {
     private int ordCount;
     private int ordUpto;
 
-    public BufferedSortedSetIterator(int[] sortedValues, int[] ordMap, BytesRefHash hash, PackedLongValues ords, PackedLongValues ordCounts, int maxCount) {
+    public BufferedSortedSetDocValues(int[] sortedValues, int[] ordMap, BytesRefHash hash, PackedLongValues ords, PackedLongValues ordCounts, int maxCount) {
       this.currentDoc = new int[maxCount];
       this.sortedValues = sortedValues;
       this.ordMap = ordMap;

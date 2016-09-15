@@ -54,7 +54,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanClause;
@@ -647,14 +647,14 @@ public class AnalyzingInfixSuggester extends Lookup implements Closeable {
 
       // Must look up sorted-set by segment:
       int segment = ReaderUtil.subIndex(fd.doc, leaves);
-      SortedSetDocValuesIterator contextsDV = leaves.get(segment).reader().getSortedSetDocValues(CONTEXTS_FIELD_NAME);
+      SortedSetDocValues contextsDV = leaves.get(segment).reader().getSortedSetDocValues(CONTEXTS_FIELD_NAME);
       Set<BytesRef> contexts;
       if (contextsDV != null) {
         contexts = new HashSet<BytesRef>();
         int targetDocID = fd.doc - leaves.get(segment).docBase;
         if (contextsDV.advance(targetDocID) == targetDocID) {
           long ord;
-          while ((ord = contextsDV.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+          while ((ord = contextsDV.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
             BytesRef context = BytesRef.deepCopyOf(contextsDV.lookupOrd(ord));
             contexts.add(context);
           }

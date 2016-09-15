@@ -49,7 +49,7 @@ import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
@@ -236,7 +236,7 @@ public class TestFieldCache extends LuceneTestCase {
     terms = cache.getTerms(reader, "bogusfield");
 
     // getDocTermOrds
-    SortedSetDocValuesIterator termOrds = cache.getDocTermOrds(reader, "theRandomUnicodeMultiValuedField", null);
+    SortedSetDocValues termOrds = cache.getDocTermOrds(reader, "theRandomUnicodeMultiValuedField", null);
     int numEntries = cache.getCacheEntries().length;
     // ask for it again, and check that we didnt create any additional entries:
     termOrds = cache.getDocTermOrds(reader, "theRandomUnicodeMultiValuedField", null);
@@ -254,12 +254,12 @@ public class TestFieldCache extends LuceneTestCase {
           assertEquals(i, termOrds.nextDoc());
         }
         long ord = termOrds.nextOrd();
-        assert ord != SortedSetDocValuesIterator.NO_MORE_ORDS;
+        assert ord != SortedSetDocValues.NO_MORE_ORDS;
         BytesRef scratch = termOrds.lookupOrd(ord);
         assertEquals(v, scratch);
       }
       if (i == termOrds.docID()) {
-        assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, termOrds.nextOrd());
+        assertEquals(SortedSetDocValues.NO_MORE_ORDS, termOrds.nextOrd());
       }
     }
 
@@ -458,10 +458,10 @@ public class TestFieldCache extends LuceneTestCase {
     scratch = sorted.binaryValue();
     assertEquals("sorted value", scratch.utf8ToString());
     
-    SortedSetDocValuesIterator sortedSet = FieldCache.DEFAULT.getDocTermOrds(ar, "sorted", null);
+    SortedSetDocValues sortedSet = FieldCache.DEFAULT.getDocTermOrds(ar, "sorted", null);
     assertEquals(0, sortedSet.nextDoc());
     assertEquals(0, sortedSet.nextOrd());
-    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, sortedSet.nextOrd());
+    assertEquals(SortedSetDocValues.NO_MORE_ORDS, sortedSet.nextOrd());
     assertEquals(1, sortedSet.getValueCount());
     
     bits = FieldCache.DEFAULT.getDocsWithField(ar, "sorted", null);
@@ -512,7 +512,7 @@ public class TestFieldCache extends LuceneTestCase {
     assertEquals(0, sortedSet.nextDoc());
     assertEquals(0, sortedSet.nextOrd());
     assertEquals(1, sortedSet.nextOrd());
-    assertEquals(SortedSetDocValuesIterator.NO_MORE_ORDS, sortedSet.nextOrd());
+    assertEquals(SortedSetDocValues.NO_MORE_ORDS, sortedSet.nextOrd());
     assertEquals(2, sortedSet.getValueCount());
     
     bits = FieldCache.DEFAULT.getDocsWithField(ar, "sortedset", null);
@@ -554,7 +554,7 @@ public class TestFieldCache extends LuceneTestCase {
     SortedDocValues sorted = cache.getTermsIndex(ar, "bogustermsindex");
     assertEquals(NO_MORE_DOCS, sorted.nextDoc());
     
-    SortedSetDocValuesIterator sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
+    SortedSetDocValues sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
     assertEquals(NO_MORE_DOCS, sortedSet.nextDoc());
     
     Bits bits = cache.getDocsWithField(ar, "bogusbits", null);
@@ -608,7 +608,7 @@ public class TestFieldCache extends LuceneTestCase {
     SortedDocValues sorted = cache.getTermsIndex(ar, "bogustermsindex");
     assertEquals(NO_MORE_DOCS, sorted.nextDoc());
     
-    SortedSetDocValuesIterator sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
+    SortedSetDocValues sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
     assertEquals(NO_MORE_DOCS, sortedSet.nextDoc());
     
     Bits bits = cache.getDocsWithField(ar, "bogusbits", null);

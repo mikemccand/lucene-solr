@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.solr.schema.SchemaField;
 import org.apache.solr.search.QParser;
 import org.apache.solr.search.QueryContext;
@@ -47,8 +47,8 @@ public class FieldUtil {
     return si == null ? DocValues.emptySortedIterator() : si;
   }
 
-  public static SortedSetDocValuesIterator getSortedSetDocValues(QueryContext context, SchemaField field, QParser qparser) throws IOException {
-    SortedSetDocValuesIterator si = context.searcher().getLeafReader().getSortedSetDocValues(field.getName());
+  public static SortedSetDocValues getSortedSetDocValues(QueryContext context, SchemaField field, QParser qparser) throws IOException {
+    SortedSetDocValues si = context.searcher().getLeafReader().getSortedSetDocValues(field.getName());
     return si == null ? DocValues.emptySortedSet() : si;
   }
 

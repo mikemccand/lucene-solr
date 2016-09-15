@@ -36,7 +36,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.solr.uninverting.FieldCache.CacheEntry;
 
 /**
@@ -322,8 +322,8 @@ public class UninvertingReader extends FilterLeafReader {
   }
   
   @Override
-  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
-    SortedSetDocValuesIterator values = in.getSortedSetDocValues(field);
+  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+    SortedSetDocValues values = in.getSortedSetDocValues(field);
     if (values != null) {
       return values;
     }

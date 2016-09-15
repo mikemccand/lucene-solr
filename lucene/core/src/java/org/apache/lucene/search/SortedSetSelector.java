@@ -21,11 +21,11 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
 
-import static org.apache.lucene.index.SortedSetDocValuesIterator.NO_MORE_ORDS;
+import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
 
 /** Selects a value from the document's set to use as the representative value */
 public class SortedSetSelector {
@@ -66,7 +66,7 @@ public class SortedSetSelector {
   }
   
   /** Wraps a multi-valued SortedSetDocValues as a single-valued view, using the specified selector */
-  public static SortedDocValues wrap(SortedSetDocValuesIterator sortedSet, Type selector) {
+  public static SortedDocValues wrap(SortedSetDocValues sortedSet, Type selector) {
     if (sortedSet.getValueCount() >= Integer.MAX_VALUE) {
       throw new UnsupportedOperationException("fields containing more than " + (Integer.MAX_VALUE-1) + " unique terms are unsupported");
     }
@@ -89,12 +89,12 @@ public class SortedSetSelector {
     }
   }
   
-  /** Wraps a SortedSetDocValuesIterator and returns the first ordinal (min) */
+  /** Wraps a SortedSetDocValues and returns the first ordinal (min) */
   static class MinValue extends SortedDocValues {
-    final SortedSetDocValuesIterator in;
+    final SortedSetDocValues in;
     private int ord;
     
-    MinValue(SortedSetDocValuesIterator in) {
+    MinValue(SortedSetDocValues in) {
       this.in = in;
     }
 
@@ -151,12 +151,12 @@ public class SortedSetSelector {
     }
   }
   
-  /** Wraps a SortedSetDocValuesIterator and returns the last ordinal (max) */
+  /** Wraps a SortedSetDocValues and returns the last ordinal (max) */
   static class MaxValue extends SortedDocValues {
-    final SortedSetDocValuesIterator in;
+    final SortedSetDocValues in;
     private int ord;
     
-    MaxValue(SortedSetDocValuesIterator in) {
+    MaxValue(SortedSetDocValues in) {
       this.in = in;
     }
 
@@ -219,13 +219,13 @@ public class SortedSetSelector {
     }
   }
   
-  /** Wraps a SortedSetDocValuesIterator and returns the middle ordinal (or min of the two) */
+  /** Wraps a SortedSetDocValues and returns the middle ordinal (or min of the two) */
   static class MiddleMinValue extends SortedDocValues {
-    final SortedSetDocValuesIterator in;
+    final SortedSetDocValues in;
     private int ord;
     private int[] ords = new int[8];
     
-    MiddleMinValue(SortedSetDocValuesIterator in) {
+    MiddleMinValue(SortedSetDocValues in) {
       this.in = in;
     }
 
@@ -300,13 +300,13 @@ public class SortedSetSelector {
     }
   }
   
-  /** Wraps a SortedSetDocValuesIterator and returns the middle ordinal (or max of the two) */
+  /** Wraps a SortedSetDocValues and returns the middle ordinal (or max of the two) */
   static class MiddleMaxValue extends SortedDocValues {
-    final SortedSetDocValuesIterator in;
+    final SortedSetDocValues in;
     private int ord;
     private int[] ords = new int[8];
     
-    MiddleMaxValue(SortedSetDocValuesIterator in) {
+    MiddleMaxValue(SortedSetDocValues in) {
       this.in = in;
     }
 

@@ -32,7 +32,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermContext;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
@@ -308,7 +308,7 @@ public class TestMinShouldMatch2 extends LuceneTestCase {
     int currentDoc = -1;     // current docid
     int currentMatched = -1; // current number of terms matched
     
-    final SortedSetDocValuesIterator dv;
+    final SortedSetDocValues dv;
     final int maxDoc;
 
     final Set<Long> ords = new HashSet<>();
@@ -374,7 +374,7 @@ public class TestMinShouldMatch2 extends LuceneTestCase {
               continue;
             }
             long ord;
-            while ((ord = dv.nextOrd()) != SortedSetDocValuesIterator.NO_MORE_ORDS) {
+            while ((ord = dv.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
               if (ords.contains(ord)) {
                 currentMatched++;
                 score += sims[(int)ord].score(currentDoc, 1);

@@ -22,10 +22,10 @@ import java.util.List;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
+import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValues;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -66,12 +66,12 @@ public class DocValuesFacets {
     // TODO: remove multiValuedFieldCache(), check dv type / uninversion type?
     final boolean multiValued = schemaField.multiValued() || ft.multiValuedFieldCache();
 
-    final SortedSetDocValuesIterator si; // for term lookups only
+    final SortedSetDocValues si; // for term lookups only
     OrdinalMap ordinalMap = null; // for mapping per-segment ords to global ones
     if (multiValued) {
       si = searcher.getLeafReader().getSortedSetDocValues(fieldName);
-      if (si instanceof MultiSortedSetDocValuesIterator) {
-        ordinalMap = ((MultiSortedSetDocValuesIterator)si).mapping;
+      if (si instanceof MultiDocValues.MultiSortedSetDocValues) {
+        ordinalMap = ((MultiSortedSetDocValues)si).mapping;
       }
     } else {
       SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
@@ -134,7 +134,7 @@ public class DocValuesFacets {
         }
         if (disi != null) {
           if (multiValued) {
-            SortedSetDocValuesIterator sub = leaf.reader().getSortedSetDocValues(fieldName);
+            SortedSetDocValues sub = leaf.reader().getSortedSetDocValues(fieldName);
             if (sub == null) {
               sub = DocValues.emptySortedSet();
             }
@@ -318,7 +318,7 @@ public class DocValuesFacets {
   }
   
   /** accumulates per-segment multi-valued facet counts */
-  static void accumMulti(int counts[], int startTermIndex, SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumMulti(int counts[], int startTermIndex, SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     if (startTermIndex == -1 && (map == null || si.getValueCount() < disi.cost()*10)) {
       // no prefixing, not too many unique values wrt matching docs (lucene/facets heuristic): 
       //   collect separately per-segment, then map to global ords
@@ -330,7 +330,7 @@ public class DocValuesFacets {
   }
     
   /** accumulates per-segment multi-valued facet counts, mapping to global ordinal space on-the-fly */
-  static void accumMultiGeneric(int counts[], int startTermIndex, SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumMultiGeneric(int counts[], int startTermIndex, SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordMap = map == null ? null : map.getGlobalOrds(subIndex);
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
@@ -354,7 +354,7 @@ public class DocValuesFacets {
   }
   
   /** "typical" multi-valued faceting: not too many unique values, no prefixing. maps to global ordinals as a separate step */
-  static void accumMultiSeg(int counts[], SortedSetDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumMultiSeg(int counts[], SortedSetDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     // First count in seg-ord space:
     final int segCounts[];
     if (map == null) {

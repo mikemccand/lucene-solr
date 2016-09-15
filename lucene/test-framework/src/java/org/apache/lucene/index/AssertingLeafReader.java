@@ -670,16 +670,16 @@ public class AssertingLeafReader extends FilterLeafReader {
     } 
   }
   
-  /** Wraps a SortedSetDocValuesIterator but with additional asserts */
-  public static class AssertingSortedSetDocValuesIterator extends SortedSetDocValuesIterator {
+  /** Wraps a SortedSetDocValues but with additional asserts */
+  public static class AssertingSortedSetDocValues extends SortedSetDocValues {
     private final Thread creationThread = Thread.currentThread();
-    private final SortedSetDocValuesIterator in;
+    private final SortedSetDocValues in;
     private final int maxDoc;
     private final long valueCount;
     private int lastDocID = -1;
     long lastOrd = NO_MORE_ORDS;
     
-    public AssertingSortedSetDocValuesIterator(SortedSetDocValuesIterator in, int maxDoc) {
+    public AssertingSortedSetDocValues(SortedSetDocValues in, int maxDoc) {
       this.in = in;
       this.maxDoc = maxDoc;
       this.valueCount = in.getValueCount();
@@ -822,13 +822,13 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedSetDocValuesIterator getSortedSetDocValues(String field) throws IOException {
-    SortedSetDocValuesIterator dv = super.getSortedSetDocValues(field);
+  public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+    SortedSetDocValues dv = super.getSortedSetDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;
       assert fi.getDocValuesType() == DocValuesType.SORTED_SET;
-      return new AssertingSortedSetDocValuesIterator(dv, maxDoc());
+      return new AssertingSortedSetDocValues(dv, maxDoc());
     } else {
       assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_SET;
       return null;
