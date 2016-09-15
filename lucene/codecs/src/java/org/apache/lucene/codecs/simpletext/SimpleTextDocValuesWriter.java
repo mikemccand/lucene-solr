@@ -29,8 +29,6 @@ import java.util.Set;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.LegacyDocValuesIterables;
-import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
-import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
@@ -74,7 +72,7 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
 
   @Override
   public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-    addNumericField(field, new StupidNumericDocValuesIterable(field, valuesProducer, numDocs));
+    addNumericField(field, LegacyDocValuesIterables.numericIterable(field, valuesProducer, numDocs));
   }
 
   void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
@@ -145,7 +143,7 @@ class SimpleTextDocValuesWriter extends DocValuesConsumer {
   public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
     assert fieldSeen(field.name);
     assert field.getDocValuesType() == DocValuesType.BINARY;
-    doAddBinary(field, new StupidBinaryDocValuesIterable(field, valuesProducer, numDocs));
+    doAddBinary(field, LegacyDocValuesIterables.binaryIterable(field, valuesProducer, numDocs));
   }
     
   private void doAddBinary(FieldInfo field, Iterable<BytesRef> values) throws IOException {

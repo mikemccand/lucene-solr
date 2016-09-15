@@ -33,8 +33,6 @@ import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesProducer;
 import org.apache.lucene.codecs.LegacyDocValuesIterables;
-import org.apache.lucene.codecs.StupidBinaryDocValuesIterable;
-import org.apache.lucene.codecs.StupidNumericDocValuesIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -81,7 +79,7 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   
   @Override
   public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-    addNumericField(field, new StupidNumericDocValuesIterable(field, valuesProducer, maxDoc), true);
+    addNumericField(field, LegacyDocValuesIterables.numericIterable(field, valuesProducer, maxDoc), true);
   }
 
   void addNumericField(FieldInfo field, Iterable<Number> values, boolean optimizeStorage) throws IOException {
@@ -252,7 +250,7 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
 
   @Override
   public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-    addBinaryField(field, new StupidBinaryDocValuesIterable(field, valuesProducer, maxDoc));
+    addBinaryField(field, LegacyDocValuesIterables.binaryIterable(field, valuesProducer, maxDoc));
   }
   
   private void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
