@@ -243,7 +243,6 @@ public abstract class LeafReader extends IndexReader {
    *  null if no numeric doc values were indexed for
    *  this field.  The returned instance should only be
    *  used by a single thread.  This will never return null. */
-  // nocommit fix AssertingXXXReader to assert that this indeed never returns null
   public abstract NumericDocValues getNumericDocValues(String field) throws IOException;
 
   /** Returns {@link BinaryDocValues} for this field, or

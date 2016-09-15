@@ -2059,19 +2059,6 @@ public final class CheckIndex implements Closeable {
     return status;
   }
 
-  // nocommit remove now?
-  /*
-  private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValues dv, Bits docsWithField) {
-    for (int i = 0; i < maxDoc; i++) {
-      final BytesRef term = dv.get(i);
-      assert term.isValid();
-      if (docsWithField.get(i) == false && term.length > 0) {
-        throw new RuntimeException("dv for field: " + fieldName + " is missing but has value=" + term + " for doc: " + i);
-      }
-    }
-  }
-  */
-  
   private static void checkBinaryDocValues(String fieldName, int maxDoc, BinaryDocValues bdv) throws IOException {
     int doc;
     if (bdv.docID() != -1) {
@@ -2453,8 +2440,9 @@ public final class CheckIndex implements Closeable {
    */
   public void exorciseIndex(Status result) throws IOException {
     ensureOpen();
-    if (result.partial)
+    if (result.partial) {
       throw new IllegalArgumentException("can only exorcise an index that was fully checked (this status checked a subset of segments)");
+    }
     result.newSegments.changed();
     result.newSegments.commit(result.dir);
   }

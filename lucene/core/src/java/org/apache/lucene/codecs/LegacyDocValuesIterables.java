@@ -473,34 +473,34 @@ public class LegacyDocValuesIterables {
         final NumericDocValues values;
         try {
           values = valuesProducer.getNumeric(field);
-          // nocommit don't do this here; make it like the StupidBinary one:
-          values.nextDoc();
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }
     
         return new Iterator<Number>() {
-          private int docIDUpto;
+          private int docIDUpto = -1;
 
           @Override
           public boolean hasNext() {
-            return docIDUpto < maxDoc;
+            return docIDUpto+1 < maxDoc;
           }
 
           @Override
           public Number next() {
-            Long result;
-            if (docIDUpto == values.docID()) {
-              result = Long.valueOf(values.longValue());
+            docIDUpto++;
+            if (docIDUpto > values.docID()) {
               try {
                 values.nextDoc();
               } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
               }
+            }
+            Number result;
+            if (docIDUpto == values.docID()) {
+              result = values.longValue();
             } else {
               result = null;
             }
-            docIDUpto++;
             return result;
           }
         };

@@ -106,6 +106,5 @@ public abstract class LegacySortedDocValues extends LegacyBinaryDocValues {
    */
   public TermsEnum termsEnum() {
     throw new UnsupportedOperationException();
-    //return new SortedDocValuesTermsEnum(this);
   }
 }

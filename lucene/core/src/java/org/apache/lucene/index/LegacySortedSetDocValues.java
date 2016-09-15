@@ -105,6 +105,5 @@ public abstract class LegacySortedSetDocValues {
    */
   public TermsEnum termsEnum() {
     throw new UnsupportedOperationException();
-    //return new SortedSetDocValuesTermsEnum(this);
   }
 }

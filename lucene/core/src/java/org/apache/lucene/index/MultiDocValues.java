@@ -145,7 +145,7 @@ public class MultiDocValues {
 
       @Override
       public long cost() {
-        // nocommit
+        // TODO
         return 0;
       }
     };
