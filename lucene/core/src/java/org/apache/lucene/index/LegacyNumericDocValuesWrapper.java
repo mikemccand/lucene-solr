@@ -19,11 +19,12 @@ package org.apache.lucene.index;
 
 import org.apache.lucene.util.Bits;
 
-// nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
-
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyNumericDocValues}
+ * Wraps a {@link LegacyNumericDocValues} into a {@link NumericDocValues}.
+ *
+ * @deprecated Implement {@link NumericDocValues} directly.
  */
+@Deprecated
 public final class LegacyNumericDocValuesWrapper extends NumericDocValues {
   private final Bits docsWithField;
   private final LegacyNumericDocValues values;

@@ -20,10 +20,10 @@ package org.apache.lucene.codecs.simpletext;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.lucene.codecs.LegacyDocValuesIterables;
 import org.apache.lucene.codecs.NormsConsumer;
 import org.apache.lucene.codecs.NormsFormat;
 import org.apache.lucene.codecs.NormsProducer;
-import org.apache.lucene.codecs.StupidNormsIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LegacyNumericDocValuesWrapper;
 import org.apache.lucene.index.NumericDocValues;
@@ -117,7 +117,7 @@ public class SimpleTextNormsFormat extends NormsFormat {
     
     @Override
     public void addNormsField(FieldInfo field, NormsProducer normsProducer) throws IOException {
-      impl.addNumericField(field, new StupidNormsIterable(field, normsProducer, impl.numDocs));
+      impl.addNumericField(field, LegacyDocValuesIterables.normsIterable(field, normsProducer, impl.numDocs));
     }
 
     @Override

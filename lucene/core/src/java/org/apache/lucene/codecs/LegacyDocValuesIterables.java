@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -333,6 +334,55 @@ public class LegacyDocValuesIterables {
             assert nextCount != 0;
             nextIsSet = false;
             return nextValue;
+          }
+        };
+      }
+    };
+  }
+
+  /** Converts norms into {@code Iterable&lt;Number&gt;}.
+   *
+   * @deprecated Consume {@link NumericDocValues} instead. */
+  @Deprecated
+  public static Iterable<Number> normsIterable(final FieldInfo field, final NormsProducer normsProducer, final int maxDoc) {
+
+    return new Iterable<Number>() {
+
+      @Override
+      public Iterator<Number> iterator() {
+
+        final NumericDocValues values;
+        try {
+          values = normsProducer.getNorms(field);
+        } catch (IOException ioe) {
+          throw new RuntimeException(ioe);
+        }
+    
+        return new Iterator<Number>() {
+          private int docIDUpto = -1;
+
+          @Override
+          public boolean hasNext() {
+            return docIDUpto+1 < maxDoc;
+          }
+
+          @Override
+          public Number next() {
+            docIDUpto++;
+            if (docIDUpto > values.docID()) {
+              try {
+                values.nextDoc();
+              } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+              }
+            }
+            Number result;
+            if (docIDUpto == values.docID()) {
+              result = values.longValue();
+            } else {
+              result = null;
+            }
+            return result;
           }
         };
       }

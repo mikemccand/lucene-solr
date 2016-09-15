@@ -17,11 +17,12 @@
 
 package org.apache.lucene.index;
 
-// nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
-
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacySortedNumericDocValues}
+ * Wraps a {@link LegacySortedNumericDocValues} into a {@link SortedNumericDocValues}.
+ *
+ * @deprecated Implement {@link SortedNumericDocValues} directly.
  */
+@Deprecated
 public final class LegacySortedNumericDocValuesWrapper extends SortedNumericDocValues {
   private final LegacySortedNumericDocValues values;
   private final int maxDoc;

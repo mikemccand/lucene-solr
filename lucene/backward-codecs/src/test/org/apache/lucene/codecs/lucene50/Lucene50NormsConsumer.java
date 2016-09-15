@@ -22,9 +22,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 import org.apache.lucene.codecs.CodecUtil;
+import org.apache.lucene.codecs.LegacyDocValuesIterables;
 import org.apache.lucene.codecs.NormsConsumer;
 import org.apache.lucene.codecs.NormsProducer;
-import org.apache.lucene.codecs.StupidNormsIterable;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -84,7 +84,7 @@ final class Lucene50NormsConsumer extends NormsConsumer {
 
   @Override
   public void addNormsField(FieldInfo field, NormsProducer valuesProducer) throws IOException {
-    writeNormsField(field, new StupidNormsIterable(field, valuesProducer, maxDoc), 0);
+    writeNormsField(field, LegacyDocValuesIterables.normsIterable(field, valuesProducer, maxDoc), 0);
   }
   
   private void writeNormsField(FieldInfo field, Iterable<Number> values, int level) throws IOException {
