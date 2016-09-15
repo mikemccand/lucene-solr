@@ -424,7 +424,7 @@ public class LegacyDocValuesIterables {
 
         final BinaryDocValues values;
         try {
-          values = valuesProducer.getBinaryIterator(field);
+          values = valuesProducer.getBinary(field);
         } catch (IOException ioe) {
           throw new RuntimeException(ioe);
         }

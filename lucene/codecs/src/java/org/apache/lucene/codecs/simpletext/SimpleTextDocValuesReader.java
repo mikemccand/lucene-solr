@@ -211,7 +211,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     };
   }
 
-  private LegacyBinaryDocValues getBinary(FieldInfo fieldInfo) throws IOException {
+  private LegacyBinaryDocValues getLegacyBinary(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
 
     // SegmentCoreReaders already verifies this field is
@@ -252,8 +252,8 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
   
   @Override
-  public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
+  public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
   }
 
   private Bits getBinaryDocsWithField(FieldInfo fieldInfo) throws IOException {
@@ -360,7 +360,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   
   @Override
   public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
-    final LegacyBinaryDocValues binary = getBinary(field);
+    final LegacyBinaryDocValues binary = getLegacyBinary(field);
     return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
       long values[];
 

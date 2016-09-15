@@ -144,7 +144,7 @@ public abstract class CodecReader extends LeafReader implements Accountable {
     if (fi == null) {
       return null;
     }
-    return getDocValuesReader().getBinaryIterator(fi);
+    return getDocValuesReader().getBinary(fi);
   }
 
   @Override

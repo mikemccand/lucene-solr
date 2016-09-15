@@ -357,7 +357,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
   }
 
-  private synchronized LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private synchronized LegacyBinaryDocValues getLegacyBinary(FieldInfo field) throws IOException {
     BinaryRawValues instance = binaryInstances.get(field.name);
     if (instance == null) {
       // Lazy load
@@ -384,8 +384,8 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
+  public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
   }
   
   private BinaryRawValues loadBinary(BinaryEntry entry) throws IOException {
@@ -422,7 +422,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    return new LegacySortedDocValuesWrapper(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
+    return new LegacySortedDocValuesWrapper(newSortedInstance(instance.docToOrd.numerics, getLegacyBinary(field), entry.values.count), maxDoc);
   }
   
   private LegacySortedDocValues newSortedInstance(final LegacyNumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
@@ -524,12 +524,12 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
 
     if (instance.docToOrdAddress == null) {
-      LegacySortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
+      LegacySortedDocValues sorted = newSortedInstance(instance.ords.numerics, getLegacyBinary(field), entry.values.count);
       return DocValues.singleton(new LegacySortedDocValuesWrapper(sorted, maxDoc));
     } else {
       final LegacyNumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
       final LegacyNumericDocValues ords = instance.ords.numerics;
-      final LegacyBinaryDocValues values = getBinary(field);
+      final LegacyBinaryDocValues values = getLegacyBinary(field);
       
       // Must make a new instance since the iterator has state:
       return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {

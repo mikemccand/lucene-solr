@@ -117,7 +117,7 @@ class BinaryDocValuesWriter extends DocValuesWriter {
     dvConsumer.addBinaryField(fieldInfo,
                               new EmptyDocValuesProducer() {
                                 @Override
-                                public BinaryDocValues getBinaryIterator(FieldInfo fieldInfoIn) {
+                                public BinaryDocValues getBinary(FieldInfo fieldInfoIn) {
                                   if (fieldInfoIn != fieldInfo) {
                                     throw new IllegalArgumentException("wrong fieldInfo");
                                   }

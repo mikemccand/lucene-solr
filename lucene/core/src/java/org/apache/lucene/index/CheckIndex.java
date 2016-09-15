@@ -2221,7 +2221,7 @@ public final class CheckIndex implements Closeable {
         break;
       case BINARY:
         status.totalBinaryFields++;
-        checkBinaryDocValues(fi.name, maxDoc, dvReader.getBinaryIterator(fi));
+        checkBinaryDocValues(fi.name, maxDoc, dvReader.getBinary(fi));
         break;
       case NUMERIC:
         status.totalNumericFields++;

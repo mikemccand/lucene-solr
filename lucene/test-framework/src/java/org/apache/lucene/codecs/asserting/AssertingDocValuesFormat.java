@@ -94,7 +94,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     
     @Override
     public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
-      BinaryDocValues values = valuesProducer.getBinaryIterator(field);
+      BinaryDocValues values = valuesProducer.getBinary(field);
       assert values.cost() > 0;
       
       int docID;
@@ -241,9 +241,9 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
+    public BinaryDocValues getBinary(FieldInfo field) throws IOException {
       assert field.getDocValuesType() == DocValuesType.BINARY;
-      BinaryDocValues values = in.getBinaryIterator(field);
+      BinaryDocValues values = in.getBinary(field);
       assert values != null;
       return new AssertingLeafReader.AssertingBinaryDocValues(values, maxDoc);
     }

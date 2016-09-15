@@ -112,7 +112,7 @@ class MergeReaderWrapper extends LeafReader {
       // Field was not indexed with doc values
       return null;
     }
-    return docValues.getBinaryIterator(fi);
+    return docValues.getBinary(fi);
   }
 
   @Override

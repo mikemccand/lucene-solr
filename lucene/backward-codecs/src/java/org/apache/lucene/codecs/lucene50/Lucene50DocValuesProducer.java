@@ -486,11 +486,11 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   @Override
-  public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
+  public BinaryDocValues getBinary(FieldInfo field) throws IOException {
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
   }
 
-  private LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private LegacyBinaryDocValues getLegacyBinary(FieldInfo field) throws IOException {
     BinaryEntry bytes = binaries.get(field.name);
     switch(bytes.format) {
       case BINARY_FIXED_UNCOMPRESSED:
@@ -614,7 +614,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   
   private LegacySortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
-    final LegacyBinaryDocValues binary = getBinary(field);
+    final LegacyBinaryDocValues binary = getLegacyBinary(field);
     NumericEntry entry = ords.get(field.name);
     final LongValues ordinals = getNumeric(entry);
     return new LegacySortedDocValues() {
@@ -751,7 +751,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   private SortedSetDocValues getSortedSetWithAddresses(FieldInfo field) throws IOException {
     final long valueCount = binaries.get(field.name).count;
     // we keep the byte[]s and list of ords on disk, these could be large
-    final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
+    final LongBinaryDocValues binary = (LongBinaryDocValues) getLegacyBinary(field);
     final LongValues ordinals = getNumeric(ords.get(field.name));
     // but the addresses to the ord stream are in RAM
     final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
@@ -810,7 +810,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   private SortedSetDocValues getSortedSetTable(FieldInfo field, SortedSetEntry ss) throws IOException {
     final long valueCount = binaries.get(field.name).count;
-    final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
+    final LongBinaryDocValues binary = (LongBinaryDocValues) getLegacyBinary(field);
     final LongValues ordinals = getNumeric(ords.get(field.name));
 
     final long[] table = ss.table;

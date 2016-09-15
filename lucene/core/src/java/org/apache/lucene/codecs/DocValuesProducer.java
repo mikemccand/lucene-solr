@@ -48,7 +48,7 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
   /** Returns {@link BinaryDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
-  public abstract BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException;
+  public abstract BinaryDocValues getBinary(FieldInfo field) throws IOException;
 
   /** Returns {@link SortedDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be

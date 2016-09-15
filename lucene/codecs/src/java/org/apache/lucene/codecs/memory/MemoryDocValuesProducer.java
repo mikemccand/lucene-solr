@@ -392,7 +392,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     }
   }
 
-  private LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
+  private LegacyBinaryDocValues getLegacyBinary(FieldInfo field) throws IOException {
     BinaryEntry entry = binaries.get(field.name);
 
     BytesAndAddresses instance;
@@ -436,8 +436,8 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
+  public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
   }
 
   private BytesAndAddresses loadBinary(FieldInfo field) throws IOException {
@@ -638,7 +638,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    final LegacyBinaryDocValues docToOrds = getBinary(field);
+    final LegacyBinaryDocValues docToOrds = getLegacyBinary(field);
     final FST<Long> fst = instance;
     
     // per-thread resources

@@ -430,7 +430,7 @@ class ReadersAndUpdates {
         // nocommit cutover to passing DocValuesProducer:
         fieldsConsumer.addBinaryField(fieldInfo, new EmptyDocValuesProducer() {
             @Override
-            public BinaryDocValues getBinaryIterator(FieldInfo fieldInfoIn) throws IOException {
+            public BinaryDocValues getBinary(FieldInfo fieldInfoIn) throws IOException {
               if (fieldInfoIn != fieldInfo) {
                 throw new IllegalArgumentException("wrong fieldInfo");
               }

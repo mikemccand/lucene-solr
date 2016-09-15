@@ -286,7 +286,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addBinaryField(mergeFieldInfo,
                    new EmptyDocValuesProducer() {
                      @Override
-                     public BinaryDocValues getBinaryIterator(FieldInfo fieldInfo) throws IOException {
+                     public BinaryDocValues getBinary(FieldInfo fieldInfo) throws IOException {
                        if (fieldInfo != mergeFieldInfo) {
                          throw new IllegalArgumentException("wrong fieldInfo");
                        }
@@ -300,7 +300,7 @@ public abstract class DocValuesConsumer implements Closeable {
                          if (docValuesProducer != null) {
                            FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(mergeFieldInfo.name);
                            if (readerFieldInfo != null && readerFieldInfo.getDocValuesType() == DocValuesType.BINARY) {
-                             values = docValuesProducer.getBinaryIterator(readerFieldInfo);
+                             values = docValuesProducer.getBinary(readerFieldInfo);
                            }
                          }
                          if (values != null) {
