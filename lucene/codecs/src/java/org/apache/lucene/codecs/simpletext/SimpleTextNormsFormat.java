@@ -25,10 +25,10 @@ import org.apache.lucene.codecs.NormsFormat;
 import org.apache.lucene.codecs.NormsProducer;
 import org.apache.lucene.codecs.StupidNormsIterable;
 import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.LegacyNumericDocValuesWrapper;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
-import org.apache.lucene.index.StupidNumericDocValuesIterator;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Bits;
 
@@ -70,7 +70,7 @@ public class SimpleTextNormsFormat extends NormsFormat {
     
     @Override
     public NumericDocValues getNorms(FieldInfo field) throws IOException {
-      return new StupidNumericDocValuesIterator(new Bits.MatchAllBits(impl.maxDoc), impl.getNumericNonIterator(field));
+      return new LegacyNumericDocValuesWrapper(new Bits.MatchAllBits(impl.maxDoc), impl.getNumericNonIterator(field));
     }
     
     @Override

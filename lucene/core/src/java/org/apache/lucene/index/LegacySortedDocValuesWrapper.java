@@ -17,24 +17,22 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyBinaryDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValues}
  */
-public final class StupidBinaryDocValuesIterator extends BinaryDocValues {
-  private final Bits docsWithField;
-  private final LegacyBinaryDocValues values;
+public final class LegacySortedDocValuesWrapper extends SortedDocValues {
+  private final LegacySortedDocValues values;
   private final int maxDoc;
   private int docID = -1;
+  private int ord;
   
-  public StupidBinaryDocValuesIterator(Bits docsWithField, LegacyBinaryDocValues values) {
-    this.docsWithField = docsWithField;
+  public LegacySortedDocValuesWrapper(LegacySortedDocValues values, int maxDoc) {
     this.values = values;
-    this.maxDoc = docsWithField.length();
+    this.maxDoc = maxDoc;
   }
 
   @Override
@@ -44,10 +42,11 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValues {
 
   @Override
   public int nextDoc() {
+    assert docID != NO_MORE_DOCS;
     docID++;
     while (docID < maxDoc) {
-      // nocommit if it's a FixedBitSet we can use nextSetBit?
-      if (docsWithField.get(docID)) {
+      ord = values.getOrd(docID);
+      if (ord != -1) {
         return docID;
       }
       docID++;
@@ -61,7 +60,7 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValues {
     if (target < docID) {
       throw new IllegalArgumentException("cannot advance backwards: docID=" + docID + " target=" + target);
     }
-    if (target == NO_MORE_DOCS) {
+    if (target >= maxDoc) {
       this.docID = NO_MORE_DOCS;
     } else {
       this.docID = target-1;
@@ -76,7 +75,17 @@ public final class StupidBinaryDocValuesIterator extends BinaryDocValues {
   }
 
   @Override
-  public BytesRef binaryValue() {
-    return values.get(docID);
+  public int ordValue() {
+    return ord;
+  }
+
+  @Override
+  public BytesRef lookupOrd(int ord) {
+    return values.lookupOrd(ord);
+  }
+
+  @Override
+  public int getValueCount() {
+    return values.getValueCount();
   }
 }

@@ -143,7 +143,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     if (values == null) {
       return null;
     } else {
-      return new StupidNumericDocValuesIterator(getDocsWithField(fieldInfo), values);
+      return new LegacyNumericDocValuesWrapper(getDocsWithField(fieldInfo), values);
     }
   }
   
@@ -253,7 +253,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   
   @Override
   public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
   }
 
   private Bits getBinaryDocsWithField(FieldInfo fieldInfo) throws IOException {
@@ -306,7 +306,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
     final DecimalFormat ordDecoder = new DecimalFormat(field.ordPattern, new DecimalFormatSymbols(Locale.ROOT));
 
-    return new StupidSortedDocValues(new LegacySortedDocValues() {
+    return new LegacySortedDocValuesWrapper(new LegacySortedDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
 
       @Override
@@ -361,7 +361,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   @Override
   public SortedNumericDocValues getSortedNumeric(FieldInfo field) throws IOException {
     final LegacyBinaryDocValues binary = getBinary(field);
-    return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
+    return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
       long values[];
 
       @Override
@@ -402,7 +402,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final BytesRefBuilder scratch = new BytesRefBuilder();
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
     
-    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
       String[] currentOrds = new String[0];
       int currentIndex = 0;
       final BytesRefBuilder term = new BytesRefBuilder();

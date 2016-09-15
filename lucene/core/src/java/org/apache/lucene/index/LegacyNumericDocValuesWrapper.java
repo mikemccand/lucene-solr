@@ -17,22 +17,28 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Bits;
 
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacySortedSetDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyNumericDocValues}
  */
-public final class StupidSortedSetDocValues extends SortedSetDocValues {
-  private final LegacySortedSetDocValues values;
+public final class LegacyNumericDocValuesWrapper extends NumericDocValues {
+  private final Bits docsWithField;
+  private final LegacyNumericDocValues values;
   private final int maxDoc;
   private int docID = -1;
-  private long ord;
   
-  public StupidSortedSetDocValues(LegacySortedSetDocValues values, int maxDoc) {
+  public LegacyNumericDocValuesWrapper(Bits docsWithField, LegacyNumericDocValues values) {
+    this.docsWithField = docsWithField;
     this.values = values;
-    this.maxDoc = maxDoc;
+    this.maxDoc = docsWithField.length();
+  }
+
+  /** Constructor used only for norms */
+  public LegacyNumericDocValuesWrapper(int maxDoc, LegacyNumericDocValues values) {
+    this(new Bits.MatchAllBits(maxDoc), values);
   }
 
   @Override
@@ -42,12 +48,10 @@ public final class StupidSortedSetDocValues extends SortedSetDocValues {
 
   @Override
   public int nextDoc() {
-    assert docID != NO_MORE_DOCS;
     docID++;
     while (docID < maxDoc) {
-      values.setDocument(docID);
-      ord = values.nextOrd();
-      if (ord != NO_MORE_ORDS) {
+      // nocommit if it's a FixedBitSet we can use nextSetBit?
+      if (docsWithField.get(docID)) {
         return docID;
       }
       docID++;
@@ -61,7 +65,7 @@ public final class StupidSortedSetDocValues extends SortedSetDocValues {
     if (target < docID) {
       throw new IllegalArgumentException("cannot advance backwards: docID=" + docID + " target=" + target);
     }
-    if (target >= maxDoc) {
+    if (target == NO_MORE_DOCS) {
       this.docID = NO_MORE_DOCS;
     } else {
       this.docID = target-1;
@@ -72,30 +76,17 @@ public final class StupidSortedSetDocValues extends SortedSetDocValues {
 
   @Override
   public long cost() {
+    // nocommit
     return 0;
   }
 
   @Override
-  public long nextOrd() {
-    long result = ord;
-    if (result != NO_MORE_ORDS) {
-      ord = values.nextOrd();
-    }
-    return result;
-  }
-
-  @Override
-  public BytesRef lookupOrd(long ord) {
-    return values.lookupOrd((int) ord);
-  }
-
-  @Override
-  public long getValueCount() {
-    return values.getValueCount();
+  public long longValue() {
+    return values.get(docID);
   }
 
   @Override
   public String toString() {
-    return "StupidSortedSetDocValues(" + values + ")";
+    return "LegacyNumericDocValuesWrapper(" + values + ")";
   }
 }

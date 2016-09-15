@@ -1129,7 +1129,7 @@ public class MemoryIndex {
       if (info == null) {
         return null;
       }
-      return new StupidNumericDocValuesIterator(new Bits.MatchAllBits(1), info.numericProducer.numericDocValues);
+      return new LegacyNumericDocValuesWrapper(new Bits.MatchAllBits(1), info.numericProducer.numericDocValues);
     }
 
     @Override
@@ -1145,7 +1145,7 @@ public class MemoryIndex {
     private SortedDocValues getSortedDocValues(String field, DocValuesType docValuesType) {
       Info info = getInfoForExpectedDocValuesType(field, docValuesType);
       if (info != null) {
-        return new StupidSortedDocValues(info.binaryProducer.sortedDocValues, 1);
+        return new LegacySortedDocValuesWrapper(info.binaryProducer.sortedDocValues, 1);
       } else {
         return null;
       }
@@ -1155,7 +1155,7 @@ public class MemoryIndex {
     public SortedNumericDocValues getSortedNumericDocValues(String field) {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.SORTED_NUMERIC);
       if (info != null) {
-        return new StupidSortedNumericDocValues(info.numericProducer.sortedNumericDocValues, 1);
+        return new LegacySortedNumericDocValuesWrapper(info.numericProducer.sortedNumericDocValues, 1);
       } else {
         return null;
       }
@@ -1165,7 +1165,7 @@ public class MemoryIndex {
     public SortedSetDocValues getSortedSetDocValues(String field) {
       Info info = getInfoForExpectedDocValuesType(field, DocValuesType.SORTED_SET);
       if (info != null) {
-        return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+        return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
 
           int index = 0;
 

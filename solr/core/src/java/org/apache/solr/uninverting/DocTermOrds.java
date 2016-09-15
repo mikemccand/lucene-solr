@@ -28,9 +28,9 @@ import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LegacySortedSetDocValues;
+import org.apache.lucene.index.LegacySortedSetDocValuesWrapper;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.index.StupidSortedSetDocValues;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -747,7 +747,7 @@ public class DocTermOrds implements Accountable {
     if (isEmpty()) {
       return DocValues.emptySortedSet();
     } else {
-      return new StupidSortedSetDocValues(new Iterator(reader), reader.maxDoc());
+      return new LegacySortedSetDocValuesWrapper(new Iterator(reader), reader.maxDoc());
     }
   }
   

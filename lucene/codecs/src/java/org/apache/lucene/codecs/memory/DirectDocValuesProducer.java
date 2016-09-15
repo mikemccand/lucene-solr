@@ -282,7 +282,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         ramBytesUsed.addAndGet(instance.ramBytesUsed());
       }
     }
-    return new StupidNumericDocValuesIterator(getDocsWithField(field), instance.numerics);
+    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), instance.numerics);
   }
   
   private NumericRawValues loadNumeric(NumericEntry entry) throws IOException {
@@ -385,7 +385,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   
   @Override
   public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
   }
   
   private BinaryRawValues loadBinary(BinaryEntry entry) throws IOException {
@@ -422,7 +422,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    return new StupidSortedDocValues(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
+    return new LegacySortedDocValuesWrapper(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
   }
   
   // nocommit removeme
@@ -474,12 +474,12 @@ class DirectDocValuesProducer extends DocValuesProducer {
     if (entry.docToAddress == null) {
       final LegacyNumericDocValues single = instance.values.numerics;
       final Bits docsWithField = getMissingBits(field, entry.values.missingOffset, entry.values.missingBytes);
-      return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, single));
+      return DocValues.singleton(new LegacyNumericDocValuesWrapper(docsWithField, single));
     } else {
       final LegacyNumericDocValues docToAddress = instance.docToAddress.numerics;
       final LegacyNumericDocValues values = instance.values.numerics;
       
-      return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
+      return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
         int valueStart;
         int valueLimit;
         
@@ -526,14 +526,14 @@ class DirectDocValuesProducer extends DocValuesProducer {
 
     if (instance.docToOrdAddress == null) {
       LegacySortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
-      return DocValues.singleton(new StupidSortedDocValues(sorted, maxDoc));
+      return DocValues.singleton(new LegacySortedDocValuesWrapper(sorted, maxDoc));
     } else {
       final LegacyNumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
       final LegacyNumericDocValues ords = instance.ords.numerics;
       final LegacyBinaryDocValues values = getBinary(field);
       
       // Must make a new instance since the iterator has state:
-      return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+      return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
         int ordStart;
         int ordUpto;
         int ordLimit;

@@ -36,7 +36,7 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.LegacyNumericDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.StupidNumericDocValuesIterator;
+import org.apache.lucene.index.LegacyNumericDocValuesWrapper;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Accountable;
@@ -184,7 +184,7 @@ final class Lucene50NormsProducer extends NormsProducer {
         ramBytesUsed.addAndGet(instance.ramBytesUsed());
       }
     }
-    return new StupidNumericDocValuesIterator(new Bits.MatchAllBits(maxDoc), instance);
+    return new LegacyNumericDocValuesWrapper(new Bits.MatchAllBits(maxDoc), instance);
   }
   
   @Override

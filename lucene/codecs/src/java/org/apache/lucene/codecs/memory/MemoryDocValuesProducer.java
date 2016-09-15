@@ -276,7 +276,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         numericInstances.put(field.name, instance);
       }
     }
-    return new StupidNumericDocValuesIterator(getDocsWithField(field), instance);
+    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), instance);
   }
 
   private synchronized LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
@@ -437,7 +437,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   
   @Override
   public synchronized BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
   }
 
   private BytesAndAddresses loadBinary(FieldInfo field) throws IOException {
@@ -464,7 +464,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   @Override
   public SortedDocValues getSorted(FieldInfo field) throws IOException {
     // nocommit removeme
-    return new StupidSortedDocValues(getSortedNonIterator(field), maxDoc);
+    return new LegacySortedDocValuesWrapper(getSortedNonIterator(field), maxDoc);
   }
   
   private LegacySortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
@@ -550,7 +550,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
       LegacyNumericDocValues values = getNumericNonIterator(field);
       NumericEntry ne = numerics.get(field.name);
       Bits docsWithField = getMissingBits(field, ne.missingOffset, ne.missingBytes);
-      return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, values));
+      return DocValues.singleton(new LegacyNumericDocValuesWrapper(docsWithField, values));
     } else {
       final LegacyNumericDocValues values = getNumericNonIterator(field);
       final MonotonicBlockPackedReader addr;
@@ -570,7 +570,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
       if (values instanceof LongValues) {
         // probably not the greatest codec choice for this situation, but we support it
         final LongValues longValues = (LongValues) values;
-        return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
+        return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
           long startOffset;
           long endOffset;
           
@@ -591,7 +591,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
           }
           }, maxDoc);
       } else {
-        return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
+        return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
           int startOffset;
           int endOffset;
         
@@ -649,7 +649,7 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     final IntsRefBuilder scratchInts = new IntsRefBuilder();
     final BytesRefFSTEnum<Long> fstEnum = new BytesRefFSTEnum<>(fst);
     final ByteArrayDataInput input = new ByteArrayDataInput();
-    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
       BytesRef ref;
       long currentOrd;

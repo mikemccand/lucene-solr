@@ -440,7 +440,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   @Override
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
-    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumeric(entry));
+    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), getNumeric(entry));
   }
 
   @Override
@@ -685,7 +685,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
   @Override
   public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
   }
 
   private LegacyBinaryDocValues getFixedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
@@ -780,7 +780,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
   @Override
   public SortedDocValues getSorted(FieldInfo field) throws IOException {
-    return new StupidSortedDocValues(getSortedNonIterator(field), maxDoc);
+    return new LegacySortedDocValuesWrapper(getSortedNonIterator(field), maxDoc);
   }
 
   private LegacySortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
@@ -1047,7 +1047,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     // but the addresses to the ord stream are in RAM
     final LongValues ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
 
-    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
       long startOffset;
       long offset;
       long endOffset;
@@ -1107,7 +1107,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     final long[] table = ss.table;
     final int[] offsets = ss.tableOffsets;
 
-    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
 
       int offset, startOffset, endOffset;
 

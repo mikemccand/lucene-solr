@@ -402,7 +402,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
-    return new StupidNumericDocValuesIterator(getDocsWithField(field), getNumericNonIterator(field));
+    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), getNumericNonIterator(field));
   }
 
   private LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
@@ -487,7 +487,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException {
-    return new StupidBinaryDocValuesIterator(getDocsWithField(field), getBinary(field));
+    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getBinary(field));
   }
 
   private LegacyBinaryDocValues getBinary(FieldInfo field) throws IOException {
@@ -609,7 +609,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public SortedDocValues getSorted(FieldInfo field) throws IOException {
-    return new StupidSortedDocValues(getSortedNoIterator(field), maxDoc);
+    return new LegacySortedDocValuesWrapper(getSortedNoIterator(field), maxDoc);
   }
   
   private LegacySortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
@@ -675,13 +675,13 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final Bits docsWithField = getLiveBits(numericEntry.missingOffset, maxDoc);
-      return DocValues.singleton(new StupidNumericDocValuesIterator(docsWithField, values));
+      return DocValues.singleton(new LegacyNumericDocValuesWrapper(docsWithField, values));
     } else if (ss.format == SORTED_WITH_ADDRESSES) {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
       
-      return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
+      return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
         long startOffset;
         long endOffset;
         
@@ -707,7 +707,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new StupidSortedNumericDocValues(new LegacySortedNumericDocValues() {
+      return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
         int startOffset;
         int endOffset;
         
@@ -756,7 +756,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     // but the addresses to the ord stream are in RAM
     final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
     
-    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
       long startOffset;
       long offset;
       long endOffset;
@@ -816,7 +816,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     final long[] table = ss.table;
     final int[] offsets = ss.tableOffsets;
 
-    return new StupidSortedSetDocValues(new LegacySortedSetDocValues() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
 
       int offset, startOffset, endOffset;
 

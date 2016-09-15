@@ -17,28 +17,20 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.util.Bits;
-
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyNumericDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacySortedNumericDocValues}
  */
-public final class StupidNumericDocValuesIterator extends NumericDocValues {
-  private final Bits docsWithField;
-  private final LegacyNumericDocValues values;
+public final class LegacySortedNumericDocValuesWrapper extends SortedNumericDocValues {
+  private final LegacySortedNumericDocValues values;
   private final int maxDoc;
   private int docID = -1;
+  private int upto;
   
-  public StupidNumericDocValuesIterator(Bits docsWithField, LegacyNumericDocValues values) {
-    this.docsWithField = docsWithField;
+  public LegacySortedNumericDocValuesWrapper(LegacySortedNumericDocValues values, int maxDoc) {
     this.values = values;
-    this.maxDoc = docsWithField.length();
-  }
-
-  /** Constructor used only for norms */
-  public StupidNumericDocValuesIterator(int maxDoc, LegacyNumericDocValues values) {
-    this(new Bits.MatchAllBits(maxDoc), values);
+    this.maxDoc = maxDoc;
   }
 
   @Override
@@ -48,16 +40,20 @@ public final class StupidNumericDocValuesIterator extends NumericDocValues {
 
   @Override
   public int nextDoc() {
-    docID++;
-    while (docID < maxDoc) {
-      // nocommit if it's a FixedBitSet we can use nextSetBit?
-      if (docsWithField.get(docID)) {
-        return docID;
-      }
+    assert docID != NO_MORE_DOCS;
+    while (true) {
       docID++;
+      if (docID == maxDoc) {
+        docID = NO_MORE_DOCS;
+        break;
+      }
+      values.setDocument(docID);
+      if (values.count() != 0) {
+        break;
+      }
     }
-    docID = NO_MORE_DOCS;
-    return NO_MORE_DOCS;
+    upto = 0;
+    return docID;
   }
 
   @Override
@@ -65,10 +61,10 @@ public final class StupidNumericDocValuesIterator extends NumericDocValues {
     if (target < docID) {
       throw new IllegalArgumentException("cannot advance backwards: docID=" + docID + " target=" + target);
     }
-    if (target == NO_MORE_DOCS) {
-      this.docID = NO_MORE_DOCS;
+    if (target >= maxDoc) {
+      docID = NO_MORE_DOCS;
     } else {
-      this.docID = target-1;
+      docID = target-1;
       nextDoc();
     }
     return docID;
@@ -76,17 +72,16 @@ public final class StupidNumericDocValuesIterator extends NumericDocValues {
 
   @Override
   public long cost() {
-    // nocommit
     return 0;
   }
 
   @Override
-  public long longValue() {
-    return values.get(docID);
+  public long nextValue() {
+    return values.valueAt(upto++);
   }
 
   @Override
-  public String toString() {
-    return "StupidNumericDocValuesIterator(" + values + ")";
+  public int docValueCount() {
+    return values.count();
   }
 }

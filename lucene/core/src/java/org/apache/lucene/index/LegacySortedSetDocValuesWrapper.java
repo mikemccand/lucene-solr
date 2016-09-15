@@ -22,15 +22,15 @@ import org.apache.lucene.util.BytesRef;
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacySortedSetDocValues}
  */
-public final class StupidSortedDocValues extends SortedDocValues {
-  private final LegacySortedDocValues values;
+public final class LegacySortedSetDocValuesWrapper extends SortedSetDocValues {
+  private final LegacySortedSetDocValues values;
   private final int maxDoc;
   private int docID = -1;
-  private int ord;
+  private long ord;
   
-  public StupidSortedDocValues(LegacySortedDocValues values, int maxDoc) {
+  public LegacySortedSetDocValuesWrapper(LegacySortedSetDocValues values, int maxDoc) {
     this.values = values;
     this.maxDoc = maxDoc;
   }
@@ -45,8 +45,9 @@ public final class StupidSortedDocValues extends SortedDocValues {
     assert docID != NO_MORE_DOCS;
     docID++;
     while (docID < maxDoc) {
-      ord = values.getOrd(docID);
-      if (ord != -1) {
+      values.setDocument(docID);
+      ord = values.nextOrd();
+      if (ord != NO_MORE_ORDS) {
         return docID;
       }
       docID++;
@@ -75,17 +76,26 @@ public final class StupidSortedDocValues extends SortedDocValues {
   }
 
   @Override
-  public int ordValue() {
-    return ord;
+  public long nextOrd() {
+    long result = ord;
+    if (result != NO_MORE_ORDS) {
+      ord = values.nextOrd();
+    }
+    return result;
   }
 
   @Override
-  public BytesRef lookupOrd(int ord) {
-    return values.lookupOrd(ord);
+  public BytesRef lookupOrd(long ord) {
+    return values.lookupOrd((int) ord);
   }
 
   @Override
-  public int getValueCount() {
+  public long getValueCount() {
     return values.getValueCount();
+  }
+
+  @Override
+  public String toString() {
+    return "LegacySortedSetDocValuesWrapper(" + values + ")";
   }
 }

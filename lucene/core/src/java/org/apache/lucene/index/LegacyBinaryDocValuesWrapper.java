@@ -17,20 +17,24 @@
 
 package org.apache.lucene.index;
 
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.BytesRef;
+
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacySortedNumericDocValues}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link LegacyBinaryDocValues}
  */
-public final class StupidSortedNumericDocValues extends SortedNumericDocValues {
-  private final LegacySortedNumericDocValues values;
+public final class LegacyBinaryDocValuesWrapper extends BinaryDocValues {
+  private final Bits docsWithField;
+  private final LegacyBinaryDocValues values;
   private final int maxDoc;
   private int docID = -1;
-  private int upto;
   
-  public StupidSortedNumericDocValues(LegacySortedNumericDocValues values, int maxDoc) {
+  public LegacyBinaryDocValuesWrapper(Bits docsWithField, LegacyBinaryDocValues values) {
+    this.docsWithField = docsWithField;
     this.values = values;
-    this.maxDoc = maxDoc;
+    this.maxDoc = docsWithField.length();
   }
 
   @Override
@@ -40,20 +44,16 @@ public final class StupidSortedNumericDocValues extends SortedNumericDocValues {
 
   @Override
   public int nextDoc() {
-    assert docID != NO_MORE_DOCS;
-    while (true) {
+    docID++;
+    while (docID < maxDoc) {
+      // nocommit if it's a FixedBitSet we can use nextSetBit?
+      if (docsWithField.get(docID)) {
+        return docID;
+      }
       docID++;
-      if (docID == maxDoc) {
-        docID = NO_MORE_DOCS;
-        break;
-      }
-      values.setDocument(docID);
-      if (values.count() != 0) {
-        break;
-      }
     }
-    upto = 0;
-    return docID;
+    docID = NO_MORE_DOCS;
+    return NO_MORE_DOCS;
   }
 
   @Override
@@ -61,10 +61,10 @@ public final class StupidSortedNumericDocValues extends SortedNumericDocValues {
     if (target < docID) {
       throw new IllegalArgumentException("cannot advance backwards: docID=" + docID + " target=" + target);
     }
-    if (target >= maxDoc) {
-      docID = NO_MORE_DOCS;
+    if (target == NO_MORE_DOCS) {
+      this.docID = NO_MORE_DOCS;
     } else {
-      docID = target-1;
+      this.docID = target-1;
       nextDoc();
     }
     return docID;
@@ -76,12 +76,7 @@ public final class StupidSortedNumericDocValues extends SortedNumericDocValues {
   }
 
   @Override
-  public long nextValue() {
-    return values.valueAt(upto++);
-  }
-
-  @Override
-  public int docValueCount() {
-    return values.count();
+  public BytesRef binaryValue() {
+    return values.get(docID);
   }
 }
