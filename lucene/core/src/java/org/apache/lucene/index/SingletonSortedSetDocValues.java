@@ -34,13 +34,15 @@ final class SingletonSortedSetDocValues extends SortedSetDocValues {
   
   /** Creates a multi-valued view over the provided SortedDocValues */
   public SingletonSortedSetDocValues(SortedDocValues in) {
+    if (in.docID() != -1) {
+      throw new IllegalStateException("iterator has already been used: docID=" + in.docID());
+    }
     this.in = in;
   }
 
   /** Return the wrapped {@link SortedDocValues} */
   public SortedDocValues getSortedDocValues() {
     if (in.docID() != -1) {
-      // nocommit too anal?
       throw new IllegalStateException("iterator has already been used: docID=" + in.docID());
     }
     return in;

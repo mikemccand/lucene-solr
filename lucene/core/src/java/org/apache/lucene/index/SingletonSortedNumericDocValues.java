@@ -30,13 +30,15 @@ final class SingletonSortedNumericDocValues extends SortedNumericDocValues {
   private long value;
   
   public SingletonSortedNumericDocValues(NumericDocValues in) {
+    if (in.docID() != -1) {
+      throw new IllegalStateException("iterator has already been used: docID=" + in.docID());
+    }
     this.in = in;
   }
 
   /** Return the wrapped {@link NumericDocValues} */
   public NumericDocValues getNumericDocValues() {
     if (in.docID() != -1) {
-      // nocommit too anal?
       throw new IllegalStateException("iterator has already been used: docID=" + in.docID());
     }
     return in;

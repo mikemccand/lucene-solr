@@ -30,8 +30,6 @@ import org.apache.lucene.util.BytesRef;
  * are dense and in increasing sorted order.
  */
 
-// nocommit don't extend binary anymore?
-
 public abstract class SortedDocValues extends BinaryDocValues {
 
   /** Sole constructor. (For invocation by subclass 

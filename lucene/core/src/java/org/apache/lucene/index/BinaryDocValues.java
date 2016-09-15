@@ -20,8 +20,6 @@ package org.apache.lucene.index;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 
-// nocommit rename
-
 /**
  * A per-document numeric value.
  */
