@@ -50,10 +50,10 @@ class BBoxValueSource extends ValueSource {
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
     LeafReader reader = readerContext.reader();
-    final NumericDocValues minX = DocValues.getNumericIterator(reader, strategy.field_minX);
-    final NumericDocValues minY = DocValues.getNumericIterator(reader, strategy.field_minY);
-    final NumericDocValues maxX = DocValues.getNumericIterator(reader, strategy.field_maxX);
-    final NumericDocValues maxY = DocValues.getNumericIterator(reader, strategy.field_maxY);
+    final NumericDocValues minX = DocValues.getNumeric(reader, strategy.field_minX);
+    final NumericDocValues minY = DocValues.getNumeric(reader, strategy.field_minY);
+    final NumericDocValues maxX = DocValues.getNumeric(reader, strategy.field_maxX);
+    final NumericDocValues maxY = DocValues.getNumeric(reader, strategy.field_maxY);
 
     //reused
     final Rectangle rect = strategy.getSpatialContext().makeRectangle(0,0,0,0);

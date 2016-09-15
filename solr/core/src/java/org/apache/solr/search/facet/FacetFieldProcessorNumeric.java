@@ -307,7 +307,7 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
         assert doc >= ctx.docBase;
         setNextReaderFirstPhase(ctx);
 
-        values = DocValues.getNumericIterator(ctx.reader(), sf.getName());
+        values = DocValues.getNumeric(ctx.reader(), sf.getName());
       }
 
       int segDoc = doc - segBase;

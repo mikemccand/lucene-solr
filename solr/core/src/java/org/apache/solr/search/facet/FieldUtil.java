@@ -44,7 +44,7 @@ public class FieldUtil {
     // if (!field.hasDocValues() && (field.getType() instanceof StrField || field.getType() instanceof TextField)) {
     // }
 
-    return si == null ? DocValues.emptySortedIterator() : si;
+    return si == null ? DocValues.emptySorted() : si;
   }
 
   public static SortedSetDocValues getSortedSetDocValues(QueryContext context, SchemaField field, QParser qparser) throws IOException {

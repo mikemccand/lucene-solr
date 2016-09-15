@@ -157,7 +157,7 @@ public class TestCustomScoreQuery extends FunctionTestSetup {
 
     @Override
     protected CustomScoreProvider getCustomScoreProvider(LeafReaderContext context) throws IOException {
-      final NumericDocValues values = DocValues.getNumericIterator(context.reader(), INT_FIELD);
+      final NumericDocValues values = DocValues.getNumeric(context.reader(), INT_FIELD);
       return new CustomScoreProvider(context) {
         @Override
         public float customScore(int doc, float subScore, float valSrcScore) throws IOException {

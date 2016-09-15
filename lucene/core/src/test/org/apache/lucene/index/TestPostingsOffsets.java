@@ -296,7 +296,7 @@ public class TestPostingsOffsets extends LuceneTestCase {
       PostingsEnum docsAndPositions = null;
       PostingsEnum docsAndPositionsAndOffsets = null;
       int[] docIDToID = new int[r.maxDoc()];
-      NumericDocValues values = DocValues.getNumericIterator(sub, "id");
+      NumericDocValues values = DocValues.getNumeric(sub, "id");
       for(int i=0;i<r.maxDoc();i++) {
         assertEquals(i, values.nextDoc());
         docIDToID[i] = (int) values.longValue();

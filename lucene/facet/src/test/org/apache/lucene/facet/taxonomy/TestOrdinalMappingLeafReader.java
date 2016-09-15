@@ -103,8 +103,8 @@ public class TestOrdinalMappingLeafReader extends FacetTestCase {
     assertEquals(NUM_DOCS, idResult.childCount);
     assertEquals(NUM_DOCS * 2, idResult.value); // each "id" appears twice
     
-    BinaryDocValues bdv = MultiDocValues.getBinaryValuesIterator(indexReader, "bdv");
-    BinaryDocValues cbdv = MultiDocValues.getBinaryValuesIterator(indexReader, "cbdv");
+    BinaryDocValues bdv = MultiDocValues.getBinaryValues(indexReader, "bdv");
+    BinaryDocValues cbdv = MultiDocValues.getBinaryValues(indexReader, "cbdv");
     for (int i = 0; i < indexReader.maxDoc(); i++) {
       assertEquals(i, bdv.nextDoc());
       assertEquals(i, cbdv.nextDoc());

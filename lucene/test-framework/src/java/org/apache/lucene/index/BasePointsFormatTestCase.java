@@ -712,7 +712,7 @@ public abstract class BasePointsFormatTestCase extends BaseIndexFileFormatTestCa
         System.out.println("TEST: reader=" + r);
       }
 
-      NumericDocValues idValues = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues idValues = MultiDocValues.getNumericValues(r, "id");
       int[] docIDToID = new int[r.maxDoc()];
       {
         int docID;

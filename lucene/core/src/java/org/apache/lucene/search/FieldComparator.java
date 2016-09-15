@@ -166,7 +166,7 @@ public abstract class FieldComparator<T> {
     
     /** Retrieves the NumericDocValues for the field in this segment */
     protected NumericDocValues getNumericDocValues(LeafReaderContext context, String field) throws IOException {
-      return DocValues.getNumericIterator(context.reader(), field);
+      return DocValues.getNumeric(context.reader(), field);
     }
   }
 
@@ -934,7 +934,7 @@ public abstract class FieldComparator<T> {
 
     /** Retrieves the BinaryDocValues for the field in this segment */
     protected BinaryDocValues getBinaryDocValuesIterator(LeafReaderContext context, String field) throws IOException {
-      return DocValues.getBinaryIterator(context.reader(), field);
+      return DocValues.getBinary(context.reader(), field);
     }
 
     /** Check whether the given value represents <tt>null</tt>. This can be

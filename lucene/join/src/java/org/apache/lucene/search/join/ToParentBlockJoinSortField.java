@@ -116,7 +116,7 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptySortedIterator();
+          return DocValues.emptySorted();
         }
         return BlockJoinSelector.wrap(sortedSet, type, parents, children);
       }
@@ -135,7 +135,7 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
         return BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
       }
@@ -153,7 +153,7 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
         return BlockJoinSelector.wrap(sortedNumeric, type, parents, children);
       }
@@ -171,7 +171,7 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
         return new FilterNumericDocValues(BlockJoinSelector.wrap(sortedNumeric, type, parents, children)) {
           @Override
@@ -195,7 +195,7 @@ public class ToParentBlockJoinSortField extends SortField {
         final BitSet parents = parentFilter.getBitSet(context);
         final BitSet children = childFilter.getBitSet(context);
         if (children == null) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
         return new FilterNumericDocValues(BlockJoinSelector.wrap(sortedNumeric, type, parents, children)) {
           @Override

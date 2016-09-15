@@ -358,7 +358,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     }
     
     long[] expectedValues = new long[] { 1, 2, 3, 17, 5, 17};
-    NumericDocValues ndv = MultiDocValues.getNumericValuesIterator(reader, "val");
+    NumericDocValues ndv = MultiDocValues.getNumericValues(reader, "val");
     for (int i = 0; i < expectedValues.length; i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(expectedValues[i], ndv.longValue());
@@ -581,7 +581,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     
     final DirectoryReader reader = DirectoryReader.open(dir);
     
-    NumericDocValues ndv = MultiDocValues.getNumericValuesIterator(reader, "ndv");
+    NumericDocValues ndv = MultiDocValues.getNumericValues(reader, "ndv");
     SortedDocValues sdv = MultiDocValues.getSortedValues(reader, "sorted");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
@@ -613,7 +613,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     final DirectoryReader reader = DirectoryReader.open(dir);
-    NumericDocValues ndv = MultiDocValues.getNumericValuesIterator(reader, "ndv");
+    NumericDocValues ndv = MultiDocValues.getNumericValues(reader, "ndv");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(3, ndv.longValue());
@@ -715,7 +715,7 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     final DirectoryReader reader = DirectoryReader.open(dir);
-    NumericDocValues ndv = MultiDocValues.getNumericValuesIterator(reader, "ndv");
+    NumericDocValues ndv = MultiDocValues.getNumericValues(reader, "ndv");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
       assertEquals(3, ndv.longValue());
@@ -1222,8 +1222,8 @@ public class TestNumericDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     DirectoryReader reader = DirectoryReader.open(dir);
-    NumericDocValues f1 = MultiDocValues.getNumericValuesIterator(reader, "f1");
-    NumericDocValues f2 = MultiDocValues.getNumericValuesIterator(reader, "f2");
+    NumericDocValues f1 = MultiDocValues.getNumericValues(reader, "f1");
+    NumericDocValues f2 = MultiDocValues.getNumericValues(reader, "f2");
     assertEquals(0, f1.nextDoc());
     assertEquals(12L, f1.longValue());
     assertEquals(0, f2.nextDoc());

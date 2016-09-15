@@ -1251,7 +1251,7 @@ public class TestJoinUtil extends LuceneTestCase {
 
           @Override
           protected void doSetNextReader(LeafReaderContext context) throws IOException {
-            terms = DocValues.getBinaryIterator(context.reader(), fromField);
+            terms = DocValues.getBinary(context.reader(), fromField);
           }
 
           @Override
@@ -1316,7 +1316,7 @@ public class TestJoinUtil extends LuceneTestCase {
 
           @Override
           protected void doSetNextReader(LeafReaderContext context) throws IOException {
-            terms = DocValues.getBinaryIterator(context.reader(), toField);
+            terms = DocValues.getBinary(context.reader(), toField);
             docBase = context.docBase;
           }
 

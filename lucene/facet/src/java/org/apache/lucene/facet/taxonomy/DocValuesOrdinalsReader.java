@@ -44,7 +44,7 @@ public class DocValuesOrdinalsReader extends OrdinalsReader {
   public OrdinalsSegmentReader getReader(LeafReaderContext context) throws IOException {
     BinaryDocValues values0 = context.reader().getBinaryDocValues(field);
     if (values0 == null) {
-      values0 = DocValues.emptyBinaryIterator();
+      values0 = DocValues.emptyBinary();
     }
 
     final BinaryDocValues values = values0;

@@ -748,19 +748,19 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
 
     if (is40Index) {
       // check docvalues fields
-      NumericDocValues dvByte = MultiDocValues.getNumericValuesIterator(reader, "dvByte");
-      BinaryDocValues dvBytesDerefFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefFixed");
-      BinaryDocValues dvBytesDerefVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefVar");
+      NumericDocValues dvByte = MultiDocValues.getNumericValues(reader, "dvByte");
+      BinaryDocValues dvBytesDerefFixed = MultiDocValues.getBinaryValues(reader, "dvBytesDerefFixed");
+      BinaryDocValues dvBytesDerefVar = MultiDocValues.getBinaryValues(reader, "dvBytesDerefVar");
       SortedDocValues dvBytesSortedFixed = MultiDocValues.getSortedValues(reader, "dvBytesSortedFixed");
       SortedDocValues dvBytesSortedVar = MultiDocValues.getSortedValues(reader, "dvBytesSortedVar");
-      BinaryDocValues dvBytesStraightFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightFixed");
-      BinaryDocValues dvBytesStraightVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightVar");
-      NumericDocValues dvDouble = MultiDocValues.getNumericValuesIterator(reader, "dvDouble");
-      NumericDocValues dvFloat = MultiDocValues.getNumericValuesIterator(reader, "dvFloat");
-      NumericDocValues dvInt = MultiDocValues.getNumericValuesIterator(reader, "dvInt");
-      NumericDocValues dvLong = MultiDocValues.getNumericValuesIterator(reader, "dvLong");
-      NumericDocValues dvPacked = MultiDocValues.getNumericValuesIterator(reader, "dvPacked");
-      NumericDocValues dvShort = MultiDocValues.getNumericValuesIterator(reader, "dvShort");
+      BinaryDocValues dvBytesStraightFixed = MultiDocValues.getBinaryValues(reader, "dvBytesStraightFixed");
+      BinaryDocValues dvBytesStraightVar = MultiDocValues.getBinaryValues(reader, "dvBytesStraightVar");
+      NumericDocValues dvDouble = MultiDocValues.getNumericValues(reader, "dvDouble");
+      NumericDocValues dvFloat = MultiDocValues.getNumericValues(reader, "dvFloat");
+      NumericDocValues dvInt = MultiDocValues.getNumericValues(reader, "dvInt");
+      NumericDocValues dvLong = MultiDocValues.getNumericValues(reader, "dvLong");
+      NumericDocValues dvPacked = MultiDocValues.getNumericValues(reader, "dvPacked");
+      NumericDocValues dvShort = MultiDocValues.getNumericValues(reader, "dvShort");
       SortedSetDocValues dvSortedSet = null;
       if (is42Index) {
         dvSortedSet = MultiDocValues.getSortedSetValues(reader, "dvSortedSet");

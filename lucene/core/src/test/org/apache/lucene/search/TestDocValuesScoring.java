@@ -150,7 +150,7 @@ public class TestDocValuesScoring extends LuceneTestCase {
     @Override
     public SimScorer simScorer(SimWeight stats, LeafReaderContext context) throws IOException {
       final SimScorer sub = sim.simScorer(stats, context);
-      final NumericDocValues values = DocValues.getNumericIterator(context.reader(), boostField);
+      final NumericDocValues values = DocValues.getNumeric(context.reader(), boostField);
       
       return new SimScorer() {
 

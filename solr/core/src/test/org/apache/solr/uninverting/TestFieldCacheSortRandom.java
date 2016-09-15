@@ -274,7 +274,7 @@ public class TestFieldCacheSortRandom extends LuceneTestCase {
         public Scorer scorer(LeafReaderContext context) throws IOException {
           Random random = new Random(seed ^ context.docBase);
           final int maxDoc = context.reader().maxDoc();
-          final NumericDocValues idSource = DocValues.getNumericIterator(context.reader(), "id");
+          final NumericDocValues idSource = DocValues.getNumeric(context.reader(), "id");
           assertNotNull(idSource);
           final FixedBitSet bits = new FixedBitSet(maxDoc);
           for(int docID=0;docID<maxDoc;docID++) {

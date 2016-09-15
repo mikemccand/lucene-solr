@@ -152,7 +152,7 @@ public class MultiDocValues {
   }
 
   /** Returns a NumericDocValues for a reader's docvalues (potentially merging on-the-fly) */
-  public static NumericDocValues getNumericValuesIterator(final IndexReader r, final String field) throws IOException {
+  public static NumericDocValues getNumericValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -259,7 +259,7 @@ public class MultiDocValues {
   }
 
   /** Returns a BinaryDocValues for a reader's docvalues (potentially merging on-the-fly) */
-  public static BinaryDocValues getBinaryValuesIterator(final IndexReader r, final String field) throws IOException {
+  public static BinaryDocValues getBinaryValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     if (size == 0) {
@@ -506,7 +506,7 @@ public class MultiDocValues {
       LeafReaderContext context = leaves.get(i);
       SortedDocValues v = context.reader().getSortedDocValues(field);
       if (v == null) {
-        v = DocValues.emptySortedIterator();
+        v = DocValues.emptySorted();
       } else {
         anyReal = true;
         totalCost += v.cost();

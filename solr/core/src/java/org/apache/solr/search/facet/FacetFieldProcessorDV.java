@@ -144,7 +144,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
       } else {
         singleDv = subCtx.reader().getSortedDocValues(sf.getName());
         if (singleDv == null) {
-          singleDv = DocValues.emptySortedIterator();
+          singleDv = DocValues.emptySorted();
         }
       }
 

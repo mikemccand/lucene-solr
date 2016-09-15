@@ -248,7 +248,7 @@ public abstract class BaseRangeFieldQueryTestCase extends LuceneTestCase {
         public boolean needsScores() { return false; }
       });
 
-      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
       for (int docID=0; docID<maxDoc; ++docID) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();

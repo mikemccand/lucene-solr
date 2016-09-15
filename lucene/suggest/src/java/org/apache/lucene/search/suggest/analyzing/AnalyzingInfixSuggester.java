@@ -624,7 +624,7 @@ public class AnalyzingInfixSuggester extends Lookup implements Closeable {
     List<LookupResult> results = new ArrayList<>();
     for (int i=0;i<hits.scoreDocs.length;i++) {
       FieldDoc fd = (FieldDoc) hits.scoreDocs[i];
-      BinaryDocValues textDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), TEXT_FIELD_NAME);
+      BinaryDocValues textDV = MultiDocValues.getBinaryValues(searcher.getIndexReader(), TEXT_FIELD_NAME);
       textDV.advance(fd.doc);
       BytesRef term = textDV.binaryValue();
       String text = term.utf8ToString();
@@ -632,7 +632,7 @@ public class AnalyzingInfixSuggester extends Lookup implements Closeable {
 
       // This will just be null if app didn't pass payloads to build():
       // TODO: maybe just stored fields?  they compress...
-      BinaryDocValues payloadsDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), "payloads");
+      BinaryDocValues payloadsDV = MultiDocValues.getBinaryValues(searcher.getIndexReader(), "payloads");
 
       BytesRef payload;
       if (payloadsDV != null) {

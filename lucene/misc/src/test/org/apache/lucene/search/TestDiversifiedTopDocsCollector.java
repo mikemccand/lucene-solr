@@ -201,7 +201,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context)
         throws IOException {
-      this.vals = DocValues.getBinaryIterator(context.reader(), field);
+      this.vals = DocValues.getBinary(context.reader(), field);
       return super.getLeafCollector(context);
     }
   }
@@ -464,7 +464,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
     public SimScorer simScorer(SimWeight stats, LeafReaderContext context)
         throws IOException {
       final SimScorer sub = sim.simScorer(stats, context);
-      final NumericDocValues values = DocValues.getNumericIterator(context.reader(), scoreValueField);
+      final NumericDocValues values = DocValues.getNumeric(context.reader(), scoreValueField);
 
       return new SimScorer() {
         @Override

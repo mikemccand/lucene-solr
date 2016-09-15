@@ -266,7 +266,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     }
     
     long[] expectedValues = new long[] { 1, 2, 3, 17, 5, 17};
-    BinaryDocValues bdv = MultiDocValues.getBinaryValuesIterator(reader, "val");
+    BinaryDocValues bdv = MultiDocValues.getBinaryValues(reader, "val");
     for (int i = 0; i < expectedValues.length; i++) {
       assertEquals(i, bdv.nextDoc());
       assertEquals(expectedValues[i], getValue(bdv));
@@ -483,7 +483,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     
     final DirectoryReader reader = DirectoryReader.open(dir);
     
-    BinaryDocValues bdv = MultiDocValues.getBinaryValuesIterator(reader, "bdv");
+    BinaryDocValues bdv = MultiDocValues.getBinaryValues(reader, "bdv");
     SortedDocValues sdv = MultiDocValues.getSortedValues(reader, "sorted");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, bdv.nextDoc());
@@ -514,7 +514,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     final DirectoryReader reader = DirectoryReader.open(dir);
-    BinaryDocValues bdv = MultiDocValues.getBinaryValuesIterator(reader, "bdv");
+    BinaryDocValues bdv = MultiDocValues.getBinaryValues(reader, "bdv");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, bdv.nextDoc());
       assertEquals(3, getValue(bdv));
@@ -614,7 +614,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     final DirectoryReader reader = DirectoryReader.open(dir);
-    BinaryDocValues bdv = MultiDocValues.getBinaryValuesIterator(reader, "bdv");
+    BinaryDocValues bdv = MultiDocValues.getBinaryValues(reader, "bdv");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, bdv.nextDoc());
       assertEquals(3, getValue(bdv));
@@ -1030,8 +1030,8 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     writer.close();
     
     DirectoryReader reader = DirectoryReader.open(dir);
-    BinaryDocValues f1 = MultiDocValues.getBinaryValuesIterator(reader, "f1");
-    BinaryDocValues f2 = MultiDocValues.getBinaryValuesIterator(reader, "f2");
+    BinaryDocValues f1 = MultiDocValues.getBinaryValues(reader, "f1");
+    BinaryDocValues f2 = MultiDocValues.getBinaryValues(reader, "f2");
     assertEquals(0, f1.nextDoc());
     assertEquals(0, f2.nextDoc());
     assertEquals(12L, getValue(f1));

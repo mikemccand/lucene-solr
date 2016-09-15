@@ -833,7 +833,7 @@ public class TestGeo3DPoint extends LuceneTestCase {
         System.err.println("  hitCount: " + hits.cardinality());
       }
       
-      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
 
       for(int docID=0;docID<r.maxDoc();docID++) {
         assertEquals(docID, docIDToID.nextDoc());

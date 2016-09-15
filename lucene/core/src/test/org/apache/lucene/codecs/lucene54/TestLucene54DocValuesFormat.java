@@ -204,11 +204,11 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
 
     for (LeafReaderContext context : indexReader.leaves()) {
       final LeafReader reader = context.reader();
-      final NumericDocValues numeric = DocValues.getNumericIterator(reader, "numeric");
+      final NumericDocValues numeric = DocValues.getNumeric(reader, "numeric");
 
       final SortedDocValues sorted = DocValues.getSorted(reader, "sorted");
 
-      final BinaryDocValues binary = DocValues.getBinaryIterator(reader, "binary");
+      final BinaryDocValues binary = DocValues.getBinary(reader, "binary");
 
       final SortedNumericDocValues sortedNumeric = DocValues.getSortedNumeric(reader, "sorted_numeric");
 

@@ -2436,8 +2436,8 @@ public abstract class LuceneTestCase extends Assert {
     for (String field : leftFields) {
       // TODO: clean this up... very messy
       {
-        NumericDocValues leftValues = MultiDocValues.getNumericValuesIterator(leftReader, field);
-        NumericDocValues rightValues = MultiDocValues.getNumericValuesIterator(rightReader, field);
+        NumericDocValues leftValues = MultiDocValues.getNumericValues(leftReader, field);
+        NumericDocValues rightValues = MultiDocValues.getNumericValues(rightReader, field);
         if (leftValues != null && rightValues != null) {
           assertDocValuesEquals(info, leftReader.maxDoc(), leftValues, rightValues);
         } else {
@@ -2447,8 +2447,8 @@ public abstract class LuceneTestCase extends Assert {
       }
 
       {
-        BinaryDocValues leftValues = MultiDocValues.getBinaryValuesIterator(leftReader, field);
-        BinaryDocValues rightValues = MultiDocValues.getBinaryValuesIterator(rightReader, field);
+        BinaryDocValues leftValues = MultiDocValues.getBinaryValues(leftReader, field);
+        BinaryDocValues rightValues = MultiDocValues.getBinaryValues(rightReader, field);
         if (leftValues != null && rightValues != null) {
           while (true) {
             int docID = leftValues.nextDoc();

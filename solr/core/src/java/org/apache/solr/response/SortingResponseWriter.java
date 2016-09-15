@@ -870,7 +870,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumericIterator(context.reader(), field);
+      this.vals = DocValues.getNumeric(context.reader(), field);
     }
 
     public void setCurrentValue(int docId) throws IOException {
@@ -961,7 +961,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumericIterator(context.reader(), field);
+      this.vals = DocValues.getNumeric(context.reader(), field);
     }
 
     public void setCurrentValue(int docId) throws IOException {
@@ -1053,7 +1053,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.vals = DocValues.getNumericIterator(context.reader(), field);
+      this.vals = DocValues.getNumeric(context.reader(), field);
     }
 
     public void setCurrentValue(int docId) throws IOException {
@@ -1145,13 +1145,13 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
     public void setNextReader(LeafReaderContext context) throws IOException {
       this.reader = context.reader();
-      this.vals = DocValues.getNumericIterator(this.reader, this.field);
+      this.vals = DocValues.getNumeric(this.reader, this.field);
     }
 
     public void setCurrentValue(int docId) throws IOException {
       if (docId < lastDocID) {
         // TODO: can we enforce caller to go in order instead?
-        this.vals = DocValues.getNumericIterator(this.reader, this.field);
+        this.vals = DocValues.getNumeric(this.reader, this.field);
       }
       lastDocID = docId;
       int curDocID = vals.docID();
@@ -1303,7 +1303,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
       int val;
       if (vals.advance(docId) == docId) {
         val = (int) vals.longValue();
@@ -1388,7 +1388,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
       long val;
       if (vals.advance(docId) == docId) {
         val = vals.longValue();
@@ -1415,7 +1415,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
       long val;
       if (vals.advance(docId) == docId) {
         val = vals.longValue();
@@ -1479,7 +1479,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
       int val;
       if (vals.advance(docId) == docId) {
         val = (int)vals.longValue();
@@ -1506,7 +1506,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      NumericDocValues vals = DocValues.getNumericIterator(reader, this.field);
+      NumericDocValues vals = DocValues.getNumeric(reader, this.field);
       long val;
       if (vals.advance(docId) == docId) {
         val = vals.longValue();

@@ -1279,7 +1279,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
   }
 
   private static void checkAllNumberDVs(IndexReader r, String fieldName, boolean doThrow, int multiplier) throws IOException {
-    NumericDocValues numbers = MultiDocValues.getNumericValuesIterator(r, fieldName);
+    NumericDocValues numbers = MultiDocValues.getNumericValues(r, fieldName);
     int maxDoc = r.maxDoc();
     boolean failed = false;
     long t0 = System.currentTimeMillis();
@@ -1348,7 +1348,7 @@ public class TestDemoParallelLeafReader extends LuceneTestCase {
                     }
                   });
 
-      NumericDocValues numbers = MultiDocValues.getNumericValuesIterator(s.getIndexReader(), "number");
+      NumericDocValues numbers = MultiDocValues.getNumericValues(s.getIndexReader(), "number");
       for(ScoreDoc hit : hits.scoreDocs) {
         if (numbers.docID() < hit.doc) {
           numbers.advance(hit.doc);

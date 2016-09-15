@@ -64,8 +64,8 @@ public class DistanceValueSource extends ValueSource {
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
     LeafReader reader = readerContext.reader();
 
-    final NumericDocValues ptX = DocValues.getNumericIterator(reader, strategy.getFieldNameX());
-    final NumericDocValues ptY = DocValues.getNumericIterator(reader, strategy.getFieldNameY());
+    final NumericDocValues ptX = DocValues.getNumeric(reader, strategy.getFieldNameX());
+    final NumericDocValues ptY = DocValues.getNumeric(reader, strategy.getFieldNameY());
 
     return new FunctionValues() {
 

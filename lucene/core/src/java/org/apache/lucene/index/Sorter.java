@@ -244,7 +244,7 @@ final class Sorter {
     case LONG:
       {
         long[] values = new long[maxDoc];
-        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Long) sortField.getMissingValue());
@@ -275,7 +275,7 @@ final class Sorter {
     case INT:
       {
         int[] values = new int[maxDoc];
-        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Integer) sortField.getMissingValue());
@@ -307,7 +307,7 @@ final class Sorter {
     case DOUBLE:
       {
         double[] values = new double[maxDoc];
-        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Double) sortField.getMissingValue());
@@ -338,7 +338,7 @@ final class Sorter {
     case FLOAT:
       {
         float[] values = new float[maxDoc];
-        NumericDocValues dvs = DocValues.getNumericIterator(reader, sortField.getField());
+        NumericDocValues dvs = DocValues.getNumeric(reader, sortField.getField());
 
         if (sortField.getMissingValue() != null) {
           Arrays.fill(values, (Float) sortField.getMissingValue());

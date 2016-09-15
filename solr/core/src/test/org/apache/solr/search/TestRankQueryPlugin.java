@@ -685,7 +685,7 @@ public class TestRankQueryPlugin extends QParserPlugin {
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
       final int base = context.docBase;
-      final NumericDocValues values = DocValues.getNumericIterator(context.reader(), "sort_i");
+      final NumericDocValues values = DocValues.getNumeric(context.reader(), "sort_i");
       return new LeafCollector() {
         
         @Override

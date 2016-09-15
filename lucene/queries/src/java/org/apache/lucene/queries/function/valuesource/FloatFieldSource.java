@@ -52,7 +52,7 @@ public class FloatFieldSource extends FieldCacheSource {
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
 
-    final NumericDocValues arr = DocValues.getNumericIterator(readerContext.reader(), field);
+    final NumericDocValues arr = DocValues.getNumeric(readerContext.reader(), field);
     
     return new FloatDocValues(this) {
       int lastDocID;

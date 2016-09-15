@@ -758,7 +758,7 @@ public class TestGrouping extends LuceneTestCase {
       final DirectoryReader r = w.getReader();
       w.close();
       
-      NumericDocValues values = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues values = MultiDocValues.getNumericValues(r, "id");
       int[] docIDToID = new int[r.maxDoc()];
       for(int i=0;i<r.maxDoc();i++) {
         assertEquals(i, values.nextDoc());
@@ -810,7 +810,7 @@ public class TestGrouping extends LuceneTestCase {
       // reliably remap them w/ Map:
       final Map<String,Map<Float,Float>> scoreMap = new HashMap<>();
 
-      values = MultiDocValues.getNumericValuesIterator(rBlocks, "id");
+      values = MultiDocValues.getNumericValues(rBlocks, "id");
       assertNotNull(values);
       int[] docIDToIDBlocks = new int[rBlocks.maxDoc()];
       for(int i=0;i<rBlocks.maxDoc();i++) {

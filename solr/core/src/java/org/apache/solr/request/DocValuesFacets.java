@@ -148,7 +148,7 @@ public class DocValuesFacets {
           } else {
             SortedDocValues sub = leaf.reader().getSortedDocValues(fieldName);
             if (sub == null) {
-              sub = DocValues.emptySortedIterator();
+              sub = DocValues.emptySorted();
             }
             accumSingle(counts, startTermIndex, sub, disi, subIndex, ordinalMap);
           }

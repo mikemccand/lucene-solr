@@ -151,7 +151,7 @@ final class MultiSorter {
         for(int i=0;i<readers.size();i++) {
           SortedDocValues v = readers.get(i).getSortedDocValues(sortField.getField());
           if (v == null) {
-            v = DocValues.emptySortedIterator();
+            v = DocValues.emptySorted();
           }
           values[i] = v;
         }
@@ -220,7 +220,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumeric(readers.get(readerIndex), sortField.getField());
           
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
@@ -268,7 +268,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumeric(readers.get(readerIndex), sortField.getField());
 
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
@@ -316,7 +316,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumeric(readers.get(readerIndex), sortField.getField());
 
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:
@@ -364,7 +364,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final NumericDocValues values = DocValues.getNumericIterator(readers.get(readerIndex), sortField.getField());
+          final NumericDocValues values = DocValues.getNumeric(readers.get(readerIndex), sortField.getField());
 
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:

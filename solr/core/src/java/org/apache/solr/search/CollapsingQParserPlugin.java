@@ -759,7 +759,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     protected void doSetNextReader(LeafReaderContext context) throws IOException {
       this.contexts[context.ord] = context;
       this.docBase = context.docBase;
-      this.collapseValues = DocValues.getNumericIterator(context.reader(), this.field);
+      this.collapseValues = DocValues.getNumeric(context.reader(), this.field);
     }
 
     @Override
@@ -847,7 +847,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
       int currentContext = 0;
       int currentDocBase = 0;
 
-      collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.field);
+      collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.field);
       int nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
       leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
       DummyScorer dummy = new DummyScorer();
@@ -863,7 +863,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
           nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
           leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
           leafDelegate.setScorer(dummy);
-          collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.field);
+          collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.field);
         }
 
         int contextDoc = globalDoc-currentDocBase;
@@ -1157,7 +1157,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
       this.contexts[context.ord] = context;
       this.docBase = context.docBase;
       this.collapseStrategy.setNextReader(context);
-      this.collapseValues = DocValues.getNumericIterator(context.reader(), this.collapseField);
+      this.collapseValues = DocValues.getNumeric(context.reader(), this.collapseField);
     }
 
     public void collect(int contextDoc) throws IOException {
@@ -1184,7 +1184,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
 
       int currentContext = 0;
       int currentDocBase = 0;
-      this.collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.collapseField);
+      this.collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.collapseField);
       int nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
       leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
       DummyScorer dummy = new DummyScorer();
@@ -1207,7 +1207,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
           nextDocBase = currentContext+1 < contexts.length ? contexts[currentContext+1].docBase : maxDoc;
           leafDelegate = delegate.getLeafCollector(contexts[currentContext]);
           leafDelegate.setScorer(dummy);
-          this.collapseValues = DocValues.getNumericIterator(contexts[currentContext].reader(), this.collapseField);
+          this.collapseValues = DocValues.getNumeric(contexts[currentContext].reader(), this.collapseField);
         }
 
         int contextDoc = globalDoc-currentDocBase;
@@ -1584,7 +1584,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxValues = DocValues.getNumericIterator(context.reader(), this.field);
+      this.minMaxValues = DocValues.getNumeric(context.reader(), this.field);
     }
 
     public void collapse(int ord, int contextDoc, int globalDoc) throws IOException {
@@ -1676,7 +1676,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxValues = DocValues.getNumericIterator(context.reader(), this.field);
+      this.minMaxValues = DocValues.getNumeric(context.reader(), this.field);
     }
 
     public void collapse(int ord, int contextDoc, int globalDoc) throws IOException {
@@ -1769,7 +1769,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxVals = DocValues.getNumericIterator(context.reader(), this.field);
+      this.minMaxVals = DocValues.getNumeric(context.reader(), this.field);
     }
 
     public void collapse(int ord, int contextDoc, int globalDoc) throws IOException {
@@ -2176,7 +2176,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxVals = DocValues.getNumericIterator(context.reader(), this.field);
+      this.minMaxVals = DocValues.getNumeric(context.reader(), this.field);
     }
 
     public void collapse(int collapseKey, int contextDoc, int globalDoc) throws IOException {
@@ -2288,7 +2288,7 @@ public class CollapsingQParserPlugin extends QParserPlugin {
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
-      this.minMaxVals = DocValues.getNumericIterator(context.reader(), this.field);
+      this.minMaxVals = DocValues.getNumeric(context.reader(), this.field);
     }
 
     public void collapse(int collapseKey, int contextDoc, int globalDoc) throws IOException {

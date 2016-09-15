@@ -52,7 +52,7 @@ public class DoubleFieldSource extends FieldCacheSource {
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
 
-    final NumericDocValues values = DocValues.getNumericIterator(readerContext.reader(), field);
+    final NumericDocValues values = DocValues.getNumeric(readerContext.reader(), field);
 
     return new DoubleDocValues(this) {
       int lastDocID;

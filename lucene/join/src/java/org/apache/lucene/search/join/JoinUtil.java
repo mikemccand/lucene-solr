@@ -310,7 +310,7 @@ public final class JoinUtil {
 
         @Override
         protected void doSetNextReader(LeafReaderContext context) throws IOException {
-          numericDocValues = DocValues.getNumericIterator(context.reader(), fromField);
+          numericDocValues = DocValues.getNumeric(context.reader(), fromField);
           lastDocID = -1;
         }
 

@@ -137,7 +137,7 @@ public class DocValuesStats {
         } else {
           SortedDocValues sub = leaf.reader().getSortedDocValues(fieldName);
           if (sub == null) {
-            sub = DocValues.emptySortedIterator();
+            sub = DocValues.emptySorted();
           }
           missingDocCountTotal += accumSingle(counts, docBase, facetStats, sub, disi, subIndex, ordinalMap);
         }

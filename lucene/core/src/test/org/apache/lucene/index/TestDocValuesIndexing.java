@@ -108,7 +108,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
 
     DirectoryReader r = w.getReader();
     w.close();
-    NumericDocValues values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    NumericDocValues values = DocValues.getNumeric(getOnlyLeafReader(r), "field");
     assertEquals(0, values.nextDoc());
     assertEquals(17, values.longValue());
     r.close();
@@ -131,7 +131,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
 
     DirectoryReader r = w.getReader();
     w.close();
-    NumericDocValues values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    NumericDocValues values = DocValues.getNumeric(getOnlyLeafReader(r), "field");
     assertEquals(0, values.nextDoc());
     assertEquals(17, values.longValue());
     r.close();
@@ -153,7 +153,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     });
 
     DirectoryReader r = w.getReader();
-    NumericDocValues values = DocValues.getNumericIterator(getOnlyLeafReader(r), "field");
+    NumericDocValues values = DocValues.getNumeric(getOnlyLeafReader(r), "field");
     assertEquals(0, values.nextDoc());
     assertEquals(17, values.longValue());
     r.close();
@@ -176,7 +176,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     w.addDocument(doc);
     w.forceMerge(1);
     DirectoryReader r = w.getReader();
-    BinaryDocValues s = DocValues.getBinaryIterator(getOnlyLeafReader(r), "field");
+    BinaryDocValues s = DocValues.getBinary(getOnlyLeafReader(r), "field");
     assertEquals(0, s.nextDoc());
     BytesRef bytes1 = s.binaryValue();
     assertEquals(bytes.length, bytes1.length);
@@ -208,7 +208,7 @@ public class TestDocValuesIndexing extends LuceneTestCase {
     FieldInfos fi = MultiFields.getMergedFieldInfos(r);
     FieldInfo dvInfo = fi.fieldInfo("dv");
     assertTrue(dvInfo.getDocValuesType() != DocValuesType.NONE);
-    NumericDocValues dv = MultiDocValues.getNumericValuesIterator(r, "dv");
+    NumericDocValues dv = MultiDocValues.getNumericValues(r, "dv");
     for (int i = 0; i < 50; i++) {
       assertEquals(i, dv.nextDoc());
       assertEquals(i, dv.longValue());

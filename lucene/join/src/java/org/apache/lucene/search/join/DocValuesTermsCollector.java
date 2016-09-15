@@ -53,7 +53,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   }
   
   static Function<BinaryDocValues> binaryDocValues(String field) {
-    return (ctx) -> DocValues.getBinaryIterator(ctx, field);
+    return (ctx) -> DocValues.getBinary(ctx, field);
   }
 
   static Function<SortedSetDocValues> sortedSetDocValues(String field) {
@@ -62,7 +62,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   
   static Function<BinaryDocValues> numericAsBinaryDocValues(String field, LegacyNumericType numTyp) {
     return (ctx) -> {
-      final NumericDocValues numeric = DocValues.getNumericIterator(ctx, field);
+      final NumericDocValues numeric = DocValues.getNumeric(ctx, field);
       final BytesRefBuilder bytes = new BytesRefBuilder();
       
       final LongConsumer coder = coder(bytes, numTyp, field);

@@ -1014,7 +1014,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     // Now search the index:
     IndexReader ireader = DirectoryReader.open(directory); // read-only=true
     assert ireader.leaves().size() == 1;
-    BinaryDocValues dv = DocValues.getBinaryIterator(ireader.leaves().get(0).reader(), "dv");
+    BinaryDocValues dv = DocValues.getBinary(ireader.leaves().get(0).reader(), "dv");
     assertEquals(0, dv.nextDoc());
     assertEquals(new BytesRef(bytes), dv.binaryValue());
     ireader.close();
@@ -1059,7 +1059,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     // Now search the index:
     IndexReader ireader = DirectoryReader.open(directory); // read-only=true
     assert ireader.leaves().size() == 1;
-    BinaryDocValues dv = DocValues.getBinaryIterator(ireader.leaves().get(0).reader(), "dv");
+    BinaryDocValues dv = DocValues.getBinary(ireader.leaves().get(0).reader(), "dv");
     byte mybytes[] = new byte[20];
     assertEquals(0, dv.nextDoc());
     assertEquals("boo!", dv.binaryValue().utf8ToString());
@@ -1508,7 +1508,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     DirectoryReader ir = writer.getReader();
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      BinaryDocValues docValues = DocValues.getBinaryIterator(r, "dv");
+      BinaryDocValues docValues = DocValues.getBinary(r, "dv");
       for (int i = 0; i < r.maxDoc(); i++) {
         BytesRef binaryValue = r.document(i).getBinaryValue("stored");
         assertEquals(i, docValues.nextDoc());
@@ -1522,7 +1522,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
     ir = writer.getReader();
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      BinaryDocValues docValues = DocValues.getBinaryIterator(r, "dv");
+      BinaryDocValues docValues = DocValues.getBinary(r, "dv");
       for (int i = 0; i < r.maxDoc(); i++) {
         BytesRef binaryValue = r.document(i).getBinaryValue("stored");
         assertEquals(i, docValues.nextDoc());
@@ -2790,7 +2790,7 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       IndexReader r = w.getReader();
       w.close();
 
-      BinaryDocValues values = MultiDocValues.getBinaryValuesIterator(r, "field");
+      BinaryDocValues values = MultiDocValues.getBinaryValues(r, "field");
       for(int j=0;j<5;j++) {
         assertEquals(j, values.nextDoc());
         BytesRef result = values.binaryValue();

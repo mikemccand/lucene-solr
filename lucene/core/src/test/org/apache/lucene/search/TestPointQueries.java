@@ -577,7 +577,7 @@ public class TestPointQueries extends LuceneTestCase {
                 System.out.println(Thread.currentThread().getName() + ":  hitCount: " + hits.cardinality());
               }
       
-              NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+              NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
               
               for(int docID=0;docID<r.maxDoc();docID++) {
                 assertEquals(docID, docIDToID.nextDoc());
@@ -837,7 +837,7 @@ public class TestPointQueries extends LuceneTestCase {
                 }
               }
 
-              NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+              NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
 
               int failCount = 0;
               for(int docID=0;docID<r.maxDoc();docID++) {

@@ -828,7 +828,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
-      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();
@@ -966,7 +966,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
-      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();
@@ -1098,7 +1098,7 @@ public abstract class BaseGeoPointTestCase extends LuceneTestCase {
         });
 
       boolean fail = false;
-      NumericDocValues docIDToID = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues docIDToID = MultiDocValues.getNumericValues(r, "id");
       for(int docID=0;docID<maxDoc;docID++) {
         assertEquals(docID, docIDToID.nextDoc());
         int id = (int) docIDToID.longValue();

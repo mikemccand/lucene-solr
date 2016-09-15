@@ -57,7 +57,7 @@ public class DateFieldSource extends LongFieldSource {
 
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-    final NumericDocValues arr = DocValues.getNumericIterator(readerContext.reader(), field);
+    final NumericDocValues arr = DocValues.getNumeric(readerContext.reader(), field);
     return new LongDocValues(this) {
 
       private long getDocValue(int doc) throws IOException {

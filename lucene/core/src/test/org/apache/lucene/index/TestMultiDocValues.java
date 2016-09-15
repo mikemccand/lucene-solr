@@ -61,7 +61,7 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    NumericDocValues multi = MultiDocValues.getNumericValuesIterator(ir, "numbers");
+    NumericDocValues multi = MultiDocValues.getNumericValues(ir, "numbers");
     NumericDocValues single = merged.getNumericDocValues("numbers");
     for (int i = 0; i < numDocs; i++) {
       assertEquals(i, multi.nextDoc());
@@ -101,7 +101,7 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
 
-    BinaryDocValues multi = MultiDocValues.getBinaryValuesIterator(ir, "bytes");
+    BinaryDocValues multi = MultiDocValues.getBinaryValues(ir, "bytes");
     BinaryDocValues single = merged.getBinaryDocValues("bytes");
     for (int i = 0; i < numDocs; i++) {
       assertEquals(i, multi.nextDoc());

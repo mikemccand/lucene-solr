@@ -194,7 +194,7 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
     for (int i = 0; i < hits.scoreDocs.length; i++) {
       FieldDoc fd = (FieldDoc) hits.scoreDocs[i];
 
-      BinaryDocValues textDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), TEXT_FIELD_NAME);
+      BinaryDocValues textDV = MultiDocValues.getBinaryValues(searcher.getIndexReader(), TEXT_FIELD_NAME);
       assert textDV != null;
 
       textDV.advance(fd.doc);
@@ -204,7 +204,7 @@ public class BlendedInfixSuggester extends AnalyzingInfixSuggester {
 
       // This will just be null if app didn't pass payloads to build():
       // TODO: maybe just stored fields?  they compress...
-      BinaryDocValues payloadsDV = MultiDocValues.getBinaryValuesIterator(searcher.getIndexReader(), "payloads");
+      BinaryDocValues payloadsDV = MultiDocValues.getBinaryValues(searcher.getIndexReader(), "payloads");
 
       BytesRef payload;
       if (payloadsDV != null) {

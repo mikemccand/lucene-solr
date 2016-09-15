@@ -482,7 +482,7 @@ public abstract class DocValuesConsumer implements Closeable {
         }
       }
       if (values == null) {
-        values = DocValues.emptySortedIterator();
+        values = DocValues.emptySorted();
       }
       toMerge.add(values);
     }
@@ -546,7 +546,7 @@ public abstract class DocValuesConsumer implements Closeable {
                            }
                          }
                          if (values == null) {
-                           values = DocValues.emptySortedIterator();
+                           values = DocValues.emptySorted();
                          }
                          cost += values.cost();
                          

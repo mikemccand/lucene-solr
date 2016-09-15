@@ -606,7 +606,7 @@ class FieldCacheImpl implements FieldCache {
     } else {
       final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
       if (info == null) {
-        return DocValues.emptyNumericIterator();
+        return DocValues.emptyNumeric();
       } else if (info.getDocValuesType() != DocValuesType.NONE) {
         throw new IllegalStateException("Type mismatch: " + field + " was indexed as " + info.getDocValuesType());
       }
@@ -615,7 +615,7 @@ class FieldCacheImpl implements FieldCache {
         // points case
         // no points in this segment
         if (info.getPointDimensionCount() == 0) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
         if (info.getPointDimensionCount() != 1) {
           throw new IllegalStateException("Type mismatch: " + field + " was indexed with dimensions=" + info.getPointDimensionCount());
@@ -623,7 +623,7 @@ class FieldCacheImpl implements FieldCache {
         PointValues values = reader.getPointValues();
         // no actual points for this field (e.g. all points deleted)
         if (values == null || values.size(field) == 0) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
         // not single-valued
         if (values.size(field) != values.getDocCount(field)) {
@@ -633,7 +633,7 @@ class FieldCacheImpl implements FieldCache {
         // postings case 
         // not indexed
         if (info.getIndexOptions() == IndexOptions.NONE) {
-          return DocValues.emptyNumericIterator();
+          return DocValues.emptyNumeric();
         }
       }
 
@@ -886,13 +886,13 @@ class FieldCacheImpl implements FieldCache {
     } else {
       final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
       if (info == null) {
-        return DocValues.emptySortedIterator();
+        return DocValues.emptySorted();
       } else if (info.getDocValuesType() != DocValuesType.NONE) {
         // we don't try to build a sorted instance from numeric/binary doc
         // values because dedup can be very costly
         throw new IllegalStateException("Type mismatch: " + field + " was indexed as " + info.getDocValuesType());
       } else if (info.getIndexOptions() == IndexOptions.NONE) {
-        return DocValues.emptySortedIterator();
+        return DocValues.emptySorted();
       }
       SortedDocValuesImpl impl = (SortedDocValuesImpl) caches.get(SortedDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
       return impl.iterator();
@@ -1078,11 +1078,11 @@ class FieldCacheImpl implements FieldCache {
 
     final FieldInfo info = reader.getFieldInfos().fieldInfo(field);
     if (info == null) {
-      return DocValues.emptyBinaryIterator();
+      return DocValues.emptyBinary();
     } else if (info.getDocValuesType() != DocValuesType.NONE) {
       throw new IllegalStateException("Type mismatch: " + field + " was indexed as " + info.getDocValuesType());
     } else if (info.getIndexOptions() == IndexOptions.NONE) {
-      return DocValues.emptyBinaryIterator();
+      return DocValues.emptyBinary();
     }
 
     BinaryDocValuesImpl impl = (BinaryDocValuesImpl) caches.get(BinaryDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));

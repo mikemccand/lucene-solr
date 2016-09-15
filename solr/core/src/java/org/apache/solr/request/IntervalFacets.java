@@ -192,14 +192,14 @@ public class IntervalFacets implements Iterable<FacetInterval> {
         assert doc >= ctx.docBase;
         switch (numericType) {
           case LONG:
-            longs = DocValues.getNumericIterator(ctx.reader(), fieldName);
+            longs = DocValues.getNumeric(ctx.reader(), fieldName);
             break;
           case INT:
-            longs = DocValues.getNumericIterator(ctx.reader(), fieldName);
+            longs = DocValues.getNumeric(ctx.reader(), fieldName);
             break;
           case FLOAT:
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new FilterNumericDocValues(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
+            longs = new FilterNumericDocValues(DocValues.getNumeric(ctx.reader(), fieldName)) {
               @Override
               public long longValue() {
                 long bits = super.longValue();
@@ -210,7 +210,7 @@ public class IntervalFacets implements Iterable<FacetInterval> {
             break;
           case DOUBLE:
             // TODO: this bit flipping should probably be moved to tie-break in the PQ comparator
-            longs = new FilterNumericDocValues(DocValues.getNumericIterator(ctx.reader(), fieldName)) {
+            longs = new FilterNumericDocValues(DocValues.getNumeric(ctx.reader(), fieldName)) {
               @Override
               public long longValue() {
                 long bits = super.longValue();

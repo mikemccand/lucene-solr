@@ -97,13 +97,13 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
   @Override
   public NumericDocValues getNumericDocValues(String field) throws IOException {
     ensureOpen();
-    return MultiDocValues.getNumericValuesIterator(in, field);
+    return MultiDocValues.getNumericValues(in, field);
   }
 
   @Override
   public BinaryDocValues getBinaryDocValues(String field) throws IOException {
     ensureOpen();
-    return MultiDocValues.getBinaryValuesIterator(in, field);
+    return MultiDocValues.getBinaryValues(in, field);
   }
   
   @Override
@@ -143,7 +143,7 @@ public final class SlowCompositeReaderWrapper extends LeafReader {
       }
       SortedDocValues v = reader.getSortedDocValues(field);
       if (v == null) {
-        v = DocValues.emptySortedIterator();
+        v = DocValues.emptySorted();
       }
       totalCost += v.cost();
       values[i] = v;

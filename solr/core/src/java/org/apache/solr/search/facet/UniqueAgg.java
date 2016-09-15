@@ -210,7 +210,7 @@ public class UniqueAgg extends StrAggValueSource {
 
     @Override
     public void setNextReader(LeafReaderContext readerContext) throws IOException {
-      values = DocValues.getNumericIterator(readerContext.reader(),  sf.getName());
+      values = DocValues.getNumeric(readerContext.reader(),  sf.getName());
       lastDocID = -1;
     }
 

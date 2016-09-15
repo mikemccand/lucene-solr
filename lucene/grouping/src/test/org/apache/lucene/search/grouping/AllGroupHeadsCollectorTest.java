@@ -283,7 +283,7 @@ public class AllGroupHeadsCollectorTest extends LuceneTestCase {
       final DirectoryReader r = w.getReader();
       w.close();
 
-      NumericDocValues values = MultiDocValues.getNumericValuesIterator(r, "id");
+      NumericDocValues values = MultiDocValues.getNumericValues(r, "id");
       final int[] docIDToFieldId = new int[numDocs];
       final int[] fieldIdToDocID = new int[numDocs];
       for (int i = 0; i < numDocs; i++) {

@@ -37,7 +37,7 @@ public final class DocValues {
   /** 
    * An empty {@link BinaryDocValues} which returns no documents
    */
-  public static final BinaryDocValues emptyBinaryIterator() {
+  public static final BinaryDocValues emptyBinary() {
     return new BinaryDocValues() {
       private boolean exhausted = false;
       
@@ -92,7 +92,7 @@ public final class DocValues {
   /** 
    * An empty NumericDocValues which returns no documents
    */
-  public static final NumericDocValues emptyNumericIterator() {
+  public static final NumericDocValues emptyNumeric() {
     return new NumericDocValues() {
       private boolean exhausted = false;
       
@@ -130,53 +130,6 @@ public final class DocValues {
   }
 
   /** 
-   * A NumericDocValues which returns alldocuments with value 0
-   */
-  // nocommit move this horrible thing to be private to NormsConsumer?  remove it?
-  /*
-  public static final NumericDocValues allZerosNumericIterator(final int maxDoc) {
-    return new NumericDocValues() {
-      int docID = -1;
-      
-      @Override
-      public int advance(int target) {
-        assert target >= docID;
-        if (target >= maxDoc) {
-          docID = NO_MORE_DOCS;
-        } else {
-          docID = target;
-        }
-        return docID;
-      }
-      
-      @Override
-      public int docID() {
-        return docID;
-      }
-      
-      @Override
-      public int nextDoc() {
-        docID++;
-        if (docID == maxDoc) {
-          docID = NO_MORE_DOCS;
-        }
-        return docID;
-      }
-      
-      @Override
-      public long cost() {
-        return maxDoc;
-      }
-
-      @Override
-      public long longValue() {
-        return 0;
-      }
-    };
-  }
-  */
-
-  /** 
    * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document 
    */
   public static final LegacySortedDocValues emptyLegacySorted() {
@@ -202,7 +155,7 @@ public final class DocValues {
   /** 
    * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document
    */
-  public static final SortedDocValues emptySortedIterator() {
+  public static final SortedDocValues emptySorted() {
     final BytesRef empty = new BytesRef();
     return new SortedDocValues() {
       
@@ -349,7 +302,7 @@ public final class DocValues {
   }
 
   /** 
-   * Returns a multi-valued iterator view over the provided SortedDocValues 
+   * Returns a multi-valued view over the provided SortedDocValues
    */
   public static SortedSetDocValues singleton(SortedDocValues dv) {
     return new SingletonSortedSetDocValues(dv);
@@ -443,44 +396,44 @@ public final class DocValues {
   }
   
   /**
-   * Returns NumericDocValues for the field, or {@link #emptyNumericIterator()} if it has none.
+   * Returns NumericDocValues for the field, or {@link #emptyNumeric()} if it has none.
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#NUMERIC}.
    * @throws IOException if an I/O error occurs.
    */
-  public static NumericDocValues getNumericIterator(LeafReader reader, String field) throws IOException {
+  public static NumericDocValues getNumeric(LeafReader reader, String field) throws IOException {
     NumericDocValues dv = reader.getNumericDocValues(field);
     if (dv == null) {
       checkField(reader, field, DocValuesType.NUMERIC);
-      return emptyNumericIterator();
+      return emptyNumeric();
     } else {
       return dv;
     }
   }
   
   /**
-   * Returns BinaryDocValues for the field, or {@link #emptyBinaryIterator} if it has none.
+   * Returns BinaryDocValues for the field, or {@link #emptyBinary} if it has none.
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#BINARY}
    *                               or {@link DocValuesType#SORTED}.
    * @throws IOException if an I/O error occurs.
    */
-  public static BinaryDocValues getBinaryIterator(LeafReader reader, String field) throws IOException {
+  public static BinaryDocValues getBinary(LeafReader reader, String field) throws IOException {
     BinaryDocValues dv = reader.getBinaryDocValues(field);
     if (dv == null) {
       dv = reader.getSortedDocValues(field);
       if (dv == null) {
         checkField(reader, field, DocValuesType.BINARY, DocValuesType.SORTED);
-        return emptyBinaryIterator();
+        return emptyBinary();
       }
     }
     return dv;
   }
   
   /**
-   * Returns SortedDocValues for the field, or {@link #emptySortedIterator} if it has none.
+   * Returns SortedDocValues for the field, or {@link #emptySorted} if it has none.
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#SORTED}.
@@ -490,7 +443,7 @@ public final class DocValues {
     SortedDocValues dv = reader.getSortedDocValues(field);
     if (dv == null) {
       checkField(reader, field, DocValuesType.SORTED);
-      return emptySortedIterator();
+      return emptySorted();
     } else {
       return dv;
     }
