@@ -207,7 +207,7 @@ public class TestBlockJoinSorting extends LuceneTestCase {
     docs.add(document);
     w.addDocuments(docs);
     // nocommit
-    w.forceMerge(1);
+    //w.forceMerge(1);
     w.commit();
 
     IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w.w));

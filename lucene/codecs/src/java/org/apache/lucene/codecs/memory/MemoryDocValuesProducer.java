@@ -463,7 +463,6 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   
   @Override
   public SortedDocValues getSorted(FieldInfo field) throws IOException {
-    // nocommit removeme
     return new LegacySortedDocValuesWrapper(getSortedNonIterator(field), maxDoc);
   }
   

@@ -206,56 +206,6 @@ public class BlockJoinSelector {
     return wrap(values, selection, parents, children);
   }
 
-  /** Wraps the provided {@link NumericDocValues} in order to only select
-   *  one value per parent among its {@code children} using the configured
-   *  {@code selection} type. */
-  // nocommit remove
-  /*
-  public static NumericDocValues wrap(final NumericDocValues values, Bits docsWithValue, Type selection, BitSet parents, BitSet children) {
-    return new NumericDocValues() {
-
-      @Override
-      public long get(int docID) {
-        assert parents.get(docID) : "this selector may only be used on parent documents";
-
-        if (docID == 0) {
-          // no children
-          return 0;
-        }
-
-        final int firstChild = parents.prevSetBit(docID - 1) + 1;
-
-        long value = 0;
-        boolean hasValue = false;
-
-        for (int child = children.nextSetBit(firstChild); child < docID; child = children.nextSetBit(child + 1)) {
-          final long childValue = values.get(child);
-          final boolean childHasValue = value != 0 || docsWithValue.get(child);
-
-          if (hasValue == false) {
-            value = childValue;
-            hasValue = childHasValue;
-          } else if (childHasValue) {
-            switch (selection) {
-              case MIN:
-                value = Math.min(value, childValue);
-                break;
-              case MAX:
-                value = Math.max(value, childValue);
-                break;
-              default:
-                throw new AssertionError();
-            }
-          }
-        }
-
-        return value;
-      }
-
-    };
-  }
-  */
-
   /** Wraps the provided {@link NumericDocValues}, iterating over only
    *  child documents, in order to only select one value per parent among
    *  its {@code children} using the configured {@code selection} type. */

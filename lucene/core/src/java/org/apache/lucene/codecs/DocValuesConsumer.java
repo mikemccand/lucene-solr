@@ -183,6 +183,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                         List<NumericDocValuesSub> subs = new ArrayList<>();
                         assert mergeState.docMaps.length == mergeState.docValuesProducers.length;
+                        long cost = 0;
                         for (int i=0;i<mergeState.docValuesProducers.length;i++) {
                           NumericDocValues values = null;
                           DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
@@ -193,12 +194,15 @@ public abstract class DocValuesConsumer implements Closeable {
                             }
                           }
                           if (values != null) {
+                            cost += values.cost();
                             subs.add(new NumericDocValuesSub(mergeState.docMaps[i], values));
                           }
                         }
 
                         final DocIDMerger<NumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
 
+                        final long finalCost = cost;
+                        
                         return new NumericDocValues() {
                           private int docID = -1;
                           private NumericDocValuesSub current;
@@ -226,7 +230,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                           @Override
                           public long cost() {
-                            return 0;
+                            return finalCost;
                           }
 
                           @Override
@@ -289,6 +293,7 @@ public abstract class DocValuesConsumer implements Closeable {
                    
                        List<BinaryDocValuesSub> subs = new ArrayList<>();
 
+                       long cost = 0;
                        for (int i=0;i<mergeState.docValuesProducers.length;i++) {
                          BinaryDocValues values = null;
                          DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
@@ -299,12 +304,14 @@ public abstract class DocValuesConsumer implements Closeable {
                            }
                          }
                          if (values != null) {
+                           cost += values.cost();
                            subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
                          }
                        }
 
                        final DocIDMerger<BinaryDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);
-
+                       final long finalCost = cost;
+                       
                        return new BinaryDocValues() {
                          private BinaryDocValuesSub current;
                          private int docID = -1;
@@ -332,7 +339,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                          @Override
                          public long cost() {
-                           return 0;
+                           return finalCost;
                          }
 
                          @Override

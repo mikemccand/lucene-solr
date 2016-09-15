@@ -425,7 +425,6 @@ class DirectDocValuesProducer extends DocValuesProducer {
     return new LegacySortedDocValuesWrapper(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
   }
   
-  // nocommit removeme
   private LegacySortedDocValues newSortedInstance(final LegacyNumericDocValues docToOrd, final LegacyBinaryDocValues values, final int count) {
     return new LegacySortedDocValues() {
 
