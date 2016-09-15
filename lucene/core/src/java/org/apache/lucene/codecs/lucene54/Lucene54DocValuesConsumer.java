@@ -584,7 +584,6 @@ final class Lucene54DocValuesConsumer extends DocValuesConsumer implements Close
     addNumericField(field, LegacyDocValuesIterables.sortedOrdIterable(valuesProducer, field, maxDoc), NumberType.ORDINAL);
   }
 
-  // nocommit removeme
   private void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> ords) throws IOException {
     meta.writeVInt(field.number);
     meta.writeByte(Lucene54DocValuesFormat.SORTED);

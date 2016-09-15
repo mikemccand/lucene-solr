@@ -72,22 +72,6 @@ public class MultiDocValues {
       return null;
     }
 
-    boolean anyReal = false;
-    final List<NumericDocValues> values = new ArrayList<>();
-    for (int i = 0; i < size; i++) {
-      LeafReaderContext context = leaves.get(i);
-      NumericDocValues v = context.reader().getNormValues(field);
-      if (v != null) {
-        anyReal = true;
-      } else {
-        v = DocValues.allZerosNumericIterator(context.reader().maxDoc());
-      }
-      values.add(v);
-    }
-
-    // FieldInfo.hasNorms was true:
-    assert anyReal;
-
     return new NumericDocValues() {
       private int nextLeaf;
       private NumericDocValues currentValues;
@@ -98,13 +82,14 @@ public class MultiDocValues {
       public int nextDoc() throws IOException {
         while (true) {
           if (currentValues == null) {
-            if (nextLeaf == values.size()) {
+            if (nextLeaf == leaves.size()) {
               docID = NO_MORE_DOCS;
               return docID;
             }
             currentLeaf = leaves.get(nextLeaf);
-            currentValues = values.get(nextLeaf);
+            currentValues = currentLeaf.reader().getNormValues(field);
             nextLeaf++;
+            continue;
           }
 
           int newDocID = currentValues.nextDoc();
@@ -137,7 +122,10 @@ public class MultiDocValues {
             return docID;
           }
           currentLeaf = leaves.get(readerIndex);
-          currentValues = values.get(readerIndex);
+          currentValues = currentLeaf.reader().getNormValues(field);
+          if (currentValues == null) {
+            return nextDoc();
+          }
           nextLeaf = readerIndex+1;
         }
         int newDocID = currentValues.advance(targetDocID - currentLeaf.docBase);

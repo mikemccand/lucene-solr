@@ -152,7 +152,7 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one numeric sub-reader that we are merging */
   private static class NumericDocValuesSub extends DocIDMerger.Sub {
 
-    private final NumericDocValues values;
+    final NumericDocValues values;
 
     public NumericDocValuesSub(MergeState.DocMap docMap, NumericDocValues values) {
       super(docMap);
@@ -245,34 +245,17 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one binary sub-reader that we are merging */
   private static class BinaryDocValuesSub extends DocIDMerger.Sub {
 
-    private final BinaryDocValues values;
-    private int docID = -1;
-    private final int maxDoc;
-    BytesRef value;
+    final BinaryDocValues values;
 
-    public BinaryDocValuesSub(MergeState.DocMap docMap, BinaryDocValues values, int maxDoc) {
+    public BinaryDocValuesSub(MergeState.DocMap docMap, BinaryDocValues values) {
       super(docMap);
       this.values = values;
-      this.maxDoc = maxDoc;
+      assert values.docID() == -1;
     }
 
     @Override
     public int nextDoc() throws IOException {
-      // nocommit why are we not using values.nextDoc() instead?
-      docID++;
-      if (docID == maxDoc) {
-        return NO_MORE_DOCS;
-      }
-      if (docID > values.docID()) {
-        values.nextDoc();
-      }
-      if (docID == values.docID()) {
-        value = values.binaryValue();
-      } else {
-        // fill in missing docs with null
-        value = null;
-      }
-      return docID;
+      return values.nextDoc();
     }
   }
 
@@ -305,7 +288,7 @@ public abstract class DocValuesConsumer implements Closeable {
                          }
                          if (values != null) {
                            cost += values.cost();
-                           subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
+                           subs.add(new BinaryDocValuesSub(mergeState.docMaps[i], values));
                          }
                        }
 
@@ -344,7 +327,7 @@ public abstract class DocValuesConsumer implements Closeable {
 
                          @Override
                          public BytesRef binaryValue() {
-                           return current.value;
+                           return current.values.binaryValue();
                          }
                        };
                      }
@@ -355,12 +338,11 @@ public abstract class DocValuesConsumer implements Closeable {
   private static class SortedNumericDocValuesSub extends DocIDMerger.Sub {
 
     final SortedNumericDocValues values;
-    private final int maxDoc;
 
-    public SortedNumericDocValuesSub(MergeState.DocMap docMap, SortedNumericDocValues values, int maxDoc) {
+    public SortedNumericDocValuesSub(MergeState.DocMap docMap, SortedNumericDocValues values) {
       super(docMap);
       this.values = values;
-      this.maxDoc = maxDoc;
+      assert values.docID() == -1;
     }
 
     @Override
@@ -405,7 +387,7 @@ public abstract class DocValuesConsumer implements Closeable {
                                   values = DocValues.emptySortedNumeric(mergeState.maxDocs[i]);
                                 }
                                 cost += values.cost();
-                                subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i]));
+                                subs.add(new SortedNumericDocValuesSub(mergeState.docMaps[i], values));
                               }
 
                               final long finalCost = cost;
@@ -467,14 +449,13 @@ public abstract class DocValuesConsumer implements Closeable {
   private static class SortedDocValuesSub extends DocIDMerger.Sub {
 
     final SortedDocValues values;
-    final int maxDoc;
     final LongValues map;
-
-    public SortedDocValuesSub(MergeState.DocMap docMap, SortedDocValues values, int maxDoc, LongValues map) {
+    
+    public SortedDocValuesSub(MergeState.DocMap docMap, SortedDocValues values, LongValues map) {
       super(docMap);
       this.values = values;
-      this.maxDoc = maxDoc;
       this.map = map;
+      assert values.docID() == -1;
     }
 
     @Override
@@ -568,7 +549,8 @@ public abstract class DocValuesConsumer implements Closeable {
                            values = DocValues.emptySortedIterator();
                          }
                          cost += values.cost();
-                         subs.add(new SortedDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i], map.getGlobalOrds(i)));
+                         
+                         subs.add(new SortedDocValuesSub(mergeState.docMaps[i], values, map.getGlobalOrds(i)));
                        }
 
                        final long finalCost = cost;
@@ -636,15 +618,14 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one sorted set sub-reader that we are merging */
   private static class SortedSetDocValuesSub extends DocIDMerger.Sub {
 
-    private final SortedSetDocValues values;
-    private final int maxDoc;
-    private final LongValues map;
-
-    public SortedSetDocValuesSub(MergeState.DocMap docMap, SortedSetDocValues values, int maxDoc, LongValues map) {
+    final SortedSetDocValues values;
+    final LongValues map;
+    
+    public SortedSetDocValuesSub(MergeState.DocMap docMap, SortedSetDocValues values, LongValues map) {
       super(docMap);
       this.values = values;
-      this.maxDoc = maxDoc;
       this.map = map;
+      assert values.docID() == -1;
     }
 
     @Override
@@ -743,7 +724,7 @@ public abstract class DocValuesConsumer implements Closeable {
                               values = DocValues.emptySortedSet();
                             }
                             cost += values.cost();
-                            subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], values, mergeState.maxDocs[i], map.getGlobalOrds(i)));
+                            subs.add(new SortedSetDocValuesSub(mergeState.docMaps[i], values, map.getGlobalOrds(i)));
                           }
             
                           final DocIDMerger<SortedSetDocValuesSub> docIDMerger;

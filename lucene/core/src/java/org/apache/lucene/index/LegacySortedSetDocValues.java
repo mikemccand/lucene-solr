@@ -104,6 +104,7 @@ public abstract class LegacySortedSetDocValues {
    * The enum supports {@link TermsEnum#ord()} and {@link TermsEnum#seekExact(long)}.
    */
   public TermsEnum termsEnum() {
-    return new SortedSetDocValuesTermsEnum(this);
+    throw new UnsupportedOperationException();
+    //return new SortedSetDocValuesTermsEnum(this);
   }
 }

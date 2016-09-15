@@ -133,6 +133,7 @@ public final class DocValues {
    * A NumericDocValues which returns alldocuments with value 0
    */
   // nocommit move this horrible thing to be private to NormsConsumer?  remove it?
+  /*
   public static final NumericDocValues allZerosNumericIterator(final int maxDoc) {
     return new NumericDocValues() {
       int docID = -1;
@@ -173,6 +174,7 @@ public final class DocValues {
       }
     };
   }
+  */
 
   /** 
    * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document 

@@ -42,7 +42,6 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
   /** Returns {@link NumericDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
-  // nocommit make abstract
   public abstract NumericDocValues getNumeric(FieldInfo field) throws IOException;
 
   /** Returns {@link BinaryDocValues} for this field.

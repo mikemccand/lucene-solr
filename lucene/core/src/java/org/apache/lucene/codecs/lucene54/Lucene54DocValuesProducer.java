@@ -881,7 +881,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
         @Override
         public long cost() {
-          // nocommit impl this
+          // TODO
           return 0;
         }
 
@@ -942,7 +942,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
         
         @Override
         public long cost() {
-          // nocommit impl this
+          // TODO
           return 0;
         }
         
@@ -1005,7 +1005,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
         
         @Override
         public long cost() {
-          // nocommit impl this
+          // TODO
           return 0;
         }
 

@@ -105,6 +105,7 @@ public abstract class LegacySortedDocValues extends LegacyBinaryDocValues {
    * The enum supports {@link TermsEnum#ord()} and {@link TermsEnum#seekExact(long)}.
    */
   public TermsEnum termsEnum() {
-    return new SortedDocValuesTermsEnum(this);
+    throw new UnsupportedOperationException();
+    //return new SortedDocValuesTermsEnum(this);
   }
 }

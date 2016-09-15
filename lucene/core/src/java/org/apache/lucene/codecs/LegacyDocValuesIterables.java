@@ -404,7 +404,8 @@ public class LegacyDocValuesIterables {
             if (docIDUpto == values.docID()) {
               result = values.longValue();
             } else {
-              result = null;
+              // Unlike NumericDocValues, norms should return for missing values:
+              result = 0;
             }
             return result;
           }

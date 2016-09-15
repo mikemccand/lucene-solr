@@ -503,7 +503,12 @@ public class AssertingLeafReader extends FilterLeafReader {
       assert in.docID() != -1;
       assert in.docID() != NO_MORE_DOCS;
       return in.binaryValue();
-    }    
+    }
+
+    @Override
+    public String toString() {
+      return "AssertingBinaryDocValues(" + in + ")";
+    }
   }
 
   /** Wraps a SortedDocValues but with additional asserts */

@@ -128,11 +128,9 @@ public abstract class NormsConsumer implements Closeable {
                             }
                           }
 
-                          if (norms == null) {
-                            // nocommit remove this once we fix flushing to use DVP
-                            norms = DocValues.allZerosNumericIterator(mergeState.maxDocs[i]);
+                          if (norms != null) {
+                            subs.add(new NumericDocValuesSub(mergeState.docMaps[i], norms));
                           }
-                          subs.add(new NumericDocValuesSub(mergeState.docMaps[i], norms));
                         }
 
                         final DocIDMerger<NumericDocValuesSub> docIDMerger = new DocIDMerger<>(subs, mergeState.segmentInfo.getIndexSort() != null);

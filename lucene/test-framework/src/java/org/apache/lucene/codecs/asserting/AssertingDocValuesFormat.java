@@ -78,7 +78,6 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     @Override
     public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       NumericDocValues values = valuesProducer.getNumeric(field);
-      assert values.cost() > 0;
 
       int docID;
       int lastDocID = -1;
@@ -95,7 +94,6 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     @Override
     public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       BinaryDocValues values = valuesProducer.getBinary(field);
-      assert values.cost() > 0;
       
       int docID;
       int lastDocID = -1;
@@ -113,7 +111,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     @Override
     public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       SortedDocValues values = valuesProducer.getSorted(field);
-      assert values.cost() > 0;
+
       int valueCount = values.getValueCount();
       assert valueCount <= maxDoc;
       BytesRef lastValue = null;
@@ -147,7 +145,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     @Override
     public void addSortedNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       SortedNumericDocValues values = valuesProducer.getSortedNumeric(field);
-      assert values.cost() > 0;
+
       long valueCount = 0;
       int lastDocID = -1;
       while (true) {
@@ -173,7 +171,7 @@ public class AssertingDocValuesFormat extends DocValuesFormat {
     @Override
     public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
       SortedSetDocValues values = valuesProducer.getSortedSet(field);
-      assert values.cost() > 0;
+
       long valueCount = values.getValueCount();
       BytesRef lastValue = null;
       for (long i=0;i<valueCount;i++) {
