@@ -276,7 +276,8 @@ class MemoryDocValuesProducer extends DocValuesProducer {
         numericInstances.put(field.name, instance);
       }
     }
-    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), instance);
+    NumericEntry ne = numerics.get(field.name);
+    return new LegacyNumericDocValuesWrapper(getMissingBits(field, ne.missingOffset, ne.missingBytes), instance);
   }
 
   private synchronized LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
@@ -437,7 +438,8 @@ class MemoryDocValuesProducer extends DocValuesProducer {
   
   @Override
   public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
+    BinaryEntry be = binaries.get(field.name);
+    return new LegacyBinaryDocValuesWrapper(getMissingBits(field, be.missingOffset, be.missingBytes), getLegacyBinary(field));
   }
 
   private BytesAndAddresses loadBinary(FieldInfo field) throws IOException {
@@ -736,25 +738,6 @@ class MemoryDocValuesProducer extends DocValuesProducer {
     }
   }
   
-  private Bits getDocsWithField(FieldInfo field) throws IOException {
-    switch(field.getDocValuesType()) {
-      case SORTED_SET:
-        return DocValues.docsWithValue(getSortedSet(field), maxDoc);
-      case SORTED_NUMERIC:
-        return DocValues.docsWithValue(getSortedNumeric(field), maxDoc);
-      case SORTED:
-        return DocValues.docsWithValue(getSorted(field), maxDoc);
-      case BINARY:
-        BinaryEntry be = binaries.get(field.name);
-        return getMissingBits(field, be.missingOffset, be.missingBytes);
-      case NUMERIC:
-        NumericEntry ne = numerics.get(field.name);
-        return getMissingBits(field, ne.missingOffset, ne.missingBytes);
-      default: 
-        throw new AssertionError();
-    }
-  }
-
   @Override
   public void close() throws IOException {
     data.close();

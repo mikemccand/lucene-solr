@@ -704,7 +704,6 @@ public abstract class DocValuesConsumer implements Closeable {
                           // We must make new iterators + DocIDMerger for each iterator:
                           List<SortedSetDocValuesSub> subs = new ArrayList<>();
 
-                          // nocommit make asserting XXX ensure cost is non zero:
                           long cost = 0;
                           
                           for (int i=0;i<mergeState.docValuesProducers.length;i++) {

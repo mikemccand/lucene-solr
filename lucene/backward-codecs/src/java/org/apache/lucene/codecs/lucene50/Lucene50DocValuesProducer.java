@@ -402,7 +402,8 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
-    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), getNumericNonIterator(field));
+    NumericEntry ne = numerics.get(field.name);
+    return new LegacyNumericDocValuesWrapper(getLiveBits(ne.missingOffset, maxDoc), getNumericNonIterator(field));
   }
 
   private LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
@@ -487,7 +488,8 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public BinaryDocValues getBinary(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
+    BinaryEntry be = binaries.get(field.name);
+    return new LegacyBinaryDocValuesWrapper(getLiveBits(be.missingOffset, maxDoc), getLegacyBinary(field));
   }
 
   private LegacyBinaryDocValues getLegacyBinary(FieldInfo field) throws IOException {
@@ -889,25 +891,6 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
           return count;
         }
       };
-    }
-  }
-
-  private Bits getDocsWithField(FieldInfo field) throws IOException {
-    switch(field.getDocValuesType()) {
-      case SORTED_SET:
-        return DocValues.docsWithValue(getSortedSet(field), maxDoc);
-      case SORTED_NUMERIC:
-        return DocValues.docsWithValue(getSortedNumeric(field), maxDoc);
-      case SORTED:
-        return DocValues.docsWithValue(getSorted(field), maxDoc);
-      case BINARY:
-        BinaryEntry be = binaries.get(field.name);
-        return getLiveBits(be.missingOffset, maxDoc);
-      case NUMERIC:
-        NumericEntry ne = numerics.get(field.name);
-        return getLiveBits(ne.missingOffset, maxDoc);
-      default:
-        throw new AssertionError();
     }
   }
 

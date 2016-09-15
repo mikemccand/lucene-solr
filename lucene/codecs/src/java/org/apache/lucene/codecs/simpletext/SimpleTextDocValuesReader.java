@@ -143,7 +143,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     if (values == null) {
       return null;
     } else {
-      return new LegacyNumericDocValuesWrapper(getDocsWithField(fieldInfo), values);
+      return new LegacyNumericDocValuesWrapper(getNumericDocsWithField(fieldInfo), values);
     }
   }
   
@@ -253,7 +253,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   
   @Override
   public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
+    return new LegacyBinaryDocValuesWrapper(getBinaryDocsWithField(field), getLegacyBinary(field));
   }
 
   private Bits getBinaryDocsWithField(FieldInfo fieldInfo) throws IOException {
@@ -467,23 +467,6 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
       }, maxDoc);
   }
   
-  private Bits getDocsWithField(FieldInfo field) throws IOException {
-    switch (field.getDocValuesType()) {
-      case SORTED_SET:
-        return DocValues.docsWithValue(getSortedSet(field), maxDoc);
-      case SORTED_NUMERIC:
-        return DocValues.docsWithValue(getSortedNumeric(field), maxDoc);
-      case SORTED:
-        return DocValues.docsWithValue(getSorted(field), maxDoc);
-      case BINARY:
-        return getBinaryDocsWithField(field);
-      case NUMERIC:
-        return getNumericDocsWithField(field);
-      default:
-        throw new AssertionError("docValuesType=" + field.getDocValuesType());
-    }
-  }
-
   @Override
   public void close() throws IOException {
     data.close();

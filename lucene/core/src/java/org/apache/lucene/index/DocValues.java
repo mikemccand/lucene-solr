@@ -339,45 +339,6 @@ public final class DocValues {
     return new SingletonSortedNumericDocValues(dv);
   }
   
-  /**
-   * Returns a Bits representing all documents from <code>dv</code> that have a value.
-   */
-  public static Bits docsWithValue(final SortedDocValues dv, final int maxDoc) throws IOException {
-    // nocommit remove this entire method!!!
-    FixedBitSet bits = new FixedBitSet(maxDoc);
-    int docID;
-    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
-      bits.set(docID);
-    }
-    return bits;
-  }
-  
-  /**
-   * Returns a Bits representing all documents from <code>dv</code> that have a value.
-   */
-  public static Bits docsWithValue(final SortedSetDocValues dv, final int maxDoc) throws IOException {
-    // nocommit remove this entire method!!!
-    FixedBitSet bits = new FixedBitSet(maxDoc);
-    int docID;
-    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
-      bits.set(docID);
-    }
-    return bits;
-  }
-  
-  /**
-   * Returns a Bits representing all documents from <code>dv</code> that have a value.
-   */
-  public static Bits docsWithValue(final SortedNumericDocValues dv, final int maxDoc) throws IOException {
-    // nocommit remove this entire method!!!
-    FixedBitSet bits = new FixedBitSet(maxDoc);
-    int docID;
-    while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
-      bits.set(docID);
-    }
-    return bits;
-  }
-  
   // some helpers, for transition from fieldcache apis.
   // as opposed to the LeafReader apis (which must be strict for consistency), these are lenient
   

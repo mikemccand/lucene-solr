@@ -402,13 +402,13 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int docID() {
-      assertThread("Numeric doc values iterator", creationThread);
+      assertThread("Numeric doc values", creationThread);
       return in.docID();
     }
 
     @Override
     public int nextDoc() throws IOException {
-      assertThread("Numeric doc values iterator", creationThread);
+      assertThread("Numeric doc values", creationThread);
       int docID = in.nextDoc();
       assert docID > lastDocID;
       assert docID == NO_MORE_DOCS || docID < maxDoc;
@@ -419,7 +419,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int advance(int target) throws IOException {
-      assertThread("Numeric doc values iterator", creationThread);
+      assertThread("Numeric doc values", creationThread);
       assert target >= 0;
       assert target >= in.docID();
       int docID = in.advance(target);
@@ -431,7 +431,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long cost() {
-      assertThread("Numeric doc values iterator", creationThread);
+      assertThread("Numeric doc values", creationThread);
       long cost = in.cost();
       assert cost >= 0;
       return cost;
@@ -439,7 +439,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long longValue() {
-      assertThread("Numeric doc values iterator", creationThread);
+      assertThread("Numeric doc values", creationThread);
       assert in.docID() != -1;
       assert in.docID() != NO_MORE_DOCS;
       return in.longValue();
@@ -462,13 +462,13 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int docID() {
-      assertThread("Binary doc values iterator", creationThread);
+      assertThread("Binary doc values", creationThread);
       return in.docID();
     }
 
     @Override
     public int nextDoc() throws IOException {
-      assertThread("Binary doc values iterator", creationThread);
+      assertThread("Binary doc values", creationThread);
       int docID = in.nextDoc();
       assert docID > lastDocID;
       assert docID == NO_MORE_DOCS || docID < maxDoc;
@@ -479,7 +479,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int advance(int target) throws IOException {
-      assertThread("Binary doc values iterator", creationThread);
+      assertThread("Binary doc values", creationThread);
       assert target >= 0;
       assert target >= in.docID();
       int docID = in.advance(target);
@@ -491,7 +491,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long cost() {
-      assertThread("Binary doc values iterator", creationThread);
+      assertThread("Binary doc values", creationThread);
       long cost = in.cost();
       assert cost >= 0;
       return cost;
@@ -499,7 +499,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public BytesRef binaryValue() {
-      assertThread("Binary doc values iterator", creationThread);
+      assertThread("Binary doc values", creationThread);
       assert in.docID() != -1;
       assert in.docID() != NO_MORE_DOCS;
       return in.binaryValue();
@@ -528,13 +528,13 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int docID() {
-      assertThread("Sorted doc values iterator", creationThread);
+      assertThread("Sorted doc values", creationThread);
       return in.docID();
     }
 
     @Override
     public int nextDoc() throws IOException {
-      assertThread("Sorted doc values iterator", creationThread);
+      assertThread("Sorted doc values", creationThread);
       int docID = in.nextDoc();
       assert docID > lastDocID;
       assert docID == NO_MORE_DOCS || docID < maxDoc;
@@ -545,7 +545,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int advance(int target) throws IOException {
-      assertThread("Sorted doc values iterator", creationThread);
+      assertThread("Sorted doc values", creationThread);
       assert target >= 0;
       assert target >= in.docID();
       int docID = in.advance(target);
@@ -557,7 +557,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long cost() {
-      assertThread("Sorted doc values iterator", creationThread);
+      assertThread("Sorted doc values", creationThread);
       long cost = in.cost();
       assert cost >= 0;
       return cost;
@@ -653,7 +653,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long cost() {
-      assertThread("Sorted numeric doc values iterator", creationThread);
+      assertThread("Sorted numeric doc values", creationThread);
       long cost = in.cost();
       assert cost >= 0;
       return cost;
@@ -693,13 +693,13 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int docID() {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       return in.docID();
     }
 
     @Override
     public int nextDoc() throws IOException {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       int docID = in.nextDoc();
       assert docID > lastDocID;
       assert docID == NO_MORE_DOCS || docID < maxDoc;
@@ -711,7 +711,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public int advance(int target) throws IOException {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       assert target >= 0;
       assert target >= in.docID();
       int docID = in.advance(target);
@@ -725,7 +725,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long cost() {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       long cost = in.cost();
       assert cost >= 0;
       return cost;
@@ -733,7 +733,7 @@ public class AssertingLeafReader extends FilterLeafReader {
     
     @Override
     public long nextOrd() throws IOException {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       assert lastOrd != NO_MORE_ORDS;
       long ord = in.nextOrd();
       assert ord < valueCount;
@@ -744,7 +744,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public BytesRef lookupOrd(long ord) {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       assert ord >= 0 && ord < valueCount;
       final BytesRef result = in.lookupOrd(ord);
       assert result.isValid();
@@ -753,7 +753,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long getValueCount() {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       long valueCount = in.getValueCount();
       assert valueCount == this.valueCount; // should not change
       return valueCount;
@@ -761,7 +761,7 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     @Override
     public long lookupTerm(BytesRef key) {
-      assertThread("Sorted set doc values iterator", creationThread);
+      assertThread("Sorted set doc values", creationThread);
       assert key.isValid();
       long result = in.lookupTerm(key);
       assert result < valueCount;

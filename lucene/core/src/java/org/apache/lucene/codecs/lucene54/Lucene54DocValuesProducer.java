@@ -440,7 +440,13 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   @Override
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
-    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), getNumeric(entry));
+    Bits docsWithField;
+    if (entry.format == SPARSE_COMPRESSED) {
+      docsWithField = getSparseLiveBits(entry);
+    } else {
+      docsWithField = getLiveBits(entry.missingOffset, maxDoc);
+    }
+    return new LegacyNumericDocValuesWrapper(docsWithField, getNumeric(entry));
   }
 
   @Override
@@ -685,7 +691,8 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
   @Override
   public BinaryDocValues getBinary(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
+    BinaryEntry be = binaries.get(field.name);
+    return new LegacyBinaryDocValuesWrapper(getLiveBits(be.missingOffset, maxDoc), getLegacyBinary(field));
   }
 
   private LegacyBinaryDocValues getFixedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
@@ -1187,29 +1194,6 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     final RandomAccessInput docIdsData = this.data.randomAccessSlice(entry.missingOffset, entry.offset - entry.missingOffset);
     final LongValues docIDs = DirectMonotonicReader.getInstance(entry.monotonicMeta, docIdsData);
     return new SparseBits(maxDoc, entry.numDocsWithValue, docIDs);
-  }
-
-  private Bits getDocsWithField(FieldInfo field) throws IOException {
-    switch(field.getDocValuesType()) {
-      case SORTED_SET:
-        return DocValues.docsWithValue(getSortedSet(field), maxDoc);
-      case SORTED_NUMERIC:
-        return DocValues.docsWithValue(getSortedNumeric(field), maxDoc);
-      case SORTED:
-        return DocValues.docsWithValue(getSorted(field), maxDoc);
-      case BINARY:
-        BinaryEntry be = binaries.get(field.name);
-        return getLiveBits(be.missingOffset, maxDoc);
-      case NUMERIC:
-        NumericEntry ne = numerics.get(field.name);
-        if (ne.format == SPARSE_COMPRESSED) {
-          return getSparseLiveBits(ne);
-        } else {
-          return getLiveBits(ne.missingOffset, maxDoc);
-        }
-      default:
-        throw new AssertionError();
-    }
   }
 
   @Override

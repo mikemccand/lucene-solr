@@ -274,15 +274,16 @@ class DirectDocValuesProducer extends DocValuesProducer {
   @Override
   public synchronized NumericDocValues getNumeric(FieldInfo field) throws IOException {
     NumericRawValues instance = numericInstances.get(field.name);
+    NumericEntry ne = numerics.get(field.name);
     if (instance == null) {
       // Lazy load
-      instance = loadNumeric(numerics.get(field.name));
+      instance = loadNumeric(ne);
       if (!merging) {
         numericInstances.put(field.name, instance);
         ramBytesUsed.addAndGet(instance.ramBytesUsed());
       }
     }
-    return new LegacyNumericDocValuesWrapper(getDocsWithField(field), instance.numerics);
+    return new LegacyNumericDocValuesWrapper(getMissingBits(field, ne.missingOffset, ne.missingBytes), instance.numerics);
   }
   
   private NumericRawValues loadNumeric(NumericEntry entry) throws IOException {
@@ -385,7 +386,8 @@ class DirectDocValuesProducer extends DocValuesProducer {
   
   @Override
   public synchronized BinaryDocValues getBinary(FieldInfo field) throws IOException {
-    return new LegacyBinaryDocValuesWrapper(getDocsWithField(field), getLegacyBinary(field));
+    BinaryEntry be = binaries.get(field.name);
+    return new LegacyBinaryDocValuesWrapper(getMissingBits(field, be.missingOffset, be.missingBytes), getLegacyBinary(field));
   }
   
   private BinaryRawValues loadBinary(BinaryEntry entry) throws IOException {
@@ -604,25 +606,6 @@ class DirectDocValuesProducer extends DocValuesProducer {
     }
   }
   
-  private Bits getDocsWithField(FieldInfo field) throws IOException {
-    switch(field.getDocValuesType()) {
-      case SORTED_SET:
-        return DocValues.docsWithValue(getSortedSet(field), maxDoc);
-      case SORTED_NUMERIC:
-        return DocValues.docsWithValue(getSortedNumeric(field), maxDoc);
-      case SORTED:
-        return DocValues.docsWithValue(getSorted(field), maxDoc);
-      case BINARY:
-        BinaryEntry be = binaries.get(field.name);
-        return getMissingBits(field, be.missingOffset, be.missingBytes);
-      case NUMERIC:
-        NumericEntry ne = numerics.get(field.name);
-        return getMissingBits(field, ne.missingOffset, ne.missingBytes);
-      default: 
-        throw new AssertionError();
-    }
-  }
-
   @Override
   public synchronized DocValuesProducer getMergeInstance() throws IOException {
     return new DirectDocValuesProducer(this);
