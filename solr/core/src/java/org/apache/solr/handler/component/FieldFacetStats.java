@@ -25,7 +25,7 @@ import java.util.Map;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.util.BytesRef;
@@ -57,7 +57,7 @@ public class FieldFacetStats {
   LeafReaderContext context;
   FunctionValues values;
 
-  SortedDocValuesIterator topLevelSortedValues = null;
+  SortedDocValues topLevelSortedValues = null;
 
   public FieldFacetStats(SolrIndexSearcher searcher, SchemaField facet_sf, StatsField statsField) {
     this.statsField = statsField;

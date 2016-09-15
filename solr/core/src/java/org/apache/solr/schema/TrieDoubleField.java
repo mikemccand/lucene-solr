@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
@@ -72,7 +72,7 @@ public class TrieDoubleField extends TrieField implements DoubleValueFieldType {
         SortedSetFieldSource thisAsSortedSetFieldSource = this; // needed for nested anon class ref
         
         SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(readerContext.reader(), field);
-        SortedDocValuesIterator view = SortedSetSelector.wrap(sortedSet, selector);
+        SortedDocValues view = SortedSetSelector.wrap(sortedSet, selector);
         
         return new DoubleDocValues(thisAsSortedSetFieldSource) {
           private int lastDocID;

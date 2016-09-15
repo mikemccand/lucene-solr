@@ -142,8 +142,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     DirectoryReader ir2 = iw.getReader();
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
-    SortedDocValuesIterator multi = MultiDocValues.getSortedValues(ir, "bytes");
-    SortedDocValuesIterator single = merged.getSortedDocValues("bytes");
+    SortedDocValues multi = MultiDocValues.getSortedValues(ir, "bytes");
+    SortedDocValues single = merged.getSortedDocValues("bytes");
     assertEquals(single.getValueCount(), multi.getValueCount());
     while (true) {
       assertEquals(single.nextDoc(), multi.nextDoc());
@@ -190,8 +190,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     LeafReader merged = getOnlyLeafReader(ir2);
     iw.close();
     
-    SortedDocValuesIterator multi = MultiDocValues.getSortedValues(ir, "bytes");
-    SortedDocValuesIterator single = merged.getSortedDocValues("bytes");
+    SortedDocValues multi = MultiDocValues.getSortedValues(ir, "bytes");
+    SortedDocValues single = merged.getSortedDocValues("bytes");
     assertEquals(single.getValueCount(), multi.getValueCount());
     for (int i = 0; i < numDocs; i++) {
       assertEquals(i, multi.nextDoc());

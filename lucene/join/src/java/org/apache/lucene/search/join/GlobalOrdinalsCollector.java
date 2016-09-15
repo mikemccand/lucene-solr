@@ -21,7 +21,7 @@ import java.io.IOException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorer;
@@ -56,7 +56,7 @@ final class GlobalOrdinalsCollector implements Collector {
 
   @Override
   public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-    SortedDocValuesIterator docTermOrds = DocValues.getSorted(context.reader(), field);
+    SortedDocValues docTermOrds = DocValues.getSorted(context.reader(), field);
     if (ordinalMap != null) {
       LongValues segmentOrdToGlobalOrdLookup = ordinalMap.getGlobalOrds(context.ord);
       return new OrdinalMapCollector(docTermOrds, segmentOrdToGlobalOrdLookup);
@@ -67,10 +67,10 @@ final class GlobalOrdinalsCollector implements Collector {
 
   final class OrdinalMapCollector implements LeafCollector {
 
-    private final SortedDocValuesIterator docTermOrds;
+    private final SortedDocValues docTermOrds;
     private final LongValues segmentOrdToGlobalOrdLookup;
 
-    OrdinalMapCollector(SortedDocValuesIterator docTermOrds, LongValues segmentOrdToGlobalOrdLookup) {
+    OrdinalMapCollector(SortedDocValues docTermOrds, LongValues segmentOrdToGlobalOrdLookup) {
       this.docTermOrds = docTermOrds;
       this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
     }
@@ -94,9 +94,9 @@ final class GlobalOrdinalsCollector implements Collector {
 
   final class SegmentOrdinalCollector implements LeafCollector {
 
-    private final SortedDocValuesIterator docTermOrds;
+    private final SortedDocValues docTermOrds;
 
-    SegmentOrdinalCollector(SortedDocValuesIterator docTermOrds) {
+    SegmentOrdinalCollector(SortedDocValues docTermOrds) {
       this.docTermOrds = docTermOrds;
     }
 

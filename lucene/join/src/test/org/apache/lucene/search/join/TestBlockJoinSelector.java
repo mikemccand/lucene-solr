@@ -21,7 +21,7 @@ import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -88,7 +88,7 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     ords[12] = 10;
     ords[18] = 10;
 
-    final SortedDocValuesIterator mins = BlockJoinSelector.wrap(DocValues.singleton(new CannedSortedDocValuesIterator(ords)), BlockJoinSelector.Type.MIN, parents, children);
+    final SortedDocValues mins = BlockJoinSelector.wrap(DocValues.singleton(new CannedSortedDocValues(ords)), BlockJoinSelector.Type.MIN, parents, children);
     assertEquals(5, mins.nextDoc());
     assertEquals(3, mins.ordValue());
     assertEquals(15, mins.nextDoc());
@@ -97,7 +97,7 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     assertEquals(10, mins.ordValue());
     assertEquals(NO_MORE_DOCS, mins.nextDoc());
 
-    final SortedDocValuesIterator maxs = BlockJoinSelector.wrap(DocValues.singleton(new CannedSortedDocValuesIterator(ords)), BlockJoinSelector.Type.MAX, parents, children);
+    final SortedDocValues maxs = BlockJoinSelector.wrap(DocValues.singleton(new CannedSortedDocValues(ords)), BlockJoinSelector.Type.MAX, parents, children);
     assertEquals(5, maxs.nextDoc());
     assertEquals(7, maxs.ordValue());
     assertEquals(15, maxs.nextDoc());
@@ -107,11 +107,11 @@ public class TestBlockJoinSelector extends LuceneTestCase {
     assertEquals(NO_MORE_DOCS, maxs.nextDoc());
   }
 
-  private static class CannedSortedDocValuesIterator extends SortedDocValuesIterator {
+  private static class CannedSortedDocValues extends SortedDocValues {
     private final int[] ords;
     int docID = -1;
 
-    public CannedSortedDocValuesIterator(int[] ords) {
+    public CannedSortedDocValues(int[] ords) {
       this.ords = ords;
     }
 

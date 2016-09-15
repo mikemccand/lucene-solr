@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -248,7 +248,7 @@ class PerSegmentSingleValuedFaceting {
       this.context = context;
     }
     
-    SortedDocValuesIterator si;
+    SortedDocValues si;
     int startTermIndex;
     int endTermIndex;
     int[] counts;

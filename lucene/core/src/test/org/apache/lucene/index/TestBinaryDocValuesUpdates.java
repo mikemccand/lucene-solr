@@ -338,7 +338,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     LeafReader r = reader.leaves().get(0).reader();
     NumericDocValues ndv = r.getNumericDocValues("ndv");
     BinaryDocValues bdv = r.getBinaryDocValues("bdv");
-    SortedDocValuesIterator sdv = r.getSortedDocValues("sdv");
+    SortedDocValues sdv = r.getSortedDocValues("sdv");
     SortedSetDocValuesIterator ssdv = r.getSortedSetDocValues("ssdv");
     for (int i = 0; i < r.maxDoc(); i++) {
       assertEquals(i, ndv.nextDoc());
@@ -484,7 +484,7 @@ public class TestBinaryDocValuesUpdates extends LuceneTestCase {
     final DirectoryReader reader = DirectoryReader.open(dir);
     
     BinaryDocValues bdv = MultiDocValues.getBinaryValuesIterator(reader, "bdv");
-    SortedDocValuesIterator sdv = MultiDocValues.getSortedValues(reader, "sorted");
+    SortedDocValues sdv = MultiDocValues.getSortedValues(reader, "sorted");
     for (int i = 0; i < reader.maxDoc(); i++) {
       assertEquals(i, bdv.nextDoc());
       assertEquals(17, getValue(bdv));

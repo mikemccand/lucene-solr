@@ -25,7 +25,6 @@ import org.apache.lucene.analysis.MockAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.store.Directory;
@@ -83,9 +82,9 @@ public class TestOrdinalMap extends LuceneTestCase {
     }
     iw.commit();
     DirectoryReader r = iw.getReader();
-    SortedDocValuesIterator sdv = MultiDocValues.getSortedValues(r, "sdv");
-    if (sdv instanceof MultiSortedDocValuesIterator) {
-      OrdinalMap map = ((MultiSortedDocValuesIterator) sdv).mapping;
+    SortedDocValues sdv = MultiDocValues.getSortedValues(r, "sdv");
+    if (sdv instanceof MultiDocValues.MultiSortedDocValues) {
+      OrdinalMap map = ((MultiDocValues.MultiSortedDocValues) sdv).mapping;
       assertEquals(RamUsageTester.sizeOf(map, ORDINAL_MAP_ACCUMULATOR), map.ramBytesUsed());
     }
     SortedSetDocValuesIterator ssdv = MultiDocValues.getSortedSetValues(r, "ssdv");

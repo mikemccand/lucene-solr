@@ -24,7 +24,7 @@ import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 
@@ -610,7 +610,7 @@ public abstract class FieldComparator<T> {
 
     /* Current reader's doc ord/values.
        @lucene.internal */
-    SortedDocValuesIterator termsIndex;
+    SortedDocValues termsIndex;
 
     private final String field;
 
@@ -748,7 +748,7 @@ public abstract class FieldComparator<T> {
     }
     
     /** Retrieves the SortedDocValues for the field in this segment */
-    protected SortedDocValuesIterator getSortedDocValues(LeafReaderContext context, String field) throws IOException {
+    protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
       return DocValues.getSorted(context.reader(), field);
     }
     

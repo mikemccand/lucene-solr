@@ -23,7 +23,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.ConstantScoreWeight;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -108,7 +108,7 @@ final class GlobalOrdinalsQuery extends Query {
 
     @Override
     public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-      SortedDocValuesIterator values = DocValues.getSorted(context.reader(), joinField);
+      SortedDocValues values = DocValues.getSorted(context.reader(), joinField);
       if (values == null) {
         return Explanation.noMatch("Not a match");
       }
@@ -134,7 +134,7 @@ final class GlobalOrdinalsQuery extends Query {
 
     @Override
     public Scorer scorer(LeafReaderContext context) throws IOException {
-      SortedDocValuesIterator values = DocValues.getSorted(context.reader(), joinField);
+      SortedDocValues values = DocValues.getSorted(context.reader(), joinField);
       if (values == null) {
         return null;
       }
@@ -157,7 +157,7 @@ final class GlobalOrdinalsQuery extends Query {
     final LongBitSet foundOrds;
     final LongValues segmentOrdToGlobalOrdLookup;
 
-    public OrdinalMapScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValuesIterator values, DocIdSetIterator approximationScorer, LongValues segmentOrdToGlobalOrdLookup) {
+    public OrdinalMapScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValues values, DocIdSetIterator approximationScorer, LongValues segmentOrdToGlobalOrdLookup) {
       super(weight, values, approximationScorer);
       this.score = score;
       this.foundOrds = foundOrds;
@@ -196,7 +196,7 @@ final class GlobalOrdinalsQuery extends Query {
 
     final LongBitSet foundOrds;
 
-    public SegmentOrdinalScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValuesIterator values, DocIdSetIterator approximationScorer) {
+    public SegmentOrdinalScorer(Weight weight, float score, LongBitSet foundOrds, SortedDocValues values, DocIdSetIterator approximationScorer) {
       super(weight, values, approximationScorer);
       this.score = score;
       this.foundOrds = foundOrds;

@@ -198,11 +198,11 @@ public final class DocValues {
   }
 
   /** 
-   * An empty SortedDocValuesIterator which returns {@link BytesRef#EMPTY_BYTES} for every document 
+   * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document
    */
-  public static final SortedDocValuesIterator emptySortedIterator() {
+  public static final SortedDocValues emptySortedIterator() {
     final BytesRef empty = new BytesRef();
-    return new SortedDocValuesIterator() {
+    return new SortedDocValues() {
       
       private boolean exhausted = false;
       
@@ -295,7 +295,7 @@ public final class DocValues {
   }
 
   /** 
-   * An empty SortedDocValuesIterator which returns {@link BytesRef#EMPTY_BYTES} for every document 
+   * An empty SortedDocValues which returns {@link BytesRef#EMPTY_BYTES} for every document
    */
   public static final SortedSetDocValuesIterator emptySortedSet() {
     final BytesRef empty = new BytesRef();
@@ -349,15 +349,15 @@ public final class DocValues {
   /** 
    * Returns a multi-valued iterator view over the provided SortedDocValues 
    */
-  public static SortedSetDocValuesIterator singleton(SortedDocValuesIterator dv) {
+  public static SortedSetDocValuesIterator singleton(SortedDocValues dv) {
     return new SingletonSortedSetDocValuesIterator(dv);
   }
   
   /** 
    * Returns a single-valued view of the SortedSetDocValuesIterator, if it was previously
-   * wrapped with {@link #singleton(SortedDocValuesIterator)}, or null. 
+   * wrapped with {@link #singleton(SortedDocValues)}, or null.
    */
-  public static SortedDocValuesIterator unwrapSingleton(SortedSetDocValuesIterator dv) {
+  public static SortedDocValues unwrapSingleton(SortedSetDocValuesIterator dv) {
     if (dv instanceof SingletonSortedSetDocValuesIterator) {
       return ((SingletonSortedSetDocValuesIterator)dv).getSortedDocValues();
     } else {
@@ -387,7 +387,7 @@ public final class DocValues {
   /**
    * Returns a Bits representing all documents from <code>dv</code> that have a value.
    */
-  public static Bits docsWithValue(final SortedDocValuesIterator dv, final int maxDoc) throws IOException {
+  public static Bits docsWithValue(final SortedDocValues dv, final int maxDoc) throws IOException {
     // nocommit remove this entire method!!!
     FixedBitSet bits = new FixedBitSet(maxDoc);
     int docID;
@@ -478,14 +478,14 @@ public final class DocValues {
   }
   
   /**
-   * Returns SortedDocValuesIterator for the field, or {@link #emptySortedIterator} if it has none. 
+   * Returns SortedDocValues for the field, or {@link #emptySortedIterator} if it has none.
    * @return docvalues instance, or an empty instance if {@code field} does not exist in this reader.
    * @throws IllegalStateException if {@code field} exists, but was not indexed with docvalues.
    * @throws IllegalStateException if {@code field} has docvalues, but the type is not {@link DocValuesType#SORTED}.
    * @throws IOException if an I/O error occurs.
    */
-  public static SortedDocValuesIterator getSorted(LeafReader reader, String field) throws IOException {
-    SortedDocValuesIterator dv = reader.getSortedDocValues(field);
+  public static SortedDocValues getSorted(LeafReader reader, String field) throws IOException {
+    SortedDocValues dv = reader.getSortedDocValues(field);
     if (dv == null) {
       checkField(reader, field, DocValuesType.SORTED);
       return emptySortedIterator();
@@ -527,7 +527,7 @@ public final class DocValues {
     SortedSetDocValuesIterator dv = reader.getSortedSetDocValues(field);
     // nocommit fixme!
     if (dv == null) {
-      SortedDocValuesIterator sorted = reader.getSortedDocValues(field);
+      SortedDocValues sorted = reader.getSortedDocValues(field);
       if (sorted == null) {
         checkField(reader, field, DocValuesType.SORTED, DocValuesType.SORTED_SET);
         return emptySortedSet();

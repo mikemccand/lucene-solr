@@ -29,7 +29,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Sort;
@@ -382,7 +382,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
         }
       } else if(ft instanceof StrField) {
         LeafReader reader = searcher.getLeafReader();
-        SortedDocValuesIterator vals =  reader.getSortedDocValues(field);
+        SortedDocValues vals =  reader.getSortedDocValues(field);
         if(reverse) {
           sortValues[i] = new StringValue(vals, field, new IntDesc());
         } else {
@@ -399,7 +399,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
         // _and_ since "F" happens to sort before "T" (thus false sorts "less" than true)
         // we can just use the existing StringValue here.
         LeafReader reader = searcher.getLeafReader();
-        SortedDocValuesIterator vals =  reader.getSortedDocValues(field);
+        SortedDocValues vals =  reader.getSortedDocValues(field);
         if(reverse) {
           sortValues[i] = new StringValue(vals, field, new IntDesc());
         } else {
@@ -1219,23 +1219,23 @@ public class SortingResponseWriter implements QueryResponseWriter {
 
   class StringValue implements SortValue {
 
-    protected SortedDocValuesIterator vals;
-    protected SortedDocValuesIterator segmentVals[];
+    protected SortedDocValues vals;
+    protected SortedDocValues segmentVals[];
 
     protected MultiDocValues.OrdinalMap ordinalMap;
     protected LongValues globalOrds;
-    protected SortedDocValuesIterator currentVals;
+    protected SortedDocValues currentVals;
 
     protected String field;
     protected int segment;
     protected int currentOrd;
     protected IntComp comp;
 
-    public StringValue(SortedDocValuesIterator vals, String field, IntComp comp)  {
+    public StringValue(SortedDocValues vals, String field, IntComp comp)  {
       this.vals = vals;
-      if(vals instanceof  MultiDocValues.MultiSortedDocValuesIterator) {
-        this.segmentVals = ((MultiDocValues.MultiSortedDocValuesIterator) vals).values;
-        this.ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator) vals).mapping;
+      if(vals instanceof MultiDocValues.MultiSortedDocValues) {
+        this.segmentVals = ((MultiDocValues.MultiSortedDocValues) vals).values;
+        this.ordinalMap = ((MultiDocValues.MultiSortedDocValues) vals).mapping;
       }
       this.field = field;
       this.comp = comp;
@@ -1448,7 +1448,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      SortedDocValuesIterator vals = DocValues.getSorted(reader, this.field);
+      SortedDocValues vals = DocValues.getSorted(reader, this.field);
       if (vals.advance(docId) != docId) {
         return false;
       }
@@ -1536,7 +1536,7 @@ public class SortingResponseWriter implements QueryResponseWriter {
     }
 
     public boolean write(int docId, LeafReader reader, Writer out, int fieldIndex) throws IOException {
-      SortedDocValuesIterator vals = DocValues.getSorted(reader, this.field);
+      SortedDocValues vals = DocValues.getSorted(reader, this.field);
       if (vals.advance(docId) != docId) {
         return false;
       }

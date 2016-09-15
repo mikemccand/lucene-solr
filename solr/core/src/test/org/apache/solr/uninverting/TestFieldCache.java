@@ -48,7 +48,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.Directory;
@@ -177,7 +177,7 @@ public class TestFieldCache extends LuceneTestCase {
     }
 
     // getTermsIndex
-    SortedDocValuesIterator termsIndex = cache.getTermsIndex(reader, "theRandomUnicodeString");
+    SortedDocValues termsIndex = cache.getTermsIndex(reader, "theRandomUnicodeString");
     for (int i = 0; i < NUM_DOCS; i++) {
       final String s;
       if (i > termsIndex.docID()) {
@@ -451,7 +451,7 @@ public class TestFieldCache extends LuceneTestCase {
     BytesRef scratch = binary.binaryValue();
     assertEquals("sorted value", scratch.utf8ToString());
     
-    SortedDocValuesIterator sorted = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
+    SortedDocValues sorted = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
     assertEquals(0, sorted.nextDoc());
     assertEquals(0, sorted.ordValue());
     assertEquals(1, sorted.getValueCount());
@@ -551,7 +551,7 @@ public class TestFieldCache extends LuceneTestCase {
     BinaryDocValues binaries = cache.getTerms(ar, "bogusterms");
     assertEquals(NO_MORE_DOCS, binaries.nextDoc());
     
-    SortedDocValuesIterator sorted = cache.getTermsIndex(ar, "bogustermsindex");
+    SortedDocValues sorted = cache.getTermsIndex(ar, "bogustermsindex");
     assertEquals(NO_MORE_DOCS, sorted.nextDoc());
     
     SortedSetDocValuesIterator sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);
@@ -605,7 +605,7 @@ public class TestFieldCache extends LuceneTestCase {
     BinaryDocValues binaries = cache.getTerms(ar, "bogusterms");
     assertEquals(NO_MORE_DOCS, binaries.nextDoc());
     
-    SortedDocValuesIterator sorted = cache.getTermsIndex(ar, "bogustermsindex");
+    SortedDocValues sorted = cache.getTermsIndex(ar, "bogustermsindex");
     assertEquals(NO_MORE_DOCS, sorted.nextDoc());
     
     SortedSetDocValuesIterator sortedSet = cache.getDocTermOrds(ar, "bogusmultivalued", null);

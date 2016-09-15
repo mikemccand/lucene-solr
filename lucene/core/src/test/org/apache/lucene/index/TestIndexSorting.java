@@ -103,7 +103,7 @@ public class TestIndexSorting extends LuceneTestCase {
     DirectoryReader r = DirectoryReader.open(w);
     LeafReader leaf = getOnlyLeafReader(r);
     assertEquals(3, leaf.maxDoc());
-    SortedDocValuesIterator values = leaf.getSortedDocValues("foo");
+    SortedDocValues values = leaf.getSortedDocValues("foo");
     assertEquals(0, values.nextDoc());
     assertEquals("aaa", values.binaryValue().utf8ToString());
     assertEquals(1, values.nextDoc());
@@ -141,7 +141,7 @@ public class TestIndexSorting extends LuceneTestCase {
     DirectoryReader r = DirectoryReader.open(w);
     LeafReader leaf = getOnlyLeafReader(r);
     assertEquals(3, leaf.maxDoc());
-    SortedDocValuesIterator values = leaf.getSortedDocValues("foo");
+    SortedDocValues values = leaf.getSortedDocValues("foo");
     // docID 0 is missing:
     assertEquals(1, values.nextDoc());
     assertEquals("mmm", values.binaryValue().utf8ToString());
@@ -178,7 +178,7 @@ public class TestIndexSorting extends LuceneTestCase {
     DirectoryReader r = DirectoryReader.open(w);
     LeafReader leaf = getOnlyLeafReader(r);
     assertEquals(3, leaf.maxDoc());
-    SortedDocValuesIterator values = leaf.getSortedDocValues("foo");
+    SortedDocValues values = leaf.getSortedDocValues("foo");
     assertEquals(0, values.nextDoc());
     assertEquals("mmm", values.binaryValue().utf8ToString());
     assertEquals(1, values.nextDoc());

@@ -124,16 +124,16 @@ class SortedDocValuesWriter extends DocValuesWriter {
     dvConsumer.addSortedField(fieldInfo,
                               new EmptyDocValuesProducer() {
                                 @Override
-                                public SortedDocValuesIterator getSorted(FieldInfo fieldInfoIn) {
+                                public SortedDocValues getSorted(FieldInfo fieldInfoIn) {
                                   if (fieldInfoIn != fieldInfo) {
                                     throw new IllegalArgumentException("wrong fieldInfo");
                                   }
-                                  return new SortedValuesIterator(hash, valueCount, maxDoc, ords, sortedValues, ordMap, nonEmptyCount);
+                                  return new BufferedSortedDocValues(hash, valueCount, maxDoc, ords, sortedValues, ordMap, nonEmptyCount);
                                 }
                               });
   }
 
-  private static class SortedValuesIterator extends SortedDocValuesIterator {
+  private static class BufferedSortedDocValues extends SortedDocValues {
     final BytesRefHash hash;
     final int maxDoc;
     final BytesRef scratch = new BytesRef();
@@ -145,7 +145,7 @@ class SortedDocValuesWriter extends DocValuesWriter {
     private int ord;
     final PackedLongValues.Iterator iter;
 
-    public SortedValuesIterator(BytesRefHash hash, int valueCount, int maxDoc, PackedLongValues docToOrd, int[] sortedValues, int[] ordMap, int cost) {
+    public BufferedSortedDocValues(BytesRefHash hash, int valueCount, int maxDoc, PackedLongValues docToOrd, int[] sortedValues, int[] ordMap, int cost) {
       this.hash = hash;
       this.valueCount = valueCount;
       this.maxDoc = maxDoc;

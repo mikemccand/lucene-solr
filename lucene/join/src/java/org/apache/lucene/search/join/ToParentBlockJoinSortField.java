@@ -22,7 +22,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.FilterNumericDocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.FieldComparator;
@@ -108,7 +108,7 @@ public class ToParentBlockJoinSortField extends SortField {
     return new FieldComparator.TermOrdValComparator(numHits, getField(), missingValue == STRING_LAST) {
 
       @Override
-      protected SortedDocValuesIterator getSortedDocValues(LeafReaderContext context, String field) throws IOException {
+      protected SortedDocValues getSortedDocValues(LeafReaderContext context, String field) throws IOException {
         SortedSetDocValuesIterator sortedSet = DocValues.getSortedSet(context.reader(), field);
         final BlockJoinSelector.Type type = order
             ? BlockJoinSelector.Type.MAX

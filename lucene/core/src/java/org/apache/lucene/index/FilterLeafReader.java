@@ -443,7 +443,7 @@ public abstract class FilterLeafReader extends LeafReader {
   }
 
   @Override
-  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
+  public SortedDocValues getSortedDocValues(String field) throws IOException {
     ensureOpen();
     return in.getSortedDocValues(field);
   }

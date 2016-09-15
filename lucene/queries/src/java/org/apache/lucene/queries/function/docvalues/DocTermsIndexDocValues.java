@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.ValueSourceScorer;
@@ -35,7 +35,7 @@ import org.apache.lucene.util.mutable.MutableValueStr;
  * @lucene.internal
  */
 public abstract class DocTermsIndexDocValues extends FunctionValues {
-  protected final SortedDocValuesIterator termsIndex;
+  protected final SortedDocValues termsIndex;
   protected final ValueSource vs;
   protected final MutableValueStr val = new MutableValueStr();
   protected final CharsRefBuilder spareChars = new CharsRefBuilder();
@@ -46,7 +46,7 @@ public abstract class DocTermsIndexDocValues extends FunctionValues {
     this(field, vs, open(context, field));
   }
   
-  protected DocTermsIndexDocValues(String field, ValueSource vs, SortedDocValuesIterator termsIndex) {
+  protected DocTermsIndexDocValues(String field, ValueSource vs, SortedDocValues termsIndex) {
     this.field = field;
     this.vs = vs;
     this.termsIndex = termsIndex;
@@ -144,7 +144,7 @@ public abstract class DocTermsIndexDocValues extends FunctionValues {
     final int uu = upper;
 
     return new ValueSourceScorer(readerContext, this) {
-      final SortedDocValuesIterator values = readerContext.reader().getSortedDocValues(field);
+      final SortedDocValues values = readerContext.reader().getSortedDocValues(field);
       private int lastDocID;
       
       @Override
@@ -193,7 +193,7 @@ public abstract class DocTermsIndexDocValues extends FunctionValues {
   }
 
   // TODO: why?
-  static SortedDocValuesIterator open(LeafReaderContext context, String field) throws IOException {
+  static SortedDocValues open(LeafReaderContext context, String field) throws IOException {
     try {
       return DocValues.getSorted(context.reader(), field);
     } catch (RuntimeException e) {

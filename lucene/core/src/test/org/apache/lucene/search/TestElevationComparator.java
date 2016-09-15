@@ -165,7 +165,7 @@ class ElevationComparatorSource extends FieldComparatorSource {
         }
 
         private int docVal(int doc) throws IOException {
-          SortedDocValuesIterator idIndex = DocValues.getSorted(context.reader(), fieldname);
+          SortedDocValues idIndex = DocValues.getSorted(context.reader(), fieldname);
           if (idIndex.advance(doc) == doc) {
             final BytesRef term = idIndex.binaryValue();
             Integer prio = priority.get(term);

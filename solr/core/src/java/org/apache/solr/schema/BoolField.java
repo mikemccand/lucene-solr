@@ -30,7 +30,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queries.function.docvalues.BoolDocValues;
@@ -226,7 +226,7 @@ class BoolFieldSource extends ValueSource {
 
   @Override
   public FunctionValues getValues(Map context, LeafReaderContext readerContext) throws IOException {
-    final SortedDocValuesIterator sindex = DocValues.getSorted(readerContext.reader(), field);
+    final SortedDocValues sindex = DocValues.getSorted(readerContext.reader(), field);
 
     // figure out what ord maps to true
     int nord = sindex.getValueCount();

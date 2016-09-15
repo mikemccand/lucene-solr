@@ -32,11 +32,11 @@ import org.apache.lucene.util.BytesRef;
 
 // nocommit don't extend binary anymore?
 
-public abstract class SortedDocValuesIterator extends BinaryDocValues {
+public abstract class SortedDocValues extends BinaryDocValues {
 
   /** Sole constructor. (For invocation by subclass 
    * constructors, typically implicit.) */
-  protected SortedDocValuesIterator() {}
+  protected SortedDocValues() {}
 
   /**
    * Returns the ordinal for the current docID.

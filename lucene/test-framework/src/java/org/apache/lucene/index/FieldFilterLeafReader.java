@@ -119,7 +119,7 @@ public final class FieldFilterLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
+  public SortedDocValues getSortedDocValues(String field) throws IOException {
     return hasField(field) ? super.getSortedDocValues(field) : null;
   }
   

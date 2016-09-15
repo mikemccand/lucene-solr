@@ -2465,8 +2465,8 @@ public abstract class LuceneTestCase extends Assert {
       }
       
       {
-        SortedDocValuesIterator leftValues = MultiDocValues.getSortedValues(leftReader, field);
-        SortedDocValuesIterator rightValues = MultiDocValues.getSortedValues(rightReader, field);
+        SortedDocValues leftValues = MultiDocValues.getSortedValues(leftReader, field);
+        SortedDocValues rightValues = MultiDocValues.getSortedValues(rightReader, field);
         if (leftValues != null && rightValues != null) {
           // numOrds
           assertEquals(info, leftValues.getValueCount(), rightValues.getValueCount());

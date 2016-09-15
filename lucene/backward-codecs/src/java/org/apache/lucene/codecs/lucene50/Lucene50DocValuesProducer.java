@@ -608,8 +608,8 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   @Override
-  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
-    return new StupidSortedDocValuesIterator(getSortedNoIterator(field), maxDoc);
+  public SortedDocValues getSorted(FieldInfo field) throws IOException {
+    return new StupidSortedDocValues(getSortedNoIterator(field), maxDoc);
   }
   
   private LegacySortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {

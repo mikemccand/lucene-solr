@@ -28,17 +28,17 @@ import org.apache.lucene.util.BytesRef;
  * that works for single or multi-valued types.
  */
 final class SingletonSortedSetDocValuesIterator extends SortedSetDocValuesIterator {
-  private final SortedDocValuesIterator in;
+  private final SortedDocValues in;
   private long currentOrd;
   private long ord;
   
   /** Creates a multi-valued view over the provided SortedDocValues */
-  public SingletonSortedSetDocValuesIterator(SortedDocValuesIterator in) {
+  public SingletonSortedSetDocValuesIterator(SortedDocValues in) {
     this.in = in;
   }
 
-  /** Return the wrapped {@link SortedDocValuesIterator} */
-  public SortedDocValuesIterator getSortedDocValues() {
+  /** Return the wrapped {@link SortedDocValues} */
+  public SortedDocValues getSortedDocValues() {
     if (in.docID() != -1) {
       // nocommit too anal?
       throw new IllegalStateException("iterator has already been used: docID=" + in.docID());

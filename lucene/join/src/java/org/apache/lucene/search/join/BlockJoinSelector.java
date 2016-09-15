@@ -19,7 +19,7 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.search.SortField;
@@ -78,8 +78,8 @@ public class BlockJoinSelector {
   /** Wraps the provided {@link SortedSetDocValuesIterator} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
-  public static SortedDocValuesIterator wrap(SortedSetDocValuesIterator sortedSet, Type selection, BitSet parents, BitSet children) {
-    SortedDocValuesIterator values;
+  public static SortedDocValues wrap(SortedSetDocValuesIterator sortedSet, Type selection, BitSet parents, BitSet children) {
+    SortedDocValues values;
     switch (selection) {
       case MIN:
         values = SortedSetSelector.wrap(sortedSet, SortedSetSelector.Type.MIN);
@@ -93,14 +93,14 @@ public class BlockJoinSelector {
     return wrap(values, selection, parents, children);
   }
 
-  /** Wraps the provided {@link SortedDocValuesIterator} in order to only select
+  /** Wraps the provided {@link SortedDocValues} in order to only select
    *  one value per parent among its {@code children} using the configured
    *  {@code selection} type. */
-  public static SortedDocValuesIterator wrap(final SortedDocValuesIterator values, Type selection, BitSet parents, BitSet children) {
+  public static SortedDocValues wrap(final SortedDocValues values, Type selection, BitSet parents, BitSet children) {
     if (values.docID() != -1) {
       throw new IllegalArgumentException("values iterator was already consumed: values.docID=" + values.docID());
     }
-    return new SortedDocValuesIterator() {
+    return new SortedDocValues() {
 
       private int ord;
       private int docID = -1;

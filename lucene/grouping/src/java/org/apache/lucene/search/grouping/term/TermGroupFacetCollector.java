@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.grouping.AbstractGroupFacetCollector;
@@ -42,7 +42,7 @@ public abstract class TermGroupFacetCollector extends AbstractGroupFacetCollecto
   final List<GroupedFacetHit> groupedFacetHits;
   final SentinelIntSet segmentGroupedFacetHits;
 
-  SortedDocValuesIterator groupFieldTermsIndex;
+  SortedDocValues groupFieldTermsIndex;
 
   /**
    * Factory method for creating the right implementation based on the fact whether the facet field contains
@@ -78,7 +78,7 @@ public abstract class TermGroupFacetCollector extends AbstractGroupFacetCollecto
   // Implementation for single valued facet fields.
   static class SV extends TermGroupFacetCollector {
 
-    private SortedDocValuesIterator facetFieldTermsIndex;
+    private SortedDocValues facetFieldTermsIndex;
 
     SV(String groupField, String facetField, BytesRef facetPrefix, int initialSize) {
       super(groupField, facetField, facetPrefix, initialSize);

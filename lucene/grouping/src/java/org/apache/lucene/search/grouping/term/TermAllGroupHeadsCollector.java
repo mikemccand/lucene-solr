@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.LeafFieldComparator;
 import org.apache.lucene.search.Scorer;
@@ -39,7 +39,7 @@ import org.apache.lucene.util.SentinelIntSet;
 /**
  * A base implementation of {@link org.apache.lucene.search.grouping.AbstractAllGroupHeadsCollector} for retrieving the most relevant groups when grouping
  * on a string based group field. More specifically this all concrete implementations of this base implementation
- * use {@link org.apache.lucene.index.SortedDocValuesIterator}.
+ * use {@link SortedDocValues}.
  *
  * @lucene.experimental
  */
@@ -49,7 +49,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
   final String groupField;
 
-  SortedDocValuesIterator groupIndex;
+  SortedDocValues groupIndex;
   LeafReaderContext readerContext;
 
   protected TermAllGroupHeadsCollector(String groupField, int numberOfSorts) {
@@ -245,7 +245,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
     private final List<GroupHead> collectedGroups;
     final SortField[] fields;
 
-    SortedDocValuesIterator[] sortsIndex;
+    SortedDocValues[] sortsIndex;
     Scorer scorer;
     private GroupHead[] segmentGroupHeads;
 
@@ -256,7 +256,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
       final SortField[] sortFields = sortWithinGroup.getSort();
       fields = new SortField[sortFields.length];
-      sortsIndex = new SortedDocValuesIterator[sortFields.length];
+      sortsIndex = new SortedDocValues[sortFields.length];
       for (int i = 0; i < sortFields.length; i++) {
         reversed[i] = sortFields[i].getReverse() ? -1 : 1;
         fields[i] = sortFields[i];
@@ -358,7 +358,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
     void setDoc(int docID) throws IOException {
       for (int i = 0; i < sortsIndex.length; i++) {
-        SortedDocValuesIterator values = sortsIndex[i];
+        SortedDocValues values = sortsIndex[i];
         if (values != null && docID > values.docID()) {
           values.advance(docID);
         }
@@ -458,7 +458,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
     private final List<GroupHead> collectedGroups;
     private final SortField[] fields;
 
-    SortedDocValuesIterator[] sortsIndex;
+    SortedDocValues[] sortsIndex;
     GroupHead[] segmentGroupHeads;
 
     OrdAllGroupHeadsCollector(String groupField, Sort sortWithinGroup, int initialSize) {
@@ -468,7 +468,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
       final SortField[] sortFields = sortWithinGroup.getSort();
       fields = new SortField[sortFields.length];
-      sortsIndex = new SortedDocValuesIterator[sortFields.length];
+      sortsIndex = new SortedDocValues[sortFields.length];
       for (int i = 0; i < sortFields.length; i++) {
         reversed[i] = sortFields[i].getReverse() ? -1 : 1;
         fields[i] = sortFields[i];
@@ -559,7 +559,7 @@ public abstract class TermAllGroupHeadsCollector<GH extends AbstractAllGroupHead
 
     void setDoc(int docID) throws IOException {
       for (int i = 0; i < sortsIndex.length; i++) {
-        SortedDocValuesIterator values = sortsIndex[i];
+        SortedDocValues values = sortsIndex[i];
         if (docID > values.docID()) {
           values.advance(docID);
         }

@@ -17,23 +17,20 @@
 
 package org.apache.lucene.index;
 
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.FixedBitSet;
 
 // nocommit remove this temporary bridge class!!! fix codec to implement it properly instead of a dumb linear scan!
 
 /**
- * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValuesIterator}
+ * A dumb iterator implementation that does a linear scan of the wrapped {@link SortedDocValues}
  */
-public final class StupidSortedDocValuesIterator extends SortedDocValuesIterator {
+public final class StupidSortedDocValues extends SortedDocValues {
   private final LegacySortedDocValues values;
   private final int maxDoc;
   private int docID = -1;
   private int ord;
   
-  public StupidSortedDocValuesIterator(LegacySortedDocValues values, int maxDoc) {
+  public StupidSortedDocValues(LegacySortedDocValues values, int maxDoc) {
     this.values = values;
     this.maxDoc = maxDoc;
   }

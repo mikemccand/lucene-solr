@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.grouping.AbstractDistinctValuesCollector;
 import org.apache.lucene.search.grouping.SearchGroup;
 import org.apache.lucene.util.BytesRef;
@@ -32,7 +32,7 @@ import org.apache.lucene.util.SentinelIntSet;
 
 /**
  * A term based implementation of {@link org.apache.lucene.search.grouping.AbstractDistinctValuesCollector} that relies
- * on {@link SortedDocValuesIterator} to count the distinct values per group.
+ * on {@link SortedDocValues} to count the distinct values per group.
  *
  * @lucene.experimental
  */
@@ -44,8 +44,8 @@ public class TermDistinctValuesCollector extends AbstractDistinctValuesCollector
   private final SentinelIntSet ordSet;
   private final GroupCount groupCounts[];
 
-  private SortedDocValuesIterator groupFieldTermIndex;
-  private SortedDocValuesIterator countFieldTermIndex;
+  private SortedDocValues groupFieldTermIndex;
+  private SortedDocValues countFieldTermIndex;
 
   /**
    * Constructs {@link TermDistinctValuesCollector} instance.

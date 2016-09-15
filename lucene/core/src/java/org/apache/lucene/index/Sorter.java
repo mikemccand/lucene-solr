@@ -220,7 +220,7 @@ final class Sorter {
 
         final int[] ords = new int[reader.maxDoc()];
         Arrays.fill(ords, missingOrd);
-        SortedDocValuesIterator sorted = DocValues.getSorted(reader, sortField.getField());
+        SortedDocValues sorted = DocValues.getSorted(reader, sortField.getField());
         int docID;
         while ((docID = sorted.nextDoc()) != NO_MORE_DOCS) {
           ords[docID] = sorted.ordValue();

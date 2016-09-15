@@ -20,12 +20,10 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.EmptyDocValuesProducer;
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.BytesRef;
@@ -54,7 +52,7 @@ class BlockJoinFieldFacetAccumulator {
   // for mapping per-segment ords to global ones
   private MultiDocValues.OrdinalMap ordinalMap;
   private SchemaField schemaField;
-  private SortedDocValuesIterator segmentSDV;
+  private SortedDocValues segmentSDV;
   
   BlockJoinFieldFacetAccumulator(String fieldName, SolrIndexSearcher searcher) throws IOException {
     this.fieldName = fieldName;
@@ -67,9 +65,9 @@ class BlockJoinFieldFacetAccumulator {
         ordinalMap = ((MultiDocValues.MultiSortedSetDocValuesIterator) topSSDV).mapping;
       }
     } else {
-      SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
-      if (single instanceof MultiDocValues.MultiSortedDocValuesIterator) {
-        ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator) single).mapping;
+      SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
+      if (single instanceof MultiDocValues.MultiSortedDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedDocValues) single).mapping;
       }
       if (single != null) {
         topSSDV = DocValues.singleton(single);

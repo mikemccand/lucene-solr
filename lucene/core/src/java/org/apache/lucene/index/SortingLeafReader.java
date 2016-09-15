@@ -348,13 +348,13 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingSortedDocValuesIterator extends SortedDocValuesIterator {
+  private static class SortingSortedDocValues extends SortedDocValues {
 
-    private final SortedDocValuesIterator in;
+    private final SortedDocValues in;
     private final int[] ords;
     private int docID = -1;
 
-    SortingSortedDocValuesIterator(SortedDocValuesIterator in, int[] ords) {
+    SortingSortedDocValues(SortedDocValues in, int[] ords) {
       this.in = in;
       this.ords = ords;
       assert ords != null;
@@ -1142,8 +1142,8 @@ class SortingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
-    SortedDocValuesIterator oldDocValues = in.getSortedDocValues(field);
+  public SortedDocValues getSortedDocValues(String field) throws IOException {
+    SortedDocValues oldDocValues = in.getSortedDocValues(field);
     if (oldDocValues == null) {
       return null;
     }
@@ -1163,7 +1163,7 @@ class SortingLeafReader extends FilterLeafReader {
       }
     }
     
-    return new SortingSortedDocValuesIterator(oldDocValues, ords);
+    return new SortingSortedDocValues(oldDocValues, ords);
   }
 
   @Override

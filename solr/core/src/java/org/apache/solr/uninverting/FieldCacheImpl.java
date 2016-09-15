@@ -38,7 +38,7 @@ import org.apache.lucene.index.PointValues.Relation;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PostingsEnum;
 import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -71,7 +71,7 @@ class FieldCacheImpl implements FieldCache {
     caches = new HashMap<>(6);
     caches.put(Long.TYPE, new LongCache(this));
     caches.put(BinaryDocValues.class, new BinaryDocValuesCache(this));
-    caches.put(SortedDocValuesIterator.class, new SortedDocValuesCache(this));
+    caches.put(SortedDocValues.class, new SortedDocValuesCache(this));
     caches.put(DocTermOrds.class, new DocTermOrdsCache(this));
     caches.put(DocsWithFieldCache.class, new DocsWithFieldCache(this));
   }
@@ -786,9 +786,9 @@ class FieldCacheImpl implements FieldCache {
       this.numOrd = numOrd;
     }
     
-    public SortedDocValuesIterator iterator() {
+    public SortedDocValues iterator() {
       final BytesRef term = new BytesRef();
-      return new SortedDocValuesIterator() {
+      return new SortedDocValues() {
         private int docID = -1;
 
         @Override
@@ -873,12 +873,12 @@ class FieldCacheImpl implements FieldCache {
     }
   }
 
-  public SortedDocValuesIterator getTermsIndex(LeafReader reader, String field) throws IOException {
+  public SortedDocValues getTermsIndex(LeafReader reader, String field) throws IOException {
     return getTermsIndex(reader, field, PackedInts.FAST);
   }
 
-  public SortedDocValuesIterator getTermsIndex(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
-    SortedDocValuesIterator valuesIn = reader.getSortedDocValues(field);
+  public SortedDocValues getTermsIndex(LeafReader reader, String field, float acceptableOverheadRatio) throws IOException {
+    SortedDocValues valuesIn = reader.getSortedDocValues(field);
     if (valuesIn != null) {
       // Not cached here by FieldCacheImpl (cached instead
       // per-thread by SegmentReader):
@@ -894,7 +894,7 @@ class FieldCacheImpl implements FieldCache {
       } else if (info.getIndexOptions() == IndexOptions.NONE) {
         return DocValues.emptySortedIterator();
       }
-      SortedDocValuesImpl impl = (SortedDocValuesImpl) caches.get(SortedDocValuesIterator.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
+      SortedDocValuesImpl impl = (SortedDocValuesImpl) caches.get(SortedDocValues.class).get(reader, new CacheKey(field, acceptableOverheadRatio));
       return impl.iterator();
     }
   }
@@ -1192,7 +1192,7 @@ class FieldCacheImpl implements FieldCache {
       return dv;
     }
     
-    SortedDocValuesIterator sdv = reader.getSortedDocValues(field);
+    SortedDocValues sdv = reader.getSortedDocValues(field);
     if (sdv != null) {
       return DocValues.singleton(sdv);
     }

@@ -23,7 +23,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.Explanation;
@@ -114,7 +114,7 @@ final class GlobalOrdinalsWithScoreQuery extends Query {
 
     @Override
     public Explanation explain(LeafReaderContext context, int doc) throws IOException {
-      SortedDocValuesIterator values = DocValues.getSorted(context.reader(), joinField);
+      SortedDocValues values = DocValues.getSorted(context.reader(), joinField);
       if (values == null) {
         return Explanation.noMatch("Not a match");
       }
@@ -141,7 +141,7 @@ final class GlobalOrdinalsWithScoreQuery extends Query {
 
     @Override
     public Scorer scorer(LeafReaderContext context) throws IOException {
-      SortedDocValuesIterator values = DocValues.getSorted(context.reader(), joinField);
+      SortedDocValues values = DocValues.getSorted(context.reader(), joinField);
       if (values == null) {
         return null;
       }
@@ -163,7 +163,7 @@ final class GlobalOrdinalsWithScoreQuery extends Query {
     final LongValues segmentOrdToGlobalOrdLookup;
     final GlobalOrdinalsWithScoreCollector collector;
 
-    public OrdinalMapScorer(Weight weight, GlobalOrdinalsWithScoreCollector collector, SortedDocValuesIterator values, DocIdSetIterator approximation, LongValues segmentOrdToGlobalOrdLookup) {
+    public OrdinalMapScorer(Weight weight, GlobalOrdinalsWithScoreCollector collector, SortedDocValues values, DocIdSetIterator approximation, LongValues segmentOrdToGlobalOrdLookup) {
       super(weight, values, approximation);
       this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
       this.collector = collector;
@@ -202,7 +202,7 @@ final class GlobalOrdinalsWithScoreQuery extends Query {
 
     final GlobalOrdinalsWithScoreCollector collector;
 
-    public SegmentOrdinalScorer(Weight weight, GlobalOrdinalsWithScoreCollector collector, SortedDocValuesIterator values, DocIdSetIterator approximation) {
+    public SegmentOrdinalScorer(Weight weight, GlobalOrdinalsWithScoreCollector collector, SortedDocValues values, DocIdSetIterator approximation) {
       super(weight, values, approximation);
       this.collector = collector;
     }

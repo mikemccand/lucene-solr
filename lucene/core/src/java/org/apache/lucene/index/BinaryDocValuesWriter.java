@@ -121,13 +121,13 @@ class BinaryDocValuesWriter extends DocValuesWriter {
                                   if (fieldInfoIn != fieldInfo) {
                                     throw new IllegalArgumentException("wrong fieldInfo");
                                   }
-                                  return new BytesIterator(maxDoc, lengths);
+                                  return new BufferedBinaryDocValues(maxDoc, lengths);
                                 }
                               });
   }
 
   // iterates over the values we have in ram
-  private class BytesIterator extends BinaryDocValues {
+  private class BufferedBinaryDocValues extends BinaryDocValues {
     final BytesRefBuilder value = new BytesRefBuilder();
     final PackedLongValues.Iterator lengthsIterator;
     final DataInput bytesIterator = bytes.getDataInput();
@@ -135,7 +135,7 @@ class BinaryDocValuesWriter extends DocValuesWriter {
     final int maxDoc;
     private int docID = -1;
     
-    BytesIterator(int maxDoc, PackedLongValues lengths) {
+    BufferedBinaryDocValues(int maxDoc, PackedLongValues lengths) {
       this.maxDoc = maxDoc;
       this.lengthsIterator = lengths.iterator();
     }

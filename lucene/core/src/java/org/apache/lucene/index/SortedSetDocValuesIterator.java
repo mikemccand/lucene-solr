@@ -23,7 +23,7 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
 
 /**
- * A multi-valued version of {@link SortedDocValuesIterator}.
+ * A multi-valued version of {@link SortedDocValues}.
  * <p>
  * Per-Document values in a SortedSetDocValues are deduplicated, dereferenced,
  * and sorted into a dictionary of unique values. A pointer to the

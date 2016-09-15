@@ -841,7 +841,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             doc.addField(fieldName, value);
             break;
           case SORTED:
-            SortedDocValuesIterator sdv = leafReader.getSortedDocValues(fieldName);
+            SortedDocValues sdv = leafReader.getSortedDocValues(fieldName);
             if (sdv.advance(docid) == docid) {
               final BytesRef bRef = sdv.binaryValue();
               // Special handling for Boolean fields since they're stored as 'T' and 'F'.

@@ -55,7 +55,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
 import org.apache.lucene.index.SerialMergeScheduler;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
@@ -206,7 +206,7 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
       final LeafReader reader = context.reader();
       final NumericDocValues numeric = DocValues.getNumericIterator(reader, "numeric");
 
-      final SortedDocValuesIterator sorted = DocValues.getSorted(reader, "sorted");
+      final SortedDocValues sorted = DocValues.getSorted(reader, "sorted");
 
       final BinaryDocValues binary = DocValues.getBinaryIterator(reader, "binary");
 

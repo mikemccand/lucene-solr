@@ -28,27 +28,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.IndexFileNames;
-import org.apache.lucene.index.LegacyBinaryDocValues;
-import org.apache.lucene.index.LegacyNumericDocValues;
-import org.apache.lucene.index.LegacySortedDocValues;
-import org.apache.lucene.index.LegacySortedNumericDocValues;
-import org.apache.lucene.index.LegacySortedSetDocValues;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SortedDocValuesIterator;
-import org.apache.lucene.index.SortedNumericDocValuesIterator;
-import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidBinaryDocValuesIterator;
-import org.apache.lucene.index.StupidNumericDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesIterator;
-import org.apache.lucene.index.StupidSortedNumericDocValuesIterator;
-import org.apache.lucene.index.StupidSortedSetDocValuesIterator;
+import org.apache.lucene.index.*;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Accountable;
@@ -427,7 +408,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
   }
   
   @Override
-  public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
+  public SortedDocValues getSorted(FieldInfo field) throws IOException {
     final SortedEntry entry = sorteds.get(field.name);
     SortedRawValues instance;
     synchronized (this) {
@@ -441,7 +422,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
         }
       }
     }
-    return new StupidSortedDocValuesIterator(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
+    return new StupidSortedDocValues(newSortedInstance(instance.docToOrd.numerics, getBinary(field), entry.values.count), maxDoc);
   }
   
   // nocommit removeme
@@ -545,7 +526,7 @@ class DirectDocValuesProducer extends DocValuesProducer {
 
     if (instance.docToOrdAddress == null) {
       LegacySortedDocValues sorted = newSortedInstance(instance.ords.numerics, getBinary(field), entry.values.count);
-      return DocValues.singleton(new StupidSortedDocValuesIterator(sorted, maxDoc));
+      return DocValues.singleton(new StupidSortedDocValues(sorted, maxDoc));
     } else {
       final LegacyNumericDocValues docToOrdAddress = instance.docToOrdAddress.numerics;
       final LegacyNumericDocValues ords = instance.ords.numerics;

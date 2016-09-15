@@ -751,8 +751,8 @@ public class TestBackwardsCompatibility extends LuceneTestCase {
       NumericDocValues dvByte = MultiDocValues.getNumericValuesIterator(reader, "dvByte");
       BinaryDocValues dvBytesDerefFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefFixed");
       BinaryDocValues dvBytesDerefVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesDerefVar");
-      SortedDocValuesIterator dvBytesSortedFixed = MultiDocValues.getSortedValues(reader, "dvBytesSortedFixed");
-      SortedDocValuesIterator dvBytesSortedVar = MultiDocValues.getSortedValues(reader, "dvBytesSortedVar");
+      SortedDocValues dvBytesSortedFixed = MultiDocValues.getSortedValues(reader, "dvBytesSortedFixed");
+      SortedDocValues dvBytesSortedVar = MultiDocValues.getSortedValues(reader, "dvBytesSortedVar");
       BinaryDocValues dvBytesStraightFixed = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightFixed");
       BinaryDocValues dvBytesStraightVar = MultiDocValues.getBinaryValuesIterator(reader, "dvBytesStraightVar");
       NumericDocValues dvDouble = MultiDocValues.getNumericValuesIterator(reader, "dvDouble");

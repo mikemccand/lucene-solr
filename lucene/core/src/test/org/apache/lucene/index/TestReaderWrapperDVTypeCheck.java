@@ -78,7 +78,7 @@ public class TestReaderWrapperDVTypeCheck extends LuceneTestCase {
     
     {
       //final Random indexRandom = new Random(seed);
-      final SortedDocValuesIterator sdv = wrapper.getSortedDocValues("sdv");
+      final SortedDocValues sdv = wrapper.getSortedDocValues("sdv");
       final SortedSetDocValuesIterator ssdv = wrapper.getSortedSetDocValues("ssdv");
       
       assertNull("confusing DV type", wrapper.getSortedDocValues("ssdv"));

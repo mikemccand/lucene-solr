@@ -36,7 +36,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum.SeekStatus;
@@ -332,8 +332,8 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     DirectoryReader ir = DirectoryReader.open(dir);
     for (LeafReaderContext context : ir.leaves()) {
       LeafReader r = context.reader();
-      SortedDocValuesIterator expected = FieldCache.DEFAULT.getTermsIndex(r, "indexed");
-      SortedDocValuesIterator actual = r.getSortedDocValues("dv");
+      SortedDocValues expected = FieldCache.DEFAULT.getTermsIndex(r, "indexed");
+      SortedDocValues actual = r.getSortedDocValues("dv");
       assertEquals(r.maxDoc(), expected, actual);
     }
     ir.close();
@@ -487,7 +487,7 @@ public class TestFieldCacheVsDocValues extends LuceneTestCase {
     }
   }
   
-  private void assertEquals(int maxDoc, SortedDocValuesIterator expected, SortedDocValuesIterator actual) throws Exception {
+  private void assertEquals(int maxDoc, SortedDocValues expected, SortedDocValues actual) throws Exception {
     // can be null for the segment if no docs actually had any SortedDocValues
     // in this case FC.getDocTermsOrds returns EMPTY
     if (actual == null) {

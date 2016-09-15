@@ -35,7 +35,7 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Accountable;
@@ -288,7 +288,7 @@ public abstract class PerFieldDocValuesFormat extends DocValuesFormat {
     }
 
     @Override
-    public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
+    public SortedDocValues getSorted(FieldInfo field) throws IOException {
       DocValuesProducer producer = fields.get(field.name);
       return producer == null ? null : producer.getSorted(field);
     }

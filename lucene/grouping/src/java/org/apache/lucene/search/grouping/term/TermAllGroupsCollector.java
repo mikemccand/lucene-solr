@@ -23,7 +23,7 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.grouping.AbstractAllGroupsCollector;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.SentinelIntSet;
@@ -50,7 +50,7 @@ public class TermAllGroupsCollector extends AbstractAllGroupsCollector<BytesRef>
   private final SentinelIntSet ordSet;
   private final List<BytesRef> groups;
 
-  private SortedDocValuesIterator index;
+  private SortedDocValues index;
 
   /**
    * Expert: Constructs a {@link AbstractAllGroupsCollector}

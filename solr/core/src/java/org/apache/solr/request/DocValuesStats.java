@@ -22,12 +22,11 @@ import java.util.Map;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
+import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -90,10 +89,10 @@ public class DocValuesStats {
         ordinalMap = ((MultiSortedSetDocValuesIterator)si).mapping;
       }
     } else {
-      SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
+      SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
       si = single == null ? null : DocValues.singleton(single);
-      if (single instanceof MultiSortedDocValuesIterator) {
-        ordinalMap = ((MultiSortedDocValuesIterator)single).mapping;
+      if (single instanceof MultiDocValues.MultiSortedDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedDocValues)single).mapping;
       }
     }
     if (si == null) {
@@ -128,7 +127,7 @@ public class DocValuesStats {
           if (sub == null) {
             sub = DocValues.emptySortedSet();
           }
-          SortedDocValuesIterator singleton = DocValues.unwrapSingleton(sub);
+          SortedDocValues singleton = DocValues.unwrapSingleton(sub);
           if (singleton != null) {
             // some codecs may optimize SORTED_SET storage for single-valued fields
             missingDocCountTotal += accumSingle(counts, docBase, facetStats, singleton, disi, subIndex, ordinalMap);
@@ -136,7 +135,7 @@ public class DocValuesStats {
             missingDocCountTotal += accumMulti(counts, docBase, facetStats, sub, disi, subIndex, ordinalMap);
           }
         } else {
-          SortedDocValuesIterator sub = leaf.reader().getSortedDocValues(fieldName);
+          SortedDocValues sub = leaf.reader().getSortedDocValues(fieldName);
           if (sub == null) {
             sub = DocValues.emptySortedIterator();
           }
@@ -170,7 +169,7 @@ public class DocValuesStats {
   }
 
   /** accumulates per-segment single-valued stats */
-  static int accumSingle(int counts[], int docBase, FieldFacetStats[] facetStats, SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static int accumSingle(int counts[], int docBase, FieldFacetStats[] facetStats, SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordMap = map == null ? null : map.getGlobalOrds(subIndex);
     int missingDocCount = 0;
     int doc;

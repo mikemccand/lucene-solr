@@ -147,9 +147,9 @@ final class MultiSorter {
     case STRING:
       {
         // this uses the efficient segment-local ordinal map:
-        final SortedDocValuesIterator[] values = new SortedDocValuesIterator[readers.size()];
+        final SortedDocValues[] values = new SortedDocValues[readers.size()];
         for(int i=0;i<readers.size();i++) {
-          SortedDocValuesIterator v = readers.get(i).getSortedDocValues(sortField.getField());
+          SortedDocValues v = readers.get(i).getSortedDocValues(sortField.getField());
           if (v == null) {
             v = DocValues.emptySortedIterator();
           }
@@ -171,7 +171,7 @@ final class MultiSorter {
         }
 
         for(int readerIndex=0;readerIndex<readers.size();readerIndex++) {
-          final SortedDocValuesIterator readerValues = values[readerIndex];
+          final SortedDocValues readerValues = values[readerIndex];
           final LongValues globalOrds = ordinalMap.getGlobalOrds(readerIndex);
           providers[readerIndex] = new ComparableProvider() {
               // used only by assert:

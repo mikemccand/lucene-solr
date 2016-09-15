@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.analytics.accumulator.FacetingAccumulator;
@@ -47,7 +47,7 @@ public class FieldFacetAccumulator extends ValueAccumulator {
   protected final boolean numField;
   protected final boolean dateField;
   protected SortedSetDocValuesIterator setValues;
-  protected SortedDocValuesIterator sortValues; 
+  protected SortedDocValues sortValues;
   protected NumericDocValues numValues;
   
   public FieldFacetAccumulator(SolrIndexSearcher searcher, FacetValueAccumulator parent, SchemaField schemaField) throws IOException {  

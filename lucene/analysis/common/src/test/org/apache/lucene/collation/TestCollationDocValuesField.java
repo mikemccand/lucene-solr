@@ -26,7 +26,7 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Sort;
@@ -115,7 +115,7 @@ public class TestCollationDocValuesField extends LuceneTestCase {
   }
   
   private void doTestRanges(IndexSearcher is, String startPoint, String endPoint, BytesRef startBR, BytesRef endBR, Collator collator) throws Exception { 
-    SortedDocValuesIterator dvs = MultiDocValues.getSortedValues(is.getIndexReader(), "collated");
+    SortedDocValues dvs = MultiDocValues.getSortedValues(is.getIndexReader(), "collated");
     for(int docID=0;docID<is.getIndexReader().maxDoc();docID++) {
       Document doc = is.doc(docID);
       String s = doc.getField("field").stringValue();

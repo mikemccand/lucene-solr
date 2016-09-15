@@ -21,7 +21,7 @@ import java.util.Collection;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.grouping.AbstractSecondPassGroupingCollector;
 import org.apache.lucene.search.grouping.SearchGroup;
@@ -30,7 +30,7 @@ import org.apache.lucene.util.SentinelIntSet;
 
 /**
  * Concrete implementation of {@link org.apache.lucene.search.grouping.AbstractSecondPassGroupingCollector} that groups based on
- * field values and more specifically uses {@link org.apache.lucene.index.SortedDocValuesIterator}
+ * field values and more specifically uses {@link SortedDocValues}
  * to collect grouped docs.
  *
  * @lucene.experimental
@@ -40,7 +40,7 @@ public class TermSecondPassGroupingCollector extends AbstractSecondPassGroupingC
   private final String groupField;
   private final SentinelIntSet ordSet;
 
-  private SortedDocValuesIterator index;
+  private SortedDocValues index;
 
   @SuppressWarnings({"unchecked", "rawtypes"})
   public TermSecondPassGroupingCollector(String groupField, Collection<SearchGroup<BytesRef>> groups, Sort groupSort, Sort withinGroupSort,

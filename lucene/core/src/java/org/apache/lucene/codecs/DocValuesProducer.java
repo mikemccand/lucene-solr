@@ -23,7 +23,7 @@ import java.io.IOException;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.Accountable;
@@ -50,10 +50,10 @@ public abstract class DocValuesProducer implements Closeable, Accountable {
    *  used by a single thread. */
   public abstract BinaryDocValues getBinaryIterator(FieldInfo field) throws IOException;
 
-  /** Returns {@link SortedDocValuesIterator} for this field.
+  /** Returns {@link SortedDocValues} for this field.
    *  The returned instance need not be thread-safe: it will only be
    *  used by a single thread. */
-  public abstract SortedDocValuesIterator getSorted(FieldInfo field) throws IOException;
+  public abstract SortedDocValues getSorted(FieldInfo field) throws IOException;
   
   /** Returns {@link SortedNumericDocValuesIterator} for this field.
    *  The returned instance need not be thread-safe: it will only be

@@ -34,7 +34,7 @@ import org.apache.lucene.index.MergeState;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentWriteState; // javadocs
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.TermsEnum;
@@ -459,11 +459,11 @@ public abstract class DocValuesConsumer implements Closeable {
   /** Tracks state of one sorted sub-reader that we are merging */
   private static class SortedDocValuesSub extends DocIDMerger.Sub {
 
-    final SortedDocValuesIterator values;
+    final SortedDocValues values;
     final int maxDoc;
     final LongValues map;
 
-    public SortedDocValuesSub(MergeState.DocMap docMap, SortedDocValuesIterator values, int maxDoc, LongValues map) {
+    public SortedDocValuesSub(MergeState.DocMap docMap, SortedDocValues values, int maxDoc, LongValues map) {
       super(docMap);
       this.values = values;
       this.maxDoc = maxDoc;
@@ -483,9 +483,9 @@ public abstract class DocValuesConsumer implements Closeable {
    * an Iterable that merges ordinals and values and filters deleted documents .
    */
   public void mergeSortedField(FieldInfo fieldInfo, final MergeState mergeState) throws IOException {
-    List<SortedDocValuesIterator> toMerge = new ArrayList<>();
+    List<SortedDocValues> toMerge = new ArrayList<>();
     for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-      SortedDocValuesIterator values = null;
+      SortedDocValues values = null;
       DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
       if (docValuesProducer != null) {
         FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(fieldInfo.name);
@@ -500,13 +500,13 @@ public abstract class DocValuesConsumer implements Closeable {
     }
 
     final int numReaders = toMerge.size();
-    final SortedDocValuesIterator dvs[] = toMerge.toArray(new SortedDocValuesIterator[numReaders]);
+    final SortedDocValues dvs[] = toMerge.toArray(new SortedDocValues[numReaders]);
     
     // step 1: iterate thru each sub and mark terms still in use
     TermsEnum liveTerms[] = new TermsEnum[dvs.length];
     long[] weights = new long[liveTerms.length];
     for (int sub=0;sub<numReaders;sub++) {
-      SortedDocValuesIterator dv = dvs[sub];
+      SortedDocValues dv = dvs[sub];
       Bits liveDocs = mergeState.liveDocs[sub];
       int maxDoc = mergeState.maxDocs[sub];
       if (liveDocs == null) {
@@ -535,7 +535,7 @@ public abstract class DocValuesConsumer implements Closeable {
     addSortedField(fieldInfo,
                    new EmptyDocValuesProducer() {
                      @Override
-                     public SortedDocValuesIterator getSorted(FieldInfo fieldInfoIn) {
+                     public SortedDocValues getSorted(FieldInfo fieldInfoIn) {
                        if (fieldInfoIn != fieldInfo) {
                          throw new IllegalArgumentException("wrong FieldInfo");
                        }
@@ -545,7 +545,7 @@ public abstract class DocValuesConsumer implements Closeable {
                        List<SortedDocValuesSub> subs = new ArrayList<>();
                        long cost = 0;
                        for (int i=0;i<mergeState.docValuesProducers.length;i++) {
-                         SortedDocValuesIterator values = null;
+                         SortedDocValues values = null;
                          DocValuesProducer docValuesProducer = mergeState.docValuesProducers[i];
                          if (docValuesProducer != null) {
                            FieldInfo readerFieldInfo = mergeState.fieldInfos[i].fieldInfo(fieldInfo.name);
@@ -573,7 +573,7 @@ public abstract class DocValuesConsumer implements Closeable {
                          throw new RuntimeException(ioe);
                        }
                        
-                       return new SortedDocValuesIterator() {
+                       return new SortedDocValues() {
                          private int docID = -1;
                          private int ord;
 

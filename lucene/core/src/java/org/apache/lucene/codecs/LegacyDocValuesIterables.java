@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.util.BytesRef;
@@ -34,7 +34,7 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 public class LegacyDocValuesIterables {
 
   /** Iterates over all unique values in this doc values */
-  public static Iterable<BytesRef> valuesIterable(final SortedDocValuesIterator values) {
+  public static Iterable<BytesRef> valuesIterable(final SortedDocValues values) {
     return new Iterable<BytesRef>() {
       @Override
       public Iterator<BytesRef> iterator() {
@@ -83,7 +83,7 @@ public class LegacyDocValuesIterables {
       @Override
       public Iterator<Number> iterator() {
 
-        final SortedDocValuesIterator values;
+        final SortedDocValues values;
         try {
           values = valuesProducer.getSorted(fieldInfo);
         } catch (IOException ioe) {

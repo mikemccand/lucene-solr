@@ -500,7 +500,7 @@ public class MultiDocValues {
    * with {@link LeafReader#getSortedDocValues(String)}
    * </p>  
    */
-  public static SortedDocValuesIterator getSortedValues(final IndexReader r, final String field) throws IOException {
+  public static SortedDocValues getSortedValues(final IndexReader r, final String field) throws IOException {
     final List<LeafReaderContext> leaves = r.leaves();
     final int size = leaves.size();
     
@@ -511,12 +511,12 @@ public class MultiDocValues {
     }
     
     boolean anyReal = false;
-    final SortedDocValuesIterator[] values = new SortedDocValuesIterator[size];
+    final SortedDocValues[] values = new SortedDocValues[size];
     final int[] starts = new int[size+1];
     long totalCost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = leaves.get(i);
-      SortedDocValuesIterator v = context.reader().getSortedDocValues(field);
+      SortedDocValues v = context.reader().getSortedDocValues(field);
       if (v == null) {
         v = DocValues.emptySortedIterator();
       } else {
@@ -532,7 +532,7 @@ public class MultiDocValues {
       return null;
     } else {
       OrdinalMap mapping = OrdinalMap.build(r.getCoreCacheKey(), values, PackedInts.DEFAULT);
-      return new MultiSortedDocValuesIterator(values, starts, mapping, totalCost);
+      return new MultiSortedDocValues(values, starts, mapping, totalCost);
     }
   }
   
@@ -642,10 +642,10 @@ public class MultiDocValues {
 
     /**
      * Create an ordinal map that uses the number of unique values of each
-     * {@link SortedDocValuesIterator} instance as a weight.
+     * {@link SortedDocValues} instance as a weight.
      * @see #build(Object, TermsEnum[], long[], float)
      */
-    public static OrdinalMap build(Object owner, SortedDocValuesIterator[] values, float acceptableOverheadRatio) throws IOException {
+    public static OrdinalMap build(Object owner, SortedDocValues[] values, float acceptableOverheadRatio) throws IOException {
       final TermsEnum[] subs = new TermsEnum[values.length];
       final long[] weights = new long[values.length];
       for (int i = 0; i < values.length; ++i) {
@@ -859,22 +859,22 @@ public class MultiDocValues {
    * Implements SortedDocValues over n subs, using an OrdinalMap
    * @lucene.internal
    */
-  public static class MultiSortedDocValuesIterator extends SortedDocValuesIterator {
+  public static class MultiSortedDocValues extends SortedDocValues {
     /** docbase for each leaf: parallel with {@link #values} */
     public final int docStarts[];
     /** leaf values */
-    public final SortedDocValuesIterator values[];
+    public final SortedDocValues values[];
     /** ordinal map mapping ords from <code>values</code> to global ord space */
     public final OrdinalMap mapping;
     private final long totalCost;
 
     private int nextLeaf;
-    private SortedDocValuesIterator currentValues;
+    private SortedDocValues currentValues;
     private int currentDocStart;
     private int docID = -1;    
   
-    /** Creates a new MultiSortedDocValuesIterator over <code>values</code> */
-    public MultiSortedDocValuesIterator(SortedDocValuesIterator values[], int docStarts[], OrdinalMap mapping, long totalCost) throws IOException {
+    /** Creates a new MultiSortedDocValues over <code>values</code> */
+    public MultiSortedDocValues(SortedDocValues values[], int docStarts[], OrdinalMap mapping, long totalCost) throws IOException {
       assert docStarts.length == values.length + 1;
       this.values = values;
       this.docStarts = docStarts;

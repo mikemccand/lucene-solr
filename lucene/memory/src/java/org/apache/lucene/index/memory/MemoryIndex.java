@@ -1138,14 +1138,14 @@ public class MemoryIndex {
     }
 
     @Override
-    public SortedDocValuesIterator getSortedDocValues(String field) {
+    public SortedDocValues getSortedDocValues(String field) {
       return getSortedDocValues(field, DocValuesType.SORTED);
     }
 
-    private SortedDocValuesIterator getSortedDocValues(String field, DocValuesType docValuesType) {
+    private SortedDocValues getSortedDocValues(String field, DocValuesType docValuesType) {
       Info info = getInfoForExpectedDocValuesType(field, docValuesType);
       if (info != null) {
-        return new StupidSortedDocValuesIterator(info.binaryProducer.sortedDocValues, 1);
+        return new StupidSortedDocValues(info.binaryProducer.sortedDocValues, 1);
       } else {
         return null;
       }

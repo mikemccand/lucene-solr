@@ -21,12 +21,11 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiDocValues.MultiSortedDocValuesIterator;
+import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.MultiDocValues.MultiSortedSetDocValuesIterator;
 import org.apache.lucene.index.MultiDocValues.OrdinalMap;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -75,10 +74,10 @@ public class DocValuesFacets {
         ordinalMap = ((MultiSortedSetDocValuesIterator)si).mapping;
       }
     } else {
-      SortedDocValuesIterator single = searcher.getLeafReader().getSortedDocValues(fieldName);
+      SortedDocValues single = searcher.getLeafReader().getSortedDocValues(fieldName);
       si = single == null ? null : DocValues.singleton(single);
-      if (single instanceof MultiSortedDocValuesIterator) {
-        ordinalMap = ((MultiSortedDocValuesIterator)single).mapping;
+      if (single instanceof MultiDocValues.MultiSortedDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedDocValues)single).mapping;
       }
     }
     if (si == null) {
@@ -139,7 +138,7 @@ public class DocValuesFacets {
             if (sub == null) {
               sub = DocValues.emptySortedSet();
             }
-            final SortedDocValuesIterator singleton = DocValues.unwrapSingleton(sub);
+            final SortedDocValues singleton = DocValues.unwrapSingleton(sub);
             if (singleton != null) {
               // some codecs may optimize SORTED_SET storage for single-valued fields
               accumSingle(counts, startTermIndex, singleton, disi, subIndex, ordinalMap);
@@ -147,7 +146,7 @@ public class DocValuesFacets {
               accumMulti(counts, startTermIndex, sub, disi, subIndex, ordinalMap);
             }
           } else {
-            SortedDocValuesIterator sub = leaf.reader().getSortedDocValues(fieldName);
+            SortedDocValues sub = leaf.reader().getSortedDocValues(fieldName);
             if (sub == null) {
               sub = DocValues.emptySortedIterator();
             }
@@ -257,7 +256,7 @@ public class DocValuesFacets {
   }
   
   /** accumulates per-segment single-valued facet counts */
-  static void accumSingle(int counts[], int startTermIndex, SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumSingle(int counts[], int startTermIndex, SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     if (startTermIndex == -1 && (map == null || si.getValueCount() < disi.cost()*10)) {
       // no prefixing, not too many unique values wrt matching docs (lucene/facets heuristic): 
       //   collect separately per-segment, then map to global ords
@@ -269,7 +268,7 @@ public class DocValuesFacets {
   }
   
   /** accumulates per-segment single-valued facet counts, mapping to global ordinal space on-the-fly */
-  static void accumSingleGeneric(int counts[], int startTermIndex, SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumSingleGeneric(int counts[], int startTermIndex, SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     final LongValues ordmap = map == null ? null : map.getGlobalOrds(subIndex);
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
@@ -291,7 +290,7 @@ public class DocValuesFacets {
   }
   
   /** "typical" single-valued faceting: not too many unique values, no prefixing. maps to global ordinals as a separate step */
-  static void accumSingleSeg(int counts[], SortedDocValuesIterator si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
+  static void accumSingleSeg(int counts[], SortedDocValues si, DocIdSetIterator disi, int subIndex, OrdinalMap map) throws IOException {
     // First count in seg-ord space:
     final int segCounts[];
     if (map == null) {

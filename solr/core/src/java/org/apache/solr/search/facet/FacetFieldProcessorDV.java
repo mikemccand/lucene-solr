@@ -21,13 +21,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.EmptyDocValuesProducer;
-import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
-import org.apache.lucene.index.StupidSortedDocValuesIterator;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.BytesRef;
@@ -62,10 +59,10 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
       }
     } else {
       // multi-valued view
-      SortedDocValuesIterator single = FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
+      SortedDocValues single = FieldUtil.getSortedDocValues(fcontext.qcontext, sf, null);
       si = DocValues.singleton(single);
-      if (single instanceof MultiDocValues.MultiSortedDocValuesIterator) {
-        ordinalMap = ((MultiDocValues.MultiSortedDocValuesIterator)single).mapping;
+      if (single instanceof MultiDocValues.MultiSortedDocValues) {
+        ordinalMap = ((MultiDocValues.MultiSortedDocValues)single).mapping;
       }
     }
 
@@ -131,7 +128,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
       DocIdSet dis = filter.getDocIdSet(subCtx, null); // solr docsets already exclude any deleted docs
       DocIdSetIterator disi = dis.iterator();
 
-      SortedDocValuesIterator singleDv = null;
+      SortedDocValues singleDv = null;
       SortedSetDocValuesIterator multiDv = null;
       if (multiValuedField) {
         // TODO: get sub from multi?
@@ -191,7 +188,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     return reuse;
   }
 
-  private void collectPerSeg(SortedDocValuesIterator singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectPerSeg(SortedDocValues singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int segMax = singleDv.getValueCount() + 1;
     final int[] counts = getCountArr( segMax );
 
@@ -244,7 +241,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     }
   }
 
-  private void collectDocs(SortedDocValuesIterator singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectDocs(SortedDocValues singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
       if (doc > singleDv.docID()) {
@@ -257,7 +254,7 @@ class FacetFieldProcessorDV extends FacetFieldProcessorFCBase {
     }
   }
 
-  private void collectCounts(SortedDocValuesIterator singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
+  private void collectCounts(SortedDocValues singleDv, DocIdSetIterator disi, LongValues toGlobal) throws IOException {
     int doc;
     while ((doc = disi.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
       if (doc > singleDv.docID()) {

@@ -234,7 +234,7 @@ public final class SlowCodecReaderWrapper {
       }
 
       @Override
-      public SortedDocValuesIterator getSorted(FieldInfo field) throws IOException {
+      public SortedDocValues getSorted(FieldInfo field) throws IOException {
         return reader.getSortedDocValues(field.name);
       }
 

@@ -24,7 +24,7 @@ import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.IndexSearcher;
@@ -273,7 +273,7 @@ public class HashQParserPlugin extends QParserPlugin {
 
   private class BytesHash implements HashKey {
 
-    private SortedDocValuesIterator values;
+    private SortedDocValues values;
     private String field;
     private FieldType fieldType;
     private CharsRefBuilder charsRefBuilder = new CharsRefBuilder();

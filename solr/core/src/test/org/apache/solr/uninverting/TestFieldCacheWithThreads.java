@@ -37,7 +37,7 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
@@ -121,7 +121,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
                 BinaryDocValues bdv = FieldCache.DEFAULT.getTerms(ar, "bytes");
                 assertEquals(docID, bdv.advance(docID));
                 assertEquals(binary.get(docID), bdv.binaryValue());
-                SortedDocValuesIterator sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
+                SortedDocValues sdv = FieldCache.DEFAULT.getTermsIndex(ar, "sorted");
                 assertEquals(docID, sdv.advance(docID));
                 assertEquals(sorted.get(docID), sdv.binaryValue());
               }
@@ -206,7 +206,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
           @Override
           public void run() {
             Random random = random();            
-            final SortedDocValuesIterator stringDVDirect;
+            final SortedDocValues stringDVDirect;
             final NumericDocValues docIDToID;
             try {
               stringDVDirect = sr.getSortedDocValues("stringdv");
@@ -228,7 +228,7 @@ public class TestFieldCacheWithThreads extends LuceneTestCase {
               for(int iter=0;iter<100;iter++) {
                 final int docID = random.nextInt(sr.maxDoc());
                 try {
-                  SortedDocValuesIterator dvs = sr.getSortedDocValues("stringdv");
+                  SortedDocValues dvs = sr.getSortedDocValues("stringdv");
                   assertEquals(docID, dvs.advance(docID));
                   assertEquals(docValues.get(docIDToIDArray[docID]), dvs.binaryValue());
                 } catch (IOException ioe) {

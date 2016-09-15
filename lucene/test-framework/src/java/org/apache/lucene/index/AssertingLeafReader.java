@@ -506,15 +506,15 @@ public class AssertingLeafReader extends FilterLeafReader {
     }    
   }
 
-  /** Wraps a SortedDocValuesIterator but with additional asserts */
-  public static class AssertingSortedDocValues extends SortedDocValuesIterator {
+  /** Wraps a SortedDocValues but with additional asserts */
+  public static class AssertingSortedDocValues extends SortedDocValues {
     private final Thread creationThread = Thread.currentThread();
-    private final SortedDocValuesIterator in;
+    private final SortedDocValues in;
     private final int maxDoc;
     private final int valueCount;
     private int lastDocID = -1;
     
-    public AssertingSortedDocValues(SortedDocValuesIterator in, int maxDoc) {
+    public AssertingSortedDocValues(SortedDocValues in, int maxDoc) {
       this.in = in;
       this.maxDoc = maxDoc;
       this.valueCount = in.getValueCount();
@@ -794,8 +794,8 @@ public class AssertingLeafReader extends FilterLeafReader {
   }
 
   @Override
-  public SortedDocValuesIterator getSortedDocValues(String field) throws IOException {
-    SortedDocValuesIterator dv = super.getSortedDocValues(field);
+  public SortedDocValues getSortedDocValues(String field) throws IOException {
+    SortedDocValues dv = super.getSortedDocValues(field);
     FieldInfo fi = getFieldInfos().fieldInfo(field);
     if (dv != null) {
       assert fi != null;

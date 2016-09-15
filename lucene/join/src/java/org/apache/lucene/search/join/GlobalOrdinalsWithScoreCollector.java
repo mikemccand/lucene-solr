@@ -22,7 +22,7 @@ import java.util.Arrays;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorer;
@@ -86,7 +86,7 @@ abstract class GlobalOrdinalsWithScoreCollector implements Collector {
 
   @Override
   public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-    SortedDocValuesIterator docTermOrds = DocValues.getSorted(context.reader(), field);
+    SortedDocValues docTermOrds = DocValues.getSorted(context.reader(), field);
     if (ordinalMap != null) {
       LongValues segmentOrdToGlobalOrdLookup = ordinalMap.getGlobalOrds(context.ord);
       return new OrdinalMapCollector(docTermOrds, segmentOrdToGlobalOrdLookup);
@@ -102,11 +102,11 @@ abstract class GlobalOrdinalsWithScoreCollector implements Collector {
 
   final class OrdinalMapCollector implements LeafCollector {
 
-    private final SortedDocValuesIterator docTermOrds;
+    private final SortedDocValues docTermOrds;
     private final LongValues segmentOrdToGlobalOrdLookup;
     private Scorer scorer;
 
-    OrdinalMapCollector(SortedDocValuesIterator docTermOrds, LongValues segmentOrdToGlobalOrdLookup) {
+    OrdinalMapCollector(SortedDocValues docTermOrds, LongValues segmentOrdToGlobalOrdLookup) {
       this.docTermOrds = docTermOrds;
       this.segmentOrdToGlobalOrdLookup = segmentOrdToGlobalOrdLookup;
     }
@@ -136,10 +136,10 @@ abstract class GlobalOrdinalsWithScoreCollector implements Collector {
 
   final class SegmentOrdinalCollector implements LeafCollector {
 
-    private final SortedDocValuesIterator docTermOrds;
+    private final SortedDocValues docTermOrds;
     private Scorer scorer;
 
-    SegmentOrdinalCollector(SortedDocValuesIterator docTermOrds) {
+    SegmentOrdinalCollector(SortedDocValues docTermOrds) {
       this.docTermOrds = docTermOrds;
     }
 
@@ -247,7 +247,7 @@ abstract class GlobalOrdinalsWithScoreCollector implements Collector {
 
     @Override
     public LeafCollector getLeafCollector(LeafReaderContext context) throws IOException {
-      SortedDocValuesIterator docTermOrds = DocValues.getSorted(context.reader(), field);
+      SortedDocValues docTermOrds = DocValues.getSorted(context.reader(), field);
       if (ordinalMap != null) {
         LongValues segmentOrdToGlobalOrdLookup = ordinalMap.getGlobalOrds(context.ord);
         return new LeafCollector() {

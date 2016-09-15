@@ -294,7 +294,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
   }
 
   @Override
-  public SortedDocValuesIterator getSorted(FieldInfo fieldInfo) throws IOException {
+  public SortedDocValues getSorted(FieldInfo fieldInfo) throws IOException {
     final OneField field = fields.get(fieldInfo.name);
 
     // SegmentCoreReaders already verifies this field is
@@ -306,7 +306,7 @@ class SimpleTextDocValuesReader extends DocValuesProducer {
     final DecimalFormat decoder = new DecimalFormat(field.pattern, new DecimalFormatSymbols(Locale.ROOT));
     final DecimalFormat ordDecoder = new DecimalFormat(field.ordPattern, new DecimalFormatSymbols(Locale.ROOT));
 
-    return new StupidSortedDocValuesIterator(new LegacySortedDocValues() {
+    return new StupidSortedDocValues(new LegacySortedDocValues() {
       final BytesRefBuilder term = new BytesRefBuilder();
 
       @Override

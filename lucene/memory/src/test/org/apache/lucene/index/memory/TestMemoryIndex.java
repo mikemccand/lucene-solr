@@ -50,7 +50,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.SortedNumericDocValuesIterator;
 import org.apache.lucene.index.SortedSetDocValuesIterator;
 import org.apache.lucene.index.Term;
@@ -252,7 +252,7 @@ public class TestMemoryIndex extends LuceneTestCase {
     BinaryDocValues binaryDocValues = leafReader.getBinaryDocValues("binary");
     assertEquals(0, binaryDocValues.nextDoc());
     assertEquals("a", binaryDocValues.binaryValue().utf8ToString());
-    SortedDocValuesIterator sortedDocValues = leafReader.getSortedDocValues("sorted");
+    SortedDocValues sortedDocValues = leafReader.getSortedDocValues("sorted");
     assertEquals(0, sortedDocValues.nextDoc());
     assertEquals("b", sortedDocValues.binaryValue().utf8ToString());
     assertEquals(0, sortedDocValues.ordValue());

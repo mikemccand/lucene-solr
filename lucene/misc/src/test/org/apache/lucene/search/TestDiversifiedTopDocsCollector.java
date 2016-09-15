@@ -34,7 +34,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.MultiDocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.RandomIndexWriter;
-import org.apache.lucene.index.SortedDocValuesIterator;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.similarities.Similarity;
@@ -116,10 +116,10 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
   // from a top-level Reader
   private static final class DocValuesDiversifiedCollector extends
       DiversifiedTopDocsCollector {
-    private final SortedDocValuesIterator sdv;
+    private final SortedDocValues sdv;
 
     public DocValuesDiversifiedCollector(int size, int maxHitsPerKey,
-        SortedDocValuesIterator sdv) {
+        SortedDocValues sdv) {
       super(size, maxHitsPerKey);
       this.sdv = sdv;
     }
@@ -285,7 +285,7 @@ public class TestDiversifiedTopDocsCollector extends LuceneTestCase {
   private Directory dir;
   private IndexReader reader;
   private IndexSearcher searcher;
-  private SortedDocValuesIterator artistDocValues;
+  private SortedDocValues artistDocValues;
 
   static class Record {
     String year;
