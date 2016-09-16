@@ -2065,7 +2065,7 @@ public final class CheckIndex implements Closeable {
       throw new RuntimeException("binary dv iterator for field: " + fieldName + " should start at docID=-1, but got " + bdv.docID());
     }
     // TODO: we could add stats to DVs, e.g. total doc count w/ a value for this field
-    // nocommit test advance, cost too
+    // TODO: check advance too
     while ((doc = bdv.nextDoc()) != NO_MORE_DOCS) {
       BytesRef value = bdv.binaryValue();
       value.isValid();
@@ -2080,6 +2080,7 @@ public final class CheckIndex implements Closeable {
     FixedBitSet seenOrds = new FixedBitSet(dv.getValueCount());
     int maxOrd2 = -1;
     int docID;
+    // TODO: check advance too
     while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
       int ord = dv.ordValue();
       if (ord == -1) {
@@ -2115,6 +2116,7 @@ public final class CheckIndex implements Closeable {
     LongBitSet seenOrds = new LongBitSet(dv.getValueCount());
     long maxOrd2 = -1;
     int docID;
+    // TODO: check advance too
     while ((docID = dv.nextDoc()) != NO_MORE_DOCS) {
       long lastOrd = -1;
       long ord;
@@ -2159,6 +2161,7 @@ public final class CheckIndex implements Closeable {
     if (ndv.docID() != -1) {
       throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
     }
+    // TODO: check advance too
     while (true) {
       int docID = ndv.nextDoc();
       if (docID == NO_MORE_DOCS) {
@@ -2185,7 +2188,7 @@ public final class CheckIndex implements Closeable {
       throw new RuntimeException("dv iterator for field: " + fieldName + " should start at docID=-1, but got " + ndv.docID());
     }
     // TODO: we could add stats to DVs, e.g. total doc count w/ a value for this field
-    // nocommit test advance, cost too
+    // TODO: check advance too
     while ((doc = ndv.nextDoc()) != NO_MORE_DOCS) {
       ndv.longValue();
     }

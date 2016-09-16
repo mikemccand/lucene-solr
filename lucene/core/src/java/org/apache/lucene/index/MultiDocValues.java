@@ -162,7 +162,6 @@ public class MultiDocValues {
     }
 
     final List<NumericDocValues> iterators = new ArrayList<>();
-    // nocommit this cost could be costly to compute?  should we only do it if user calls cost?
     long totalCost = 0;
     boolean any = false;
     for(int i=0;i<leaves.size();i++) {
@@ -900,8 +899,6 @@ public class MultiDocValues {
       }
     }
 
-    // nocommit we needs better tests of DV-as-iterator, e.g. that advance in multi case is really working:
-
     @Override
     public int advance(int targetDocID) throws IOException {
       if (targetDocID <= docID) {
@@ -1007,8 +1004,6 @@ public class MultiDocValues {
         }
       }
     }
-
-    // nocommit we needs better tests of DV-as-iterator, e.g. that advance in multi case is really working:
 
     @Override
     public int advance(int targetDocID) throws IOException {

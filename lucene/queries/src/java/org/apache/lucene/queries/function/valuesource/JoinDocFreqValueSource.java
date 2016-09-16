@@ -78,13 +78,9 @@ public class JoinDocFreqValueSource extends FieldCacheSource {
           BytesRef term = terms.binaryValue();
           if (termsEnum.seekExact(term)) {
             return termsEnum.docFreq();
-          } else {
-            return 0;
           }
-        } else {
-          // nocommit should we attempt seek to empty BytesRef here?  i think old impl did so?
-          return 0;
         }
+        return 0;
       }
     };
   }

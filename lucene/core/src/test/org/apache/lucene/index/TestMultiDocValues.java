@@ -17,6 +17,7 @@
 package org.apache.lucene.index;
 
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.lucene.document.BinaryDocValuesField;
@@ -26,6 +27,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
@@ -68,6 +70,8 @@ public class TestMultiDocValues extends LuceneTestCase {
       assertEquals(i, single.nextDoc());
       assertEquals(single.longValue(), multi.longValue());
     }
+    testRandomAdvance(merged.getNumericDocValues("numbers"), MultiDocValues.getNumericValues(ir, "numbers"));
+    
     ir.close();
     ir2.close();
     dir.close();
@@ -83,10 +87,8 @@ public class TestMultiDocValues extends LuceneTestCase {
     iwc.setMergePolicy(newLogMergePolicy());
     RandomIndexWriter iw = new RandomIndexWriter(random(), dir, iwc);
 
-    //int numDocs = TEST_NIGHTLY ? atLeast(500) : atLeast(50);
+    int numDocs = TEST_NIGHTLY ? atLeast(500) : atLeast(50);
 
-    // nocommit
-    int numDocs = 3;
     for (int i = 0; i < numDocs; i++) {
       BytesRef ref = new BytesRef(TestUtil.randomUnicodeString(random()));
       field.setBytesValue(ref);
@@ -110,6 +112,8 @@ public class TestMultiDocValues extends LuceneTestCase {
       final BytesRef actual = multi.binaryValue();
       assertEquals(expected, actual);
     }
+    testRandomAdvance(merged.getBinaryDocValues("bytes"), MultiDocValues.getBinaryValues(ir, "bytes"));
+
     ir.close();
     ir2.close();
     dir.close();
@@ -159,6 +163,7 @@ public class TestMultiDocValues extends LuceneTestCase {
       // check ord
       assertEquals(single.ordValue(), multi.ordValue());
     }
+    testRandomAdvance(merged.getSortedDocValues("bytes"), MultiDocValues.getSortedValues(ir, "bytes"));
     ir.close();
     ir2.close();
     dir.close();
@@ -203,6 +208,8 @@ public class TestMultiDocValues extends LuceneTestCase {
       final BytesRef actual = multi.binaryValue();
       assertEquals(expected, actual);
     }
+    testRandomAdvance(merged.getSortedDocValues("bytes"), MultiDocValues.getSortedValues(ir, "bytes"));
+    
     ir.close();
     ir2.close();
     dir.close();
@@ -267,6 +274,7 @@ public class TestMultiDocValues extends LuceneTestCase {
         assertEquals(expectedList.size(), upto);
       }
     }
+    testRandomAdvance(merged.getSortedSetDocValues("bytes"), MultiDocValues.getSortedSetValues(ir, "bytes"));
     
     ir.close();
     ir2.close();
@@ -332,6 +340,7 @@ public class TestMultiDocValues extends LuceneTestCase {
         assertEquals(expectedList.size(), upto);
       }
     }
+    testRandomAdvance(merged.getSortedSetDocValues("bytes"), MultiDocValues.getSortedSetValues(ir, "bytes"));
     
     ir.close();
     ir2.close();
@@ -381,9 +390,24 @@ public class TestMultiDocValues extends LuceneTestCase {
         }
       }
     }
+    testRandomAdvance(merged.getSortedNumericDocValues("nums"), MultiDocValues.getSortedNumericValues(ir, "nums"));
     
     ir.close();
     ir2.close();
     dir.close();
+  }
+
+  private void testRandomAdvance(DocIdSetIterator iter1, DocIdSetIterator iter2) throws IOException {
+    assertEquals(-1, iter1.docID());
+    assertEquals(-1, iter2.docID());
+
+    while (iter1.docID() != NO_MORE_DOCS) {
+      if (random().nextBoolean()) {
+        assertEquals(iter1.nextDoc(), iter2.nextDoc());
+      } else {
+        int target = iter1.docID() + TestUtil.nextInt(random(), 1, 100);
+        assertEquals(iter1.advance(target), iter2.advance(target));
+      }
+    }
   }
 }

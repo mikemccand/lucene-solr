@@ -47,7 +47,6 @@ public final class LegacyBinaryDocValuesWrapper extends BinaryDocValues {
   public int nextDoc() {
     docID++;
     while (docID < maxDoc) {
-      // nocommit if it's a FixedBitSet we can use nextSetBit?
       if (docsWithField.get(docID)) {
         return docID;
       }

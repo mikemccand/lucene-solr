@@ -634,8 +634,6 @@ public class TestIndexSorting extends LuceneTestCase {
     boolean withDeletes = random().nextBoolean();
     Directory dir = newDirectory();
     IndexWriterConfig iwc = new IndexWriterConfig(new MockAnalyzer(random()));
-    // nocommit
-    iwc.setMergeScheduler(new SerialMergeScheduler());
     Sort indexSort = new Sort(new SortField("foo", SortField.Type.LONG));
     iwc.setIndexSort(indexSort);
     IndexWriter w = new IndexWriter(dir, iwc);

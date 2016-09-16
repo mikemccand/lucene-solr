@@ -444,6 +444,11 @@ public class AssertingLeafReader extends FilterLeafReader {
       assert in.docID() != NO_MORE_DOCS;
       return in.longValue();
     }    
+
+    @Override
+    public String toString() {
+      return "AssertingNumericDocValues(" + in + ")";
+    }
   }
   
   /** Wraps a BinaryDocValues but with additional asserts */

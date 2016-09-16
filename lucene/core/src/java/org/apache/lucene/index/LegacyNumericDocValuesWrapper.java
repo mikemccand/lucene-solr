@@ -77,7 +77,7 @@ public final class LegacyNumericDocValuesWrapper extends NumericDocValues {
 
   @Override
   public long cost() {
-    // nocommit
+    // TODO
     return 0;
   }
 

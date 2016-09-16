@@ -787,48 +787,85 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
 
   @Override
   public SortedDocValues getSorted(FieldInfo field) throws IOException {
-    return new LegacySortedDocValuesWrapper(getSortedNonIterator(field), maxDoc);
-  }
-
-  private LegacySortedDocValues getSortedNonIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
     final LegacyBinaryDocValues binary = getLegacyBinary(field);
     NumericEntry entry = ords.get(field.name);
     final LongValues ordinals = getNumeric(entry);
-    return new LegacySortedDocValues() {
+    return new SortedDocValues() {
+      private int docID = -1;
+      private int ord;
 
-        @Override
-        public int getOrd(int docID) {
-          return (int) ordinals.get(docID);
-        }
+      @Override
+      public int docID() {
+        return docID;
+      }
 
-        @Override
-        public BytesRef lookupOrd(int ord) {
-          return binary.get(ord);
-        }
-
-        @Override
-        public int getValueCount() {
-          return valueCount;
-        }
-
-        @Override
-        public int lookupTerm(BytesRef key) {
-          if (binary instanceof CompressedBinaryDocValues) {
-            return (int) ((CompressedBinaryDocValues)binary).lookupTerm(key);
-          } else {
-            return super.lookupTerm(key);
+      @Override
+      public int nextDoc() throws IOException {
+        assert docID != NO_MORE_DOCS;
+        while (true) {
+          docID++;
+          if (docID == maxDoc) {
+            docID = NO_MORE_DOCS;
+            break;
+          }
+          ord = (int) ordinals.get(docID);
+          if (ord != -1) {
+            break;
           }
         }
+        return docID;
+      }
 
-        @Override
-        public TermsEnum termsEnum() {
-          if (binary instanceof CompressedBinaryDocValues) {
-            return ((CompressedBinaryDocValues)binary).getTermsEnum();
-          } else {
-            return super.termsEnum();
-          }
+      @Override
+      public int advance(int target) throws IOException {
+        if (target >= maxDoc) {
+          docID = NO_MORE_DOCS;
+          return docID;
+        } else {
+          docID = target-1;
+          return nextDoc();
         }
+      }
+          
+      @Override
+      public int ordValue() {
+        return ord;
+      }
+
+      @Override
+      public long cost() {
+        // TODO
+        return 0;
+      }
+
+      @Override
+      public BytesRef lookupOrd(int ord) {
+        return binary.get(ord);
+      }
+
+      @Override
+      public int getValueCount() {
+        return valueCount;
+      }
+
+      @Override
+      public int lookupTerm(BytesRef key) {
+        if (binary instanceof CompressedBinaryDocValues) {
+          return (int) ((CompressedBinaryDocValues)binary).lookupTerm(key);
+        } else {
+          return super.lookupTerm(key);
+        }
+      }
+
+      @Override
+      public TermsEnum termsEnum() {
+        if (binary instanceof CompressedBinaryDocValues) {
+          return ((CompressedBinaryDocValues)binary).getTermsEnum();
+        } else {
+          return super.termsEnum();
+        }
+      }
     };
   }
 

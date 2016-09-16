@@ -75,21 +75,6 @@ public final class DocValues {
   }
 
   /** 
-   * An empty NumericDocValues which returns zero for every document 
-   */
-  // nocommit remove
-  /*
-  public static final LegacyNumericDocValues emptyNumeric() {
-    return new NumericDocValues() {
-      @Override
-      public long get(int docID) {
-        return 0;
-      }
-    };
-  }
-  */
-
-  /** 
    * An empty NumericDocValues which returns no documents
    */
   public static final NumericDocValues emptyNumeric() {
@@ -441,7 +426,6 @@ public final class DocValues {
    */
   public static SortedSetDocValues getSortedSet(LeafReader reader, String field) throws IOException {
     SortedSetDocValues dv = reader.getSortedSetDocValues(field);
-    // nocommit fixme!
     if (dv == null) {
       SortedDocValues sorted = reader.getSortedDocValues(field);
       if (sorted == null) {

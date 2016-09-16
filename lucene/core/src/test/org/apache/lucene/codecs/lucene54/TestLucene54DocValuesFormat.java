@@ -232,27 +232,31 @@ public class TestLucene54DocValuesFormat extends BaseCompressingDocValuesFormatT
         }
 
         final IndexableField[] valuesFields = doc.getFields("values");
-        final Set<Long> valueSet = new HashSet<>();
-        for (IndexableField sf : valuesFields) {
-          valueSet.add(sf.numericValue().longValue());
-        }
-
-        assertEquals(i, sortedNumeric.nextDoc());
-        assertEquals(valuesFields.length, sortedNumeric.docValueCount());
-        for (int j = 0; j < sortedNumeric.docValueCount(); ++j) {
-          assertTrue(valueSet.contains(sortedNumeric.nextValue()));
-        }
-        assertEquals(i, sortedSet.nextDoc());
-        int sortedSetCount = 0;
-        while (true) {
-          long ord = sortedSet.nextOrd();
-          if (ord == SortedSetDocValues.NO_MORE_ORDS) {
-            break;
+        if (valuesFields.length == 0) {
+          assertTrue(sortedNumeric.docID() + " vs " + i, sortedNumeric.docID() < i);
+        } else {
+          final Set<Long> valueSet = new HashSet<>();
+          for (IndexableField sf : valuesFields) {
+            valueSet.add(sf.numericValue().longValue());
           }
-          assertTrue(valueSet.contains(Long.parseLong(sortedSet.lookupOrd(ord).utf8ToString())));
-          sortedSetCount++;
+
+          assertEquals(i, sortedNumeric.nextDoc());
+          assertEquals(valuesFields.length, sortedNumeric.docValueCount());
+          for (int j = 0; j < sortedNumeric.docValueCount(); ++j) {
+            assertTrue(valueSet.contains(sortedNumeric.nextValue()));
+          }
+          assertEquals(i, sortedSet.nextDoc());
+          int sortedSetCount = 0;
+          while (true) {
+            long ord = sortedSet.nextOrd();
+            if (ord == SortedSetDocValues.NO_MORE_ORDS) {
+              break;
+            }
+            assertTrue(valueSet.contains(Long.parseLong(sortedSet.lookupOrd(ord).utf8ToString())));
+            sortedSetCount++;
+          }
+          assertEquals(valueSet.size(), sortedSetCount);
         }
-        assertEquals(valueSet.size(), sortedSetCount);
       }
     }
 

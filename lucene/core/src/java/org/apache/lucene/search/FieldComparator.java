@@ -144,23 +144,14 @@ public abstract class FieldComparator<T> {
     protected final T missingValue;
     protected final String field;
     protected NumericDocValues currentReaderValues;
-    private int lastDocID = -1;
     
     public NumericComparator(String field, T missingValue) {
       this.field = field;
       this.missingValue = missingValue;
     }
 
-    protected void checkDocsInOrder(int doc) {
-      if (doc < lastDocID) {
-        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
-      }
-      lastDocID = doc;
-    }
-
     @Override
     protected void doSetNextReader(LeafReaderContext context) throws IOException {
-      lastDocID = -1;
       currentReaderValues = getNumericDocValues(context, field);
     }
     
@@ -187,7 +178,6 @@ public abstract class FieldComparator<T> {
     }
 
     private double getValueForDoc(int doc) throws IOException {
-      checkDocsInOrder(doc);
       int curDocID = currentReaderValues.docID();
       if (doc > curDocID) {
         curDocID = currentReaderValues.advance(doc);
@@ -252,7 +242,6 @@ public abstract class FieldComparator<T> {
     }
     
     private float getValueForDoc(int doc) throws IOException {
-      checkDocsInOrder(doc);
       int curDocID = currentReaderValues.docID();
       if (doc > curDocID) {
         curDocID = currentReaderValues.advance(doc);
@@ -319,7 +308,6 @@ public abstract class FieldComparator<T> {
     }
 
     private int getValueForDoc(int doc) throws IOException {
-      checkDocsInOrder(doc);
       int curDocID = currentReaderValues.docID();
       if (doc > curDocID) {
         curDocID = currentReaderValues.advance(doc);
@@ -384,7 +372,6 @@ public abstract class FieldComparator<T> {
     }
 
     private long getValueForDoc(int doc) throws IOException {
-      checkDocsInOrder(doc);
       int curDocID = currentReaderValues.docID();
       if (doc > curDocID) {
         curDocID = currentReaderValues.advance(doc);
@@ -645,8 +632,6 @@ public abstract class FieldComparator<T> {
     /** Which ordinal to use for a missing value. */
     final int missingOrd;
 
-    private int lastDocID = -1;
-
     /** Creates this, sorting missing values first. */
     public TermOrdValComparator(int numHits, String field) {
       this(numHits, field, false);
@@ -670,24 +655,16 @@ public abstract class FieldComparator<T> {
       }
     }
 
-    protected void checkDocsInOrder(int doc) {
-      if (doc < lastDocID) {
-        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
-      }
-      lastDocID = doc;
-    }
-
     private int getOrdForDoc(int doc) throws IOException {
-      checkDocsInOrder(doc);
       int curDocID = termsIndex.docID();
       if (doc > curDocID) {
-        curDocID = termsIndex.advance(doc);
-      }
-      if (doc == curDocID) {
+        if (termsIndex.advance(doc) == doc) {
+          return termsIndex.ordValue();
+        }
+      } else if (doc == curDocID) {
         return termsIndex.ordValue();
-      } else {
-        return -1;
       }
+      return -1;
     }
 
     @Override
@@ -778,8 +755,6 @@ public abstract class FieldComparator<T> {
         setBottom(bottomSlot);
       }
 
-      lastDocID = -1;
-      
       return this;
     }
     
@@ -879,7 +854,6 @@ public abstract class FieldComparator<T> {
     private BytesRef bottom;
     private BytesRef topValue;
     private final int missingSortCmp;
-    private int lastDocID = -1;
 
     /** Sole constructor. */
     public TermValComparator(int numHits, String field, boolean sortMissingLast) {
@@ -890,10 +864,6 @@ public abstract class FieldComparator<T> {
     }
 
     private BytesRef getValueForDoc(int doc) throws IOException {
-      if (doc < lastDocID) {
-        throw new AssertionError("docs were sent out-of-order: lastDocID=" + lastDocID + " vs doc=" + doc);
-      }
-      lastDocID = doc;
       int curDocID = docTerms.docID();
       if (doc > curDocID) {
         curDocID = docTerms.advance(doc);
@@ -947,7 +917,6 @@ public abstract class FieldComparator<T> {
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-      lastDocID = -1;
       docTerms = getBinaryDocValuesIterator(context, field);
       return this;
     }

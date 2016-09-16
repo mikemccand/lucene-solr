@@ -126,18 +126,21 @@ class BinaryDocValuesWriter extends DocValuesWriter {
                               });
   }
 
+  // nocommit fails: ant test  -Dtestcase=TestLucene54DocValuesFormat -Dtests.method=testSparseDocValuesVsStoredFields -Dtests.seed=E90F6D6DE7E4961E -Dtests.slow=true -Dtests.linedocsfile=/lucenedata/hudson.enwiki.random.lines.txt.fixed -Dtests.locale=en-ZA -Dtests.timezone=Asia/Almaty -Dtests.asserts=true -Dtests.file.encoding=UTF-8
+
   // iterates over the values we have in ram
   private class BufferedBinaryDocValues extends BinaryDocValues {
     final BytesRefBuilder value = new BytesRefBuilder();
     final PackedLongValues.Iterator lengthsIterator;
     final DataInput bytesIterator = bytes.getDataInput();
-    final int size = (int) lengths.size();
+    final int size;
     final int maxDoc;
     private int docID = -1;
     
     BufferedBinaryDocValues(int maxDoc, PackedLongValues lengths) {
       this.maxDoc = maxDoc;
       this.lengthsIterator = lengths.iterator();
+      this.size = (int) lengths.size();
     }
 
     @Override
@@ -147,7 +150,7 @@ class BinaryDocValuesWriter extends DocValuesWriter {
 
     @Override
     public int nextDoc() throws IOException {
-      if (docID == maxDoc-1) {
+      if (docID == size-1) {
         docID = NO_MORE_DOCS;
       } else {
         int next = docsWithField.nextSetBit(docID+1);
