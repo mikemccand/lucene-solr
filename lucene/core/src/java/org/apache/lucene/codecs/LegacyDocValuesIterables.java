@@ -35,6 +35,10 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 public class LegacyDocValuesIterables {
 
+  private LegacyDocValuesIterables() {
+    // no
+  }
+
   /** Converts {@link SortedDocValues} into an {@code Iterable&lt;BytesRef&gt;} for all the values.
    *
    * @deprecated Consume {@link SortedDocValues} instead. */

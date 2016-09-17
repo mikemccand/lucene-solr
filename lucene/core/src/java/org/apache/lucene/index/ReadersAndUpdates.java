@@ -465,7 +465,6 @@ class ReadersAndUpdates {
 
                 @Override
                 public long cost() {
-                  System.out.println("currentValues=" + currentValues);
                   return currentValues.cost();
                 }
 
