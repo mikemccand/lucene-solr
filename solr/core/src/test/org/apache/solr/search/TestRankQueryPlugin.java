@@ -691,10 +691,6 @@ public class TestRankQueryPlugin extends QParserPlugin {
         @Override
         public void setScorer(Scorer scorer) throws IOException {}
         
-        public boolean acceptsDocsOutOfOrder() {
-          return false;
-        }
-
         public void collect(int doc) throws IOException {
           int valuesDocID = values.docID();
           if (valuesDocID < doc) {

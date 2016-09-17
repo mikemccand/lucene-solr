@@ -308,6 +308,9 @@ public class IndexFetcher {
       long latestVersion = (Long) response.get(CMD_INDEX_VERSION);
       long latestGeneration = (Long) response.get(GENERATION);
 
+      LOG.info("Master's generation: " + latestGeneration);
+      LOG.info("Master's version: " + latestVersion);
+
       // TODO: make sure that getLatestCommit only returns commit points for the main index (i.e. no side-car indexes)
       IndexCommit commit = solrCore.getDeletionPolicy().getLatestCommit();
       if (commit == null) {
@@ -326,6 +329,7 @@ public class IndexFetcher {
         }
       }
 
+      LOG.info("Slave's generation: " + commit.getGeneration());
 
       if (latestVersion == 0L) {
         if (forceReplication && commit.getGeneration() != 0) {
@@ -353,8 +357,6 @@ public class IndexFetcher {
         successfulInstall = true;
         return true;
       }
-      LOG.info("Master's generation: " + latestGeneration);
-      LOG.info("Slave's generation: " + commit.getGeneration());
       LOG.info("Starting replication process");
       // get the list of files first
       fetchFileList(latestGeneration);
@@ -750,14 +752,14 @@ public class IndexFetcher {
   }
 
   private void openNewSearcherAndUpdateCommitPoint() throws IOException {
-    SolrQueryRequest req = new LocalSolrQueryRequest(solrCore,
-        new ModifiableSolrParams());
-
     RefCounted<SolrIndexSearcher> searcher = null;
     IndexCommit commitPoint;
+    // must get the latest solrCore object because the one we have might be closed because of a reload
+    // todo stop keeping solrCore around
+    SolrCore core = solrCore.getCoreDescriptor().getCoreContainer().getCore(solrCore.getName());
     try {
       Future[] waitSearcher = new Future[1];
-      searcher = solrCore.getSearcher(true, true, waitSearcher, true);
+      searcher = core.getSearcher(true, true, waitSearcher, true);
       if (waitSearcher[0] != null) {
         try {
           waitSearcher[0].get();
@@ -767,10 +769,10 @@ public class IndexFetcher {
       }
       commitPoint = searcher.get().getIndexReader().getIndexCommit();
     } finally {
-      req.close();
       if (searcher != null) {
         searcher.decref();
       }
+      core.close();
     }
 
     // update the commit point in replication handler

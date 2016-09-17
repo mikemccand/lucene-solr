@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -42,37 +43,8 @@ import org.apache.lucene.document.LazyDocument;
 import org.apache.lucene.index.*;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.StoredFieldVisitor.Status;
+import org.apache.lucene.search.*;
 import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.CollectionStatistics;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.DocIdSet;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.EarlyTerminatingSortingCollector;
-import org.apache.lucene.search.Explanation;
-import org.apache.lucene.search.FieldDoc;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.LeafCollector;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.MultiCollector;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.SimpleCollector;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.SortField;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermStatistics;
-import org.apache.lucene.search.TimeLimitingCollector;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TopDocsCollector;
-import org.apache.lucene.search.TopFieldCollector;
-import org.apache.lucene.search.TopFieldDocs;
-import org.apache.lucene.search.TopScoreDocCollector;
-import org.apache.lucene.search.TotalHitCountCollector;
-import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
@@ -178,8 +150,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
   private final String path;
   private boolean releaseDirectory;
 
-  private volatile IndexFingerprint fingerprint;
-  private final Object fingerprintLock = new Object();
+  private final Map<Long, IndexFingerprint> maxVersionFingerprintCache = new ConcurrentHashMap<>();
 
   private static DirectoryReader getReader(SolrCore core, SolrIndexConfig config, DirectoryFactory directoryFactory,
       String path) throws IOException {
@@ -318,13 +289,12 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
       documentCache = solrConfig.documentCacheConfig == null ? null : solrConfig.documentCacheConfig.newInstance();
       if (documentCache != null) clist.add(documentCache);
 
-      if (solrConfig.userCacheConfigs == null) {
+      if (solrConfig.userCacheConfigs.isEmpty()) {
         cacheMap = NO_GENERIC_CACHES;
       } else {
-        cacheMap = new HashMap<>(solrConfig.userCacheConfigs.length);
-        for (CacheConfig userCacheConfig : solrConfig.userCacheConfigs) {
-          SolrCache cache = null;
-          if (userCacheConfig != null) cache = userCacheConfig.newInstance();
+        cacheMap = new HashMap<>(solrConfig.userCacheConfigs.size());
+        for (Map.Entry<String,CacheConfig> e : solrConfig.userCacheConfigs.entrySet()) {
+          SolrCache cache = e.getValue().newInstance();
           if (cache != null) {
             cacheMap.put(cache.name(), cache);
             clist.add(cache);
@@ -2324,6 +2294,11 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
     return all.andNotSize(positiveA.union(positiveB));
   }
 
+  /** @lucene.internal */
+  public boolean intersects(DocSet a, DocsEnumState deState) throws IOException {
+    return a.intersects(getDocSet(deState));
+  }
+
   /**
    * Takes a list of document IDs, and returns an array of Documents containing all of the stored fields.
    */
@@ -2418,14 +2393,16 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
    * gets a cached version of the IndexFingerprint for this searcher
    **/
   public IndexFingerprint getIndexFingerprint(long maxVersion) throws IOException {
+    IndexFingerprint fingerprint = maxVersionFingerprintCache.get(maxVersion);
+    if (fingerprint != null) return fingerprint;
     // possibly expensive, so prevent more than one thread from calculating it for this searcher
-    synchronized (fingerprintLock) {
-      if (fingerprint == null) {
-        fingerprint = IndexFingerprint.getFingerprint(this, maxVersion);
-      }
+    synchronized (maxVersionFingerprintCache) {
+      fingerprint = maxVersionFingerprintCache.get(maxVersionFingerprintCache);
+      if (fingerprint != null) return fingerprint;
+      fingerprint = IndexFingerprint.getFingerprint(this, maxVersion);
+      maxVersionFingerprintCache.put(maxVersion, fingerprint);
+      return fingerprint;
     }
-
-    return fingerprint;
   }
 
   /////////////////////////////////////////////////////////////////////

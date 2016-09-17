@@ -147,7 +147,7 @@ public class ZkStateReader implements Closeable {
   private class CollectionWatch {
 
     int coreRefCount = 0;
-    Set<CollectionStateWatcher> stateWatchers = new HashSet<>();
+    Set<CollectionStateWatcher> stateWatchers = ConcurrentHashMap.newKeySet();
 
     public boolean canBeRemoved() {
       return coreRefCount + stateWatchers.size() == 0;
@@ -172,30 +172,29 @@ public class ZkStateReader implements Closeable {
     String configName = null;
 
     String path = COLLECTIONS_ZKNODE + "/" + collection;
-    LOG.info("Load collection config from: [{}]", path);
+    LOG.debug("Loading collection config from: [{}]", path);
 
     try {
       byte[] data = zkClient.getData(path, null, null, true);
 
-      if(data != null) {
+      if (data != null) {
         ZkNodeProps props = ZkNodeProps.load(data);
         configName = props.getStr(CONFIGNAME_PROP);
       }
 
       if (configName != null) {
-        if (!zkClient.exists(CONFIGS_ZKNODE + "/" + configName, true)) {
-          LOG.error("Specified config does not exist in ZooKeeper: [{}]", configName);
+        String configPath = CONFIGS_ZKNODE + "/" + configName;
+        if (!zkClient.exists(configPath, true)) {
+          LOG.error("Specified config=[{}] does not exist in ZooKeeper at location=[{}]", configName, configPath);
           throw new ZooKeeperException(ErrorCode.SERVER_ERROR, "Specified config does not exist in ZooKeeper: " + configName);
         } else {
-          LOG.info("path=[{}] [{}]=[{}] specified config exists in ZooKeeper", path, CONFIGNAME_PROP, configName);
+          LOG.debug("path=[{}] [{}]=[{}] specified config exists in ZooKeeper", configPath, CONFIGNAME_PROP, configName);
         }
       } else {
         throw new ZooKeeperException(ErrorCode.INVALID_STATE, "No config data found at path: " + path);
       }
-    } catch (KeeperException e) {
-      throw new SolrException(ErrorCode.SERVER_ERROR, "Error loading config name for collection " + collection, e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+    } catch (KeeperException| InterruptedException e) {
+      SolrZkClient.checkInterrupted(e);
       throw new SolrException(ErrorCode.SERVER_ERROR, "Error loading config name for collection " + collection, e);
     }
 
@@ -1273,10 +1272,14 @@ public class ZkStateReader implements Closeable {
 
   /* package-private for testing */
   Set<CollectionStateWatcher> getStateWatchers(String collection) {
-    CollectionWatch watch = collectionWatches.get(collection);
-    if (watch == null)
-      return null;
-    return new HashSet<>(watch.stateWatchers);
+    final Set<CollectionStateWatcher> watchers = new HashSet<>();
+    collectionWatches.compute(collection, (k, v) -> {
+      if (v != null) {
+        watchers.addAll(v.stateWatchers);
+      }
+      return v;
+    });
+    return watchers;
   }
 
   // returns true if the state has changed

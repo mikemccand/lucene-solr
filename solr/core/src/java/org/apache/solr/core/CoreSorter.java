@@ -17,13 +17,6 @@
 
 package org.apache.solr.core;
 
-/**
- * This is a utility class that sorts cores in such a way as to minimize other cores
- * waiting for replicas in the current node. This helps in avoiding leaderVote timeouts
- * happening in other nodes of the cluster
- *
- */
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -38,6 +31,12 @@ import org.apache.solr.common.cloud.Slice;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+
+/**
+ * This is a utility class that sorts cores in such a way as to minimize other cores
+ * waiting for replicas in the current node. This helps in avoiding leaderVote timeouts
+ * happening in other nodes of the cluster
+ */
 public class CoreSorter {
   Map<String, CountsForEachShard> shardsVsReplicaCounts = new LinkedHashMap<>();
   CoreContainer cc;
