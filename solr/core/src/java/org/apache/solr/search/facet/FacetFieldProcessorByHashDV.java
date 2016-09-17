@@ -368,7 +368,6 @@ class FacetFieldProcessorByHashDV extends FacetFieldProcessor {
       // TODO support SortedNumericDocValues
       DocSetUtil.collectSortedDocSet(fcontext.base, fcontext.searcher.getIndexReader(), new SimpleCollector() {
           NumericDocValues values = null; //NN
-          Bits docsWithField = null; //NN
 
           @Override public boolean needsScores() { return false; }
 
@@ -376,15 +375,14 @@ class FacetFieldProcessorByHashDV extends FacetFieldProcessor {
           protected void doSetNextReader(LeafReaderContext ctx) throws IOException {
             setNextReaderFirstPhase(ctx);
             values = DocValues.getNumeric(ctx.reader(), sf.getName());
-            docsWithField = DocValues.getDocsWithField(ctx.reader(), sf.getName());
           }
 
           @Override
           public void collect(int segDoc) throws IOException {
-            if (segDoc > docValues.docID()) {
-              docValues.advance(segDoc);
+            if (segDoc > values.docID()) {
+              values.advance(segDoc);
             }
-            if (segDoc == docValues.docID()) {
+            if (segDoc == values.docID()) {
               collectValFirstPhase(segDoc, values.longValue());
             }
           }
