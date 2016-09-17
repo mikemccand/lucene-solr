@@ -16,6 +16,9 @@
  */
 package org.apache.lucene.search.join;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.lucene.analysis.MockAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -28,6 +31,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
@@ -37,9 +41,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  */
 public class TestBlockJoinSorting extends LuceneTestCase {
@@ -48,7 +49,7 @@ public class TestBlockJoinSorting extends LuceneTestCase {
   public void testNestedSorting() throws Exception {
     final Directory dir = newDirectory();
     final RandomIndexWriter w = new RandomIndexWriter(random(), dir, newIndexWriterConfig(new MockAnalyzer(random()))
-        .setMergePolicy(NoMergePolicy.INSTANCE));
+                                                      .setMergePolicy(newLogMergePolicy()));
 
     List<Document> docs = new ArrayList<>();
     Document document = new Document();

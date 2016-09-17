@@ -26,7 +26,6 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BitUtil;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.PriorityQueue;
 import org.apache.solr.common.util.SimpleOrderedMap;
 import org.apache.solr.schema.SchemaField;
@@ -288,7 +287,6 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
     }
 
     NumericDocValues values = null;
-    Bits docsWithField = null;
 
     // TODO: factor this code out so it can be shared...
     final List<LeafReaderContext> leaves = fcontext.searcher.getIndexReader().leaves();
@@ -310,12 +308,16 @@ class FacetFieldProcessorNumeric extends FacetFieldProcessor {
         setNextReaderFirstPhase(ctx);
 
         values = DocValues.getNumeric(ctx.reader(), sf.getName());
-        docsWithField = DocValues.getDocsWithField(ctx.reader(), sf.getName());
       }
 
       int segDoc = doc - segBase;
-      long val = values.get(segDoc);
-      if (val != 0 || docsWithField.get(segDoc)) {
+      int valuesDocID = values.docID();
+
+      if (segDoc > valuesDocID) {
+        valuesDocID = values.advance(segDoc);
+      }
+      if (valuesDocID == segDoc) {
+        long val = values.longValue();
         int slot = table.add(val);  // this can trigger a rehash rehash
 
         // countAcc.incrementCount(slot, 1);

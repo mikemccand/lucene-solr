@@ -19,8 +19,8 @@ package org.apache.lucene.search.join;
 import java.io.IOException;
 import java.util.function.LongConsumer;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FieldType.LegacyNumericType;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.BinaryDocValues;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
@@ -37,7 +37,7 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   
   @FunctionalInterface
   static interface Function<R> {
-      R apply(LeafReader t) throws IOException  ;
+    R apply(LeafReader t) throws IOException;
   }
   
   protected DV docValues;
@@ -53,8 +53,9 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
   }
   
   static Function<BinaryDocValues> binaryDocValues(String field) {
-      return (ctx) -> DocValues.getBinary(ctx, field);
+    return (ctx) -> DocValues.getBinary(ctx, field);
   }
+
   static Function<SortedSetDocValues> sortedSetDocValues(String field) {
     return (ctx) -> DocValues.getSortedSet(ctx, field);
   }
@@ -67,10 +68,30 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
       final LongConsumer coder = coder(bytes, numTyp, field);
       
       return new BinaryDocValues() {
+        
         @Override
-        public BytesRef get(int docID) {
-          final long lVal = numeric.get(docID);
-          coder.accept(lVal);
+        public int docID() {
+          return numeric.docID();
+        }
+
+        @Override
+        public int nextDoc() throws IOException {
+          return numeric.nextDoc();
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+          return numeric.advance(target);
+        }
+
+        @Override
+        public long cost() {
+          return numeric.cost();
+        }
+
+        @Override
+        public BytesRef binaryValue() {
+          coder.accept(numeric.longValue());
           return bytes.get();
         }
       };
@@ -100,24 +121,45 @@ abstract class DocValuesTermsCollector<DV> extends SimpleCollector {
       
       return new SortedSetDocValues() {
 
-        private int index = Integer.MIN_VALUE;
-
+        int index = -1;
+        
         @Override
-        public long nextOrd() {
-          return index < numerics.count()-1 ? ++index : NO_MORE_ORDS;
+        public int docID() {
+          return numerics.docID();
         }
 
         @Override
-        public void setDocument(int docID) {
-          numerics.setDocument(docID);
-          index=-1;
+        public int nextDoc() throws IOException {
+          int docID = numerics.nextDoc();
+          index = -1;
+          return docID;
+        }
+
+        @Override
+        public int advance(int target) throws IOException {
+          int docID = numerics.advance(target);
+          index = -1;
+          return docID;
+        }
+
+        @Override
+        public long cost() {
+          return 0;
+        }
+
+        @Override
+        public long nextOrd() {
+          return index < numerics.docValueCount()-1 ? ++index : NO_MORE_ORDS;
         }
 
         @Override
         public BytesRef lookupOrd(long ord) {
-          assert ord>=0 && ord<numerics.count();
-          final long value = numerics.valueAt((int)ord);
-          coder.accept(value);
+          assert ord == index;
+          try {
+            coder.accept(numerics.nextValue());
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
           return bytes.get();
         }
 

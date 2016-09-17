@@ -39,30 +39,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.DocumentStoredFieldVisitor;
 import org.apache.lucene.document.LazyDocument;
-import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.DocValuesType;
-import org.apache.lucene.index.ExitableDirectoryReader;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiPostingsEnum;
+import org.apache.lucene.index.*;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.index.StoredFieldVisitor;
 import org.apache.lucene.index.StoredFieldVisitor.Status;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermContext;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.Collector;
@@ -97,13 +78,13 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.apache.solr.common.SolrDocumentBase;
-import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.SimpleOrderedMap;
-import org.apache.solr.core.DirectoryFactory;
 import org.apache.solr.core.DirectoryFactory.DirContext;
+import org.apache.solr.core.DirectoryFactory;
 import org.apache.solr.core.SolrConfig;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.core.SolrInfoMBean;
@@ -811,27 +792,30 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
         continue;
       }
 
-      if (!DocValues.getDocsWithField(leafReader, fieldName).get(docid)) {
-        continue;
-      }
-
       if (schemaField.multiValued()) {
         final SortedSetDocValues values = reader.getSortedSetDocValues(fieldName);
         if (values != null && values.getValueCount() > 0) {
-          values.setDocument(docid);
-          final List<Object> outValues = new LinkedList<Object>();
-          for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
-            final BytesRef value = values.lookupOrd(ord);
-            outValues.add(schemaField.getType().toObject(schemaField, value));
+          if (values.advance(docid) == docid) {
+            final List<Object> outValues = new LinkedList<Object>();
+            for (long ord = values.nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values.nextOrd()) {
+              final BytesRef value = values.lookupOrd(ord);
+              outValues.add(schemaField.getType().toObject(schemaField, value));
+            }
+            assert outValues.size() > 0;
+            doc.addField(fieldName, outValues);
           }
-          if (outValues.size() > 0) doc.addField(fieldName, outValues);
         }
       } else {
         final DocValuesType dvType = fieldInfos.fieldInfo(fieldName).getDocValuesType();
         switch (dvType) {
           case NUMERIC:
             final NumericDocValues ndv = leafReader.getNumericDocValues(fieldName);
-            Long val = ndv.get(docid);
+            Long val;
+            if (ndv.advance(docid) == docid) {
+              val = ndv.longValue();
+            } else {
+              continue;
+            }
             Object newVal = val;
             if (schemaField.getType() instanceof TrieIntField) {
               newVal = val.intValue();
@@ -848,18 +832,23 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
             break;
           case BINARY:
             BinaryDocValues bdv = leafReader.getBinaryDocValues(fieldName);
-            doc.addField(fieldName, bdv.get(docid));
+            BytesRef value;
+            if (bdv.advance(docid) == docid) {
+              value = BytesRef.deepCopyOf(bdv.binaryValue());
+            } else {
+              continue;
+            }
+            doc.addField(fieldName, value);
             break;
           case SORTED:
             SortedDocValues sdv = leafReader.getSortedDocValues(fieldName);
-            int ord = sdv.getOrd(docid);
-            if (ord >= 0) {
+            if (sdv.advance(docid) == docid) {
+              final BytesRef bRef = sdv.binaryValue();
               // Special handling for Boolean fields since they're stored as 'T' and 'F'.
               if (schemaField.getType() instanceof BoolField) {
-                final BytesRef bRef = sdv.lookupOrd(ord);
                 doc.addField(fieldName, schemaField.getType().toObject(schemaField, bRef));
               } else {
-                doc.addField(fieldName, sdv.get(docid).utf8ToString());
+                doc.addField(fieldName, bRef.utf8ToString());
               }
             }
             break;
@@ -868,8 +857,7 @@ public class SolrIndexSearcher extends IndexSearcher implements Closeable, SolrI
           case SORTED_SET:
             throw new AssertionError("SORTED_SET fields should be multi-valued!");
           case NONE:
-            // Shouldn't happen since we check that the document has a DocValues field.
-            throw new AssertionError("Document does not have a DocValues field with the name '" + fieldName + "'!");
+            break;
         }
       }
     }

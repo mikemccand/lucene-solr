@@ -31,6 +31,8 @@ import java.util.TreeSet;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
+import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.LegacyDocValuesIterables;
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.SegmentWriteState;
@@ -41,8 +43,8 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LongsRef;
 import org.apache.lucene.util.MathUtil;
-import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.PagedBytes.PagedBytesDataInput;
+import org.apache.lucene.util.PagedBytes;
 import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.packed.DirectWriter;
 import org.apache.lucene.util.packed.MonotonicBlockPackedWriter;
@@ -76,8 +78,8 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   }
   
   @Override
-  public void addNumericField(FieldInfo field, Iterable<Number> values) throws IOException {
-    addNumericField(field, values, true);
+  public void addNumericField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addNumericField(field, LegacyDocValuesIterables.numericIterable(field, valuesProducer, maxDoc), true);
   }
 
   void addNumericField(FieldInfo field, Iterable<Number> values, boolean optimizeStorage) throws IOException {
@@ -247,7 +249,11 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   }
 
   @Override
-  public void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
+  public void addBinaryField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addBinaryField(field, LegacyDocValuesIterables.binaryIterable(field, valuesProducer, maxDoc));
+  }
+  
+  private void addBinaryField(FieldInfo field, Iterable<BytesRef> values) throws IOException {
     // write the byte[] data
     meta.writeVInt(field.number);
     meta.writeByte(Lucene50DocValuesFormat.BINARY);
@@ -453,7 +459,13 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   }
 
   @Override
-  public void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
+  public void addSortedField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    addSortedField(field,
+                   LegacyDocValuesIterables.valuesIterable(valuesProducer.getSorted(field)),
+                   LegacyDocValuesIterables.sortedOrdIterable(valuesProducer, field, maxDoc));
+  }
+
+  private void addSortedField(FieldInfo field, Iterable<BytesRef> values, Iterable<Number> docToOrd) throws IOException {
     meta.writeVInt(field.number);
     meta.writeByte(Lucene50DocValuesFormat.SORTED);
     addTermsDict(field, values);
@@ -461,13 +473,17 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   }
 
   @Override
-  public void addSortedNumericField(FieldInfo field, final Iterable<Number> docToValueCount, final Iterable<Number> values) throws IOException {
+  public void addSortedNumericField(FieldInfo field, final DocValuesProducer valuesProducer) throws IOException {
+
+    final Iterable<Number> docToValueCount = LegacyDocValuesIterables.sortedNumericToDocCount(valuesProducer, field, maxDoc);
+    final Iterable<Number> values = LegacyDocValuesIterables.sortedNumericToValues(valuesProducer, field);
+
     meta.writeVInt(field.number);
     meta.writeByte(Lucene50DocValuesFormat.SORTED_NUMERIC);
     if (isSingleValued(docToValueCount)) {
       meta.writeVInt(SORTED_SINGLE_VALUED);
       // The field is single-valued, we can encode it as NUMERIC
-      addNumericField(field, singletonView(docToValueCount, values, null));
+      addNumericField(field, singletonView(docToValueCount, values, null), true);
     } else {
       final SortedSet<LongsRef> uniqueValueSets = uniqueValueSets(docToValueCount, values);
       if (uniqueValueSets != null) {
@@ -489,7 +505,10 @@ class Lucene50DocValuesConsumer extends DocValuesConsumer implements Closeable {
   }
 
   @Override
-  public void addSortedSetField(FieldInfo field, Iterable<BytesRef> values, final Iterable<Number> docToOrdCount, final Iterable<Number> ords) throws IOException {
+  public void addSortedSetField(FieldInfo field, DocValuesProducer valuesProducer) throws IOException {
+    Iterable<BytesRef> values = LegacyDocValuesIterables.valuesIterable(valuesProducer.getSortedSet(field));
+    Iterable<Number> docToOrdCount = LegacyDocValuesIterables.sortedSetOrdCountIterable(valuesProducer, field, maxDoc);
+    Iterable<Number> ords = LegacyDocValuesIterables.sortedSetOrdsIterable(valuesProducer, field);
     meta.writeVInt(field.number);
     meta.writeByte(Lucene50DocValuesFormat.SORTED_SET);
 

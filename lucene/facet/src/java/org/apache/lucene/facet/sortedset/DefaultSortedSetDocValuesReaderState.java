@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.facet.FacetsConfig;
-import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState.OrdRange;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.FieldInfo;
@@ -113,8 +112,8 @@ public class DefaultSortedSetDocValuesReaderState extends SortedSetDocValuesRead
       if (map == null) {
         // uncached, or not a multi dv
         SortedSetDocValues dv = MultiDocValues.getSortedSetValues(origReader, field);
-        if (dv instanceof MultiSortedSetDocValues) {
-          map = ((MultiSortedSetDocValues)dv).mapping;
+        if (dv instanceof MultiDocValues.MultiSortedSetDocValues) {
+          map = ((MultiDocValues.MultiSortedSetDocValues)dv).mapping;
           if (map.owner == origReader.getCoreCacheKey()) {
             cachedOrdMaps.put(field, map);
           }
@@ -127,6 +126,7 @@ public class DefaultSortedSetDocValuesReaderState extends SortedSetDocValuesRead
     int size = origReader.leaves().size();
     final SortedSetDocValues[] values = new SortedSetDocValues[size];
     final int[] starts = new int[size+1];
+    long cost = 0;
     for (int i = 0; i < size; i++) {
       LeafReaderContext context = origReader.leaves().get(i);
       final LeafReader reader = context.reader();
@@ -140,9 +140,10 @@ public class DefaultSortedSetDocValuesReaderState extends SortedSetDocValuesRead
       }
       values[i] = v;
       starts[i] = context.docBase;
+      cost += v.cost();
     }
     starts[size] = origReader.maxDoc();
-    return new MultiSortedSetDocValues(values, starts, map);
+    return new MultiSortedSetDocValues(values, starts, map, cost);
   }
 
   /** Returns mapping from prefix to {@link OrdRange}. */

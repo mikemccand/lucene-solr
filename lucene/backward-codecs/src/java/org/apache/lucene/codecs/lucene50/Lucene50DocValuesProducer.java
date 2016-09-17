@@ -29,20 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesProducer;
-import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.CorruptIndexException;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.IndexFileNames;
+import org.apache.lucene.index.*;
 import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.RandomAccessOrds;
-import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RandomAccessInput;
@@ -414,6 +402,11 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
+    NumericEntry ne = numerics.get(field.name);
+    return new LegacyNumericDocValuesWrapper(getLiveBits(ne.missingOffset, maxDoc), getNumericNonIterator(field));
+  }
+
+  private LegacyNumericDocValues getNumericNonIterator(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
     return getNumeric(entry);
   }
@@ -495,6 +488,11 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public BinaryDocValues getBinary(FieldInfo field) throws IOException {
+    BinaryEntry be = binaries.get(field.name);
+    return new LegacyBinaryDocValuesWrapper(getLiveBits(be.missingOffset, maxDoc), getLegacyBinary(field));
+  }
+
+  private LegacyBinaryDocValues getLegacyBinary(FieldInfo field) throws IOException {
     BinaryEntry bytes = binaries.get(field.name);
     switch(bytes.format) {
       case BINARY_FIXED_UNCOMPRESSED:
@@ -508,7 +506,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     }
   }
   
-  private BinaryDocValues getFixedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
+  private LegacyBinaryDocValues getFixedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
     final IndexInput data = this.data.slice("fixed-binary", bytes.offset, bytes.count * bytes.maxLength);
 
     final BytesRef term = new BytesRef(bytes.maxLength);
@@ -543,7 +541,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return addresses;
   }
   
-  private BinaryDocValues getVariableBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
+  private LegacyBinaryDocValues getVariableBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
     final MonotonicBlockPackedReader addresses = getAddressInstance(field, bytes);
 
     final IndexInput data = this.data.slice("var-binary", bytes.offset, bytes.addressesOffset - bytes.offset);
@@ -603,7 +601,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     return index;
   }
 
-  private BinaryDocValues getCompressedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
+  private LegacyBinaryDocValues getCompressedBinary(FieldInfo field, final BinaryEntry bytes) throws IOException {
     final MonotonicBlockPackedReader addresses = getIntervalInstance(field, bytes);
     final ReverseTermsIndex index = getReverseIndexInstance(field, bytes);
     assert addresses.size() > 0; // we don't have to handle empty case
@@ -613,11 +611,15 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
 
   @Override
   public SortedDocValues getSorted(FieldInfo field) throws IOException {
+    return new LegacySortedDocValuesWrapper(getSortedNoIterator(field), maxDoc);
+  }
+  
+  private LegacySortedDocValues getSortedNoIterator(FieldInfo field) throws IOException {
     final int valueCount = (int) binaries.get(field.name).count;
-    final BinaryDocValues binary = getBinary(field);
+    final LegacyBinaryDocValues binary = getLegacyBinary(field);
     NumericEntry entry = ords.get(field.name);
     final LongValues ordinals = getNumeric(entry);
-    return new SortedDocValues() {
+    return new LegacySortedDocValues() {
 
       @Override
       public int getOrd(int docID) {
@@ -675,13 +677,13 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final Bits docsWithField = getLiveBits(numericEntry.missingOffset, maxDoc);
-      return DocValues.singleton(values, docsWithField);
+      return DocValues.singleton(new LegacyNumericDocValuesWrapper(docsWithField, values));
     } else if (ss.format == SORTED_WITH_ADDRESSES) {
       NumericEntry numericEntry = numerics.get(field.name);
       final LongValues values = getNumeric(numericEntry);
       final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
       
-      return new SortedNumericDocValues() {
+      return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
         long startOffset;
         long endOffset;
         
@@ -700,14 +702,14 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
         public int count() {
           return (int) (endOffset - startOffset);
         }
-      };
+        }, maxDoc);
     } else if (ss.format == SORTED_SET_TABLE) {
       NumericEntry entry = ords.get(field.name);
       final LongValues ordinals = getNumeric(entry);
 
       final long[] table = ss.table;
       final int[] offsets = ss.tableOffsets;
-      return new SortedNumericDocValues() {
+      return new LegacySortedNumericDocValuesWrapper(new LegacySortedNumericDocValues() {
         int startOffset;
         int endOffset;
         
@@ -727,7 +729,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
         public int count() {
           return endOffset - startOffset;
         }
-      };
+        }, maxDoc);
     } else {
       throw new AssertionError();
     }
@@ -738,8 +740,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
     SortedSetEntry ss = sortedSets.get(field.name);
     switch (ss.format) {
       case SORTED_SINGLE_VALUED:
-        final SortedDocValues values = getSorted(field);
-        return DocValues.singleton(values);
+        return DocValues.singleton(getSorted(field));
       case SORTED_WITH_ADDRESSES:
         return getSortedSetWithAddresses(field);
       case SORTED_SET_TABLE:
@@ -752,12 +753,12 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   private SortedSetDocValues getSortedSetWithAddresses(FieldInfo field) throws IOException {
     final long valueCount = binaries.get(field.name).count;
     // we keep the byte[]s and list of ords on disk, these could be large
-    final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
+    final LongBinaryDocValues binary = (LongBinaryDocValues) getLegacyBinary(field);
     final LongValues ordinals = getNumeric(ords.get(field.name));
     // but the addresses to the ord stream are in RAM
     final MonotonicBlockPackedReader ordIndex = getOrdIndexInstance(field, ordIndexes.get(field.name));
     
-    return new RandomAccessOrds() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
       long startOffset;
       long offset;
       long endOffset;
@@ -806,28 +807,18 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
           return super.termsEnum();
         }
       }
-
-      @Override
-      public long ordAt(int index) {
-        return ordinals.get(startOffset + index);
-      }
-
-      @Override
-      public int cardinality() {
-        return (int) (endOffset - startOffset);
-      }
-    };
+    }, maxDoc);
   }
 
   private SortedSetDocValues getSortedSetTable(FieldInfo field, SortedSetEntry ss) throws IOException {
     final long valueCount = binaries.get(field.name).count;
-    final LongBinaryDocValues binary = (LongBinaryDocValues) getBinary(field);
+    final LongBinaryDocValues binary = (LongBinaryDocValues) getLegacyBinary(field);
     final LongValues ordinals = getNumeric(ords.get(field.name));
 
     final long[] table = ss.table;
     final int[] offsets = ss.tableOffsets;
 
-    return new RandomAccessOrds() {
+    return new LegacySortedSetDocValuesWrapper(new LegacySortedSetDocValues() {
 
       int offset, startOffset, endOffset;
 
@@ -839,22 +830,12 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
       }
 
       @Override
-      public long ordAt(int index) {
-        return table[startOffset + index];
-      }
-
-      @Override
       public long nextOrd() {
         if (offset == endOffset) {
           return NO_MORE_ORDS;
         } else {
           return table[offset++];
         }
-      }
-
-      @Override
-      public int cardinality() {
-        return endOffset - startOffset;
       }
 
       @Override
@@ -884,8 +865,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
           return super.termsEnum();
         }
       }
-
-    };
+      }, maxDoc);
   }
 
   private Bits getLiveBits(final long offset, final int count) throws IOException {
@@ -911,26 +891,6 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
           return count;
         }
       };
-    }
-  }
-
-  @Override
-  public Bits getDocsWithField(FieldInfo field) throws IOException {
-    switch(field.getDocValuesType()) {
-      case SORTED_SET:
-        return DocValues.docsWithValue(getSortedSet(field), maxDoc);
-      case SORTED_NUMERIC:
-        return DocValues.docsWithValue(getSortedNumeric(field), maxDoc);
-      case SORTED:
-        return DocValues.docsWithValue(getSorted(field), maxDoc);
-      case BINARY:
-        BinaryEntry be = binaries.get(field.name);
-        return getLiveBits(be.missingOffset, maxDoc);
-      case NUMERIC:
-        NumericEntry ne = numerics.get(field.name);
-        return getLiveBits(ne.missingOffset, maxDoc);
-      default:
-        throw new AssertionError();
     }
   }
 
@@ -1002,7 +962,7 @@ class Lucene50DocValuesProducer extends DocValuesProducer implements Closeable {
   }
 
   // internally we compose complex dv (sorted/sortedset) from other ones
-  static abstract class LongBinaryDocValues extends BinaryDocValues {
+  static abstract class LongBinaryDocValues extends LegacyBinaryDocValues {
     @Override
     public final BytesRef get(int docID) {
       return get((long)docID);

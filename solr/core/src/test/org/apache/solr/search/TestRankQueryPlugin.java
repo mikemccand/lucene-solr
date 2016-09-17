@@ -695,8 +695,18 @@ public class TestRankQueryPlugin extends QParserPlugin {
           return false;
         }
 
-        public void collect(int doc) {
-          list.add(new ScoreDoc(doc+base, (float)values.get(doc)));
+        public void collect(int doc) throws IOException {
+          int valuesDocID = values.docID();
+          if (valuesDocID < doc) {
+            valuesDocID = values.advance(doc);
+          }
+          long value;
+          if (valuesDocID == doc) {
+            value = values.longValue();
+          } else {
+            value = 0;
+          }
+          list.add(new ScoreDoc(doc+base, (float) value));
         }
       };
     }
