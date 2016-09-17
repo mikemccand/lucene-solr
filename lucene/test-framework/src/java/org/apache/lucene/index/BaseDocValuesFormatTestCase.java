@@ -3267,8 +3267,6 @@ public abstract class BaseDocValuesFormatTestCase extends BaseIndexFileFormatTes
       });
   }
 
-  // nocommit other types too
-
   private interface FieldCreator {
     public Field next();
     public DocIdSetIterator iterator(IndexReader r) throws IOException;

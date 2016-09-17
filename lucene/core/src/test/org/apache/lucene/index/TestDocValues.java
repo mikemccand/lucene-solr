@@ -29,8 +29,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.LuceneTestCase;
 
-// nocommit make explicit iterator tests
-
 /** Tests helper methods in DocValues */
 public class TestDocValues extends LuceneTestCase {
   

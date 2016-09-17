@@ -18,14 +18,18 @@ package org.apache.lucene.util;
 
 
 import org.apache.lucene.index.LegacyNumericDocValues;
+import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.util.packed.PackedInts;
 
 /** Abstraction over an array of longs.
  *  This class extends NumericDocValues so that we don't need to add another
  *  level of abstraction every time we want eg. to use the {@link PackedInts}
  *  utility classes to represent a {@link LegacyNumericDocValues} instance.
- *  @lucene.internal */
-// nocommit removeme...?
+ *  @lucene.internal
+ *
+ *  @deprecated Switch to {@link NumericDocValues} instead. */
+ @Deprecated
+// TODO: cutover to iterator once codecs have all cutover?
 public abstract class LongValues extends LegacyNumericDocValues {
 
   /** An instance that returns the provided value. */

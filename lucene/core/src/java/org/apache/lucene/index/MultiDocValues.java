@@ -161,25 +161,6 @@ public class MultiDocValues {
       return leaves.get(0).reader().getNumericDocValues(field);
     }
 
-    final List<NumericDocValues> iterators = new ArrayList<>();
-    long totalCost = 0;
-    boolean any = false;
-    for(int i=0;i<leaves.size();i++) {
-      LeafReaderContext leaf = leaves.get(i);
-      NumericDocValues iterator = leaf.reader().getNumericDocValues(field);
-      if (iterator != null) {
-        totalCost += iterator.cost();
-        any = true;
-      }
-      iterators.add(iterator);
-    }
-
-    if (any == false) {
-      return null;
-    }
-
-    final long finalTotalCost = totalCost;
-
     return new NumericDocValues() {
       private int nextLeaf;
       private NumericDocValues currentValues;
@@ -200,7 +181,7 @@ public class MultiDocValues {
               return docID;
             }
             currentLeaf = leaves.get(nextLeaf);
-            currentValues = iterators.get(nextLeaf);
+            currentValues = currentLeaf.reader().getNumericDocValues(field);
             nextLeaf++;
           }
 
@@ -229,7 +210,7 @@ public class MultiDocValues {
             return docID;
           }
           currentLeaf = leaves.get(readerIndex);
-          currentValues = iterators.get(readerIndex);
+          currentValues = currentLeaf.reader().getNumericDocValues(field);
           nextLeaf = readerIndex+1;
           if (currentValues == null) {
             return nextDoc();
@@ -252,7 +233,8 @@ public class MultiDocValues {
 
       @Override
       public long cost() {
-        return finalTotalCost;
+        // TODO
+        return 0;
       }
     };
   }
@@ -267,25 +249,6 @@ public class MultiDocValues {
       return leaves.get(0).reader().getBinaryDocValues(field);
     }
 
-    final List<BinaryDocValues> iterators = new ArrayList<>();
-    long totalCost = 0;
-    boolean any = false;
-    for(int i=0;i<leaves.size();i++) {
-      LeafReaderContext leaf = leaves.get(i);
-      BinaryDocValues iterator = leaf.reader().getBinaryDocValues(field);
-      if (iterator != null) {
-        totalCost += iterator.cost();
-        any = true;
-      }
-      iterators.add(iterator);
-    }
-
-    if (any == false) {
-      return null;
-    }
-
-    final long finalTotalCost = totalCost;
-
     return new BinaryDocValues() {
       private int nextLeaf;
       private BinaryDocValues currentValues;
@@ -295,13 +258,13 @@ public class MultiDocValues {
       @Override
       public int nextDoc() throws IOException {
         while (true) {
-          if (currentValues == null) {
+          while (currentValues == null) {
             if (nextLeaf == leaves.size()) {
               docID = NO_MORE_DOCS;
               return docID;
             }
             currentLeaf = leaves.get(nextLeaf);
-            currentValues = iterators.get(nextLeaf);
+            currentValues = currentLeaf.reader().getBinaryDocValues(field);
             nextLeaf++;
           }
 
@@ -335,7 +298,7 @@ public class MultiDocValues {
             return docID;
           }
           currentLeaf = leaves.get(readerIndex);
-          currentValues = iterators.get(readerIndex);
+          currentValues = currentLeaf.reader().getBinaryDocValues(field);
           nextLeaf = readerIndex+1;
           if (currentValues == null) {
             return nextDoc();
@@ -358,7 +321,8 @@ public class MultiDocValues {
 
       @Override
       public long cost() {
-        return finalTotalCost;
+        // TODO
+        return 0;
       }
     };
   }

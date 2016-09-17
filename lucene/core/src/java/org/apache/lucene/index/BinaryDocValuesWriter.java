@@ -126,8 +126,6 @@ class BinaryDocValuesWriter extends DocValuesWriter {
                               });
   }
 
-  // nocommit fails: ant test  -Dtestcase=TestLucene54DocValuesFormat -Dtests.method=testSparseDocValuesVsStoredFields -Dtests.seed=E90F6D6DE7E4961E -Dtests.slow=true -Dtests.linedocsfile=/lucenedata/hudson.enwiki.random.lines.txt.fixed -Dtests.locale=en-ZA -Dtests.timezone=Asia/Almaty -Dtests.asserts=true -Dtests.file.encoding=UTF-8
-
   // iterates over the values we have in ram
   private class BufferedBinaryDocValues extends BinaryDocValues {
     final BytesRefBuilder value = new BytesRefBuilder();

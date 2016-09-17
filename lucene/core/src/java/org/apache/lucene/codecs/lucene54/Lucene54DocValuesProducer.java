@@ -441,10 +441,56 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
   public NumericDocValues getNumeric(FieldInfo field) throws IOException {
     NumericEntry entry = numerics.get(field.name);
     Bits docsWithField;
+
     if (entry.format == SPARSE_COMPRESSED) {
+      // TODO: make a real iterator in this case!
       docsWithField = getSparseLiveBits(entry);
     } else {
-      docsWithField = getLiveBits(entry.missingOffset, maxDoc);
+      if (entry.missingOffset == ALL_MISSING) {
+        return DocValues.emptyNumeric();
+      } else if (entry.missingOffset == ALL_LIVE) {
+        LongValues values = getNumeric(entry);
+        return new NumericDocValues() {
+          private int docID = -1;
+
+          @Override
+          public int docID() {
+            return docID;
+          }
+
+          @Override
+          public int nextDoc() {
+            docID++;
+            if (docID == maxDoc) {
+              docID = NO_MORE_DOCS;
+            }
+            return docID;
+          }
+
+          @Override
+          public int advance(int target) {
+            if (target >= maxDoc) {
+              docID = NO_MORE_DOCS;
+            } else {
+              docID = target;
+            }
+            return docID;
+          }
+
+          @Override
+          public long cost() {
+            // TODO
+            return 0;
+          }
+
+          @Override
+          public long longValue() {
+            return values.get(docID);
+          }
+        };
+      } else {
+        docsWithField = getLiveBits(entry.missingOffset, maxDoc);
+      }
     }
     return new LegacyNumericDocValuesWrapper(docsWithField, getNumeric(entry));
   }
@@ -539,7 +585,7 @@ final class Lucene54DocValuesProducer extends DocValuesProducer implements Close
     }
   }
 
-  static class SparseBits implements Bits {
+  static final class SparseBits implements Bits {
 
     final long maxDoc, docIDsLength, firstDocId;
     final LongValues docIds;
