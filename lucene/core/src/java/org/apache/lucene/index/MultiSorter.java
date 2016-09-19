@@ -18,7 +18,6 @@
 package org.apache.lucene.index;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.lucene.index.MergeState.DocMap;
@@ -30,6 +29,7 @@ import org.apache.lucene.util.PriorityQueue;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedLongValues;
 
+@SuppressWarnings({"unchecked","rawtypes"})
 final class MultiSorter {
   
   /** Does a merge sort of the leaves of the incoming reader, returning {@link DocMap} to map each leaf's
@@ -137,7 +137,7 @@ final class MultiSorter {
     public Comparable getComparable(int docID) throws IOException;
   }
 
-  /** Returns {@link #ComparatorProvider}s for the provided readers to represent the requested {@link SortField} sort order. */
+  /** Returns {@code ComparableProvider}s for the provided readers to represent the requested {@link SortField} sort order. */
   private static ComparableProvider[] getComparableProviders(List<CodecReader> readers, SortField sortField) throws IOException {
 
     ComparableProvider[] providers = new ComparableProvider[readers.size()];

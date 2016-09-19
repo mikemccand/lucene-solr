@@ -24,6 +24,7 @@ import java.io.IOException;
  */
 public abstract class FilterNumericDocValues extends NumericDocValues {
 
+  /** Wrapped values */
   protected final NumericDocValues in;
   
   /** Sole constructor */

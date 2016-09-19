@@ -26,6 +26,7 @@ import org.apache.lucene.util.BytesRef;
  */
 public abstract class FilterBinaryDocValues extends BinaryDocValues {
 
+  /** Wrapped values */
   protected final BinaryDocValues in;
   
   /** Sole constructor */

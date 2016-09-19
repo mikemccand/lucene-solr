@@ -25,7 +25,6 @@ import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.util.Bits;
 
 /**
  * A {@link Query} that matches documents that have a value for a given field

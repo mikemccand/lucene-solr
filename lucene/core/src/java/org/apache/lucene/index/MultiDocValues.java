@@ -161,6 +161,23 @@ public class MultiDocValues {
       return leaves.get(0).reader().getNumericDocValues(field);
     }
 
+    boolean anyReal = false;
+    for(LeafReaderContext leaf : leaves) {
+      FieldInfo fieldInfo = leaf.reader().getFieldInfos().fieldInfo(field);
+      if (fieldInfo != null) {
+        DocValuesType dvType = fieldInfo.getDocValuesType();
+        if (dvType == DocValuesType.NUMERIC) {
+          anyReal = true;
+          break;
+        }
+      }
+    }
+
+    if (anyReal == false) {
+      return null;
+    }
+    
+
     return new NumericDocValues() {
       private int nextLeaf;
       private NumericDocValues currentValues;
@@ -247,6 +264,22 @@ public class MultiDocValues {
       return null;
     } else if (size == 1) {
       return leaves.get(0).reader().getBinaryDocValues(field);
+    }
+
+    boolean anyReal = false;
+    for(LeafReaderContext leaf : leaves) {
+      FieldInfo fieldInfo = leaf.reader().getFieldInfos().fieldInfo(field);
+      if (fieldInfo != null) {
+        DocValuesType dvType = fieldInfo.getDocValuesType();
+        if (dvType == DocValuesType.BINARY) {
+          anyReal = true;
+          break;
+        }
+      }
+    }
+
+    if (anyReal == false) {
+      return null;
     }
 
     return new BinaryDocValues() {
@@ -521,7 +554,7 @@ public class MultiDocValues {
     }
     starts[size] = r.maxDoc();
     
-    if (!anyReal) {
+    if (anyReal == false) {
       return null;
     } else {
       OrdinalMap mapping = OrdinalMap.build(r.getCoreCacheKey(), values, PackedInts.DEFAULT);

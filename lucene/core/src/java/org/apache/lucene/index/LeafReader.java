@@ -16,9 +16,9 @@
  */
 package org.apache.lucene.index;
 
-
 import java.io.IOException;
 
+import org.apache.lucene.index.IndexReader.ReaderClosedListener;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.util.Bits;
 

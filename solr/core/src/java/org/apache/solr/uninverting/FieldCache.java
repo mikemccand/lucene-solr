@@ -297,7 +297,7 @@ interface FieldCache {
    */
   public BinaryDocValues getTerms(LeafReader reader, String field) throws IOException;
 
-  /** Expert: just like {@link #getTerms(org.apache.lucene.index.LeafReader,String,boolean)},
+  /** Expert: just like {@link #getTerms(org.apache.lucene.index.LeafReader,String)},
    *  but you can specify whether more RAM should be consumed in exchange for
    *  faster lookups (default is "true").  Note that the
    *  first call for a given reader and field "wins",
