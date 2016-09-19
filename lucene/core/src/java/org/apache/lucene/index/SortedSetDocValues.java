@@ -99,6 +99,6 @@ public abstract class SortedSetDocValues extends DocIdSetIterator {
    * The enum supports {@link TermsEnum#ord()} and {@link TermsEnum#seekExact(long)}.
    */
   public TermsEnum termsEnum() {
-    return new SortedSetDocValuesIteratorTermsEnum(this);
+    return new SortedSetDocValuesTermsEnum(this);
   }
 }

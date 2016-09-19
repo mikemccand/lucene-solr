@@ -104,6 +104,6 @@ public abstract class SortedDocValues extends BinaryDocValues {
    * The enum supports {@link TermsEnum#ord()} and {@link TermsEnum#seekExact(long)}.
    */
   public TermsEnum termsEnum() {
-    return new SortedDocValuesIteratorTermsEnum(this);
+    return new SortedDocValuesTermsEnum(this);
   }
 }

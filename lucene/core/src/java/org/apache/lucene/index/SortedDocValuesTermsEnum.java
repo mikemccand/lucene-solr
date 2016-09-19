@@ -25,13 +25,13 @@ import org.apache.lucene.util.BytesRefBuilder;
 /** Implements a {@link TermsEnum} wrapping a provided
  * {@link SortedDocValues}. */
 
-class SortedDocValuesIteratorTermsEnum extends TermsEnum {
+class SortedDocValuesTermsEnum extends TermsEnum {
   private final SortedDocValues values;
   private int currentOrd = -1;
   private final BytesRefBuilder scratch;
 
   /** Creates a new TermsEnum over the provided values */
-  public SortedDocValuesIteratorTermsEnum(SortedDocValues values) {
+  public SortedDocValuesTermsEnum(SortedDocValues values) {
     this.values = values;
     scratch = new BytesRefBuilder();
   }

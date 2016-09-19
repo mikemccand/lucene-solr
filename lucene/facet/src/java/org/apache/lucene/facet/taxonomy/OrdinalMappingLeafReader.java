@@ -76,12 +76,12 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
     
   }
   
-  private class OrdinalMappingBinaryDocValuesIterator extends FilterBinaryDocValues {
+  private class OrdinalMappingBinaryDocValues extends FilterBinaryDocValues {
     
     private final IntsRef ordinals = new IntsRef(32);
     private final OrdinalsSegmentReader ordsReader;
     
-    OrdinalMappingBinaryDocValuesIterator(OrdinalsSegmentReader ordsReader, BinaryDocValues in) throws IOException {
+    OrdinalMappingBinaryDocValues(OrdinalsSegmentReader ordsReader, BinaryDocValues in) throws IOException {
       super(in);
       this.ordsReader = ordsReader;
     }
@@ -152,7 +152,7 @@ public class OrdinalMappingLeafReader extends FilterLeafReader {
   public BinaryDocValues getBinaryDocValues(String field) throws IOException {
     if (facetFields.contains(field)) {
       final OrdinalsReader ordsReader = getOrdinalsReader(field);
-      return new OrdinalMappingBinaryDocValuesIterator(ordsReader.getReader(in.getContext()), in.getBinaryDocValues(field));
+      return new OrdinalMappingBinaryDocValues(ordsReader.getReader(in.getContext()), in.getBinaryDocValues(field));
     } else {
       return in.getBinaryDocValues(field);
     }

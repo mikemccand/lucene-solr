@@ -903,12 +903,12 @@ public abstract class FieldComparator<T> {
     }
 
     /** Retrieves the BinaryDocValues for the field in this segment */
-    protected BinaryDocValues getBinaryDocValuesIterator(LeafReaderContext context, String field) throws IOException {
+    protected BinaryDocValues getBinaryDocValues(LeafReaderContext context, String field) throws IOException {
       return DocValues.getBinary(context.reader(), field);
     }
 
     /** Check whether the given value represents <tt>null</tt>. This can be
-     *  useful if the {@link BinaryDocValues} returned by {@link #getBinaryDocValuesIterator}
+     *  useful if the {@link BinaryDocValues} returned by {@link #getBinaryDocValues}
      *  use a special value as a sentinel.
      *  <p>NOTE: The null value can only be an EMPTY {@link BytesRef}. */
     protected boolean isNull(int doc, BytesRef term) throws IOException {
@@ -917,7 +917,7 @@ public abstract class FieldComparator<T> {
 
     @Override
     public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
-      docTerms = getBinaryDocValuesIterator(context, field);
+      docTerms = getBinaryDocValues(context, field);
       return this;
     }
     
