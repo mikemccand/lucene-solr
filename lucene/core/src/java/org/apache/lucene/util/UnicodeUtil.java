@@ -117,8 +117,9 @@ public final class UnicodeUtil {
 
   private static final long HALF_SHIFT = 10;
   private static final long HALF_MASK = 0x3FFL;
-  
-  private static final int SURROGATE_OFFSET = 
+
+  // nocommit was private
+  public static final int SURROGATE_OFFSET = 
     Character.MIN_SUPPLEMENTARY_CODE_POINT - 
     (UNI_SUR_HIGH_START << HALF_SHIFT) - UNI_SUR_LOW_START;
 

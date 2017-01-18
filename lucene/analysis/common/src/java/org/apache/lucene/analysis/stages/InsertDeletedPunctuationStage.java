@@ -1,0 +1,189 @@
+package org.apache.lucene.analysis.stages;
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+
+import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
+import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.util.ArrayUtil;
+
+/** Uses a CharFilter to detect when punctuation occurs in the
+ *  input in between two tokens, and then as a Stage it will
+ *  re-insert [deleted] tokens when it notices the tokenizer
+ *  had deleted the punctuation.  E.g. this can be used to
+ *  prevent synonyms/phrases from matching across punctuation. */
+
+public class InsertDeletedPunctuationStage extends Stage {
+
+  private final DeletedAttribute delAttIn;
+  private final ArcAttribute arcAttIn;
+  private final TermAttribute termAttIn;
+  private final OffsetAttribute offsetAttIn;
+
+  private final ArcAttribute arcAttOut;
+  private final DeletedAttribute delAttOut;
+  private final TermAttribute termAttOut;
+  private final OffsetAttribute offsetAttOut;
+
+  private final String punctToken;
+
+  private FindPunctuationCharFilter punctFilter;
+  private boolean lastPunct;
+  private int lastEndOffset;
+
+  private int insertedNode;
+
+  public InsertDeletedPunctuationStage(Stage in, String punctToken) {
+    super(in);
+    this.punctToken = punctToken;
+
+    delAttIn = in.get(DeletedAttribute.class);
+    offsetAttIn = in.get(OffsetAttribute.class);
+    arcAttIn = in.get(ArcAttribute.class);
+    termAttIn = in.get(TermAttribute.class);
+
+    delAttOut = create(DeletedAttribute.class);
+    offsetAttOut = create(OffsetAttribute.class);
+    arcAttOut = create(ArcAttribute.class);
+    termAttOut = create(TermAttribute.class);
+  }
+
+  private static class FindPunctuationCharFilter extends CharFilter {
+    // TODO: we could be smarter here: we only need a rolling buffer with the "last" chunk available:
+    char[] punct = new char[128];
+    private int pos;
+
+    public FindPunctuationCharFilter(Reader input) {
+      super(input);
+    }
+
+    @Override
+    protected int correct(int offset) {
+      return offset;
+    }
+
+    @Override
+    public int read(char[] buffer, int offset, int length) throws IOException {
+      int count = input.read(buffer, offset, length);
+      for(int i=0;i<count;i++) {
+        if (isPunct(buffer[offset+i])) {
+          if (punct.length <= pos) {
+            punct = ArrayUtil.grow(punct, pos+1);
+          }
+          punct[pos] = buffer[offset+i];
+        } else {
+          punct[pos] = 0;
+        }
+        pos++;
+      }
+
+      return count;
+    }
+
+    protected boolean isPunct(char ch) {
+      // TODO: use proper Character.isXXX apis:
+      return ch == '.' || ch == ',' || ch == ':' || ch == ';';
+    }
+  }
+
+  @Override
+  public void reset(Object item) {
+    // nocommit this is iffy?  if an earlier stage also
+    // wraps, then, we are different offsets
+    if (item instanceof String) {
+      punctFilter = new FindPunctuationCharFilter(new StringReader((String) item));
+    } else {
+      punctFilter = new FindPunctuationCharFilter((Reader) item);
+    }
+    super.reset(punctFilter);
+    lastEndOffset = 0;
+    lastPunct = false;
+    insertedNode = -1;
+  }
+
+  @Override
+  public boolean next() throws IOException {
+    if (lastPunct) {
+      // Return previously buffered token:
+      copyToken();
+      assert insertedNode != -1;
+      arcAttOut.set(insertedNode, arcAttIn.to());
+      lastPunct = false;
+      System.out.println("INS: ret orig " + termAttOut.get());
+      return true;
+    }
+
+    if (in.next()) {
+      System.out.println("INS: prev=" + termAttIn.get());
+      int startOffset = offsetAttIn.startOffset();
+      assert startOffset <= punctFilter.punct.length;
+      int punctStartOffset = -1;
+      int punctEndOffset = -1;
+      for(int i=lastEndOffset;i<startOffset;i++) {
+        if (punctFilter.punct[i] != 0) {
+          // The gap between the end of the last token,
+          // and this token, had punctuation:
+          if (punctStartOffset == -1) {
+            punctStartOffset = i;
+          }
+          punctEndOffset = i;
+        }
+      }
+      System.out.println("INS: punct?=" + (punctStartOffset != -1));
+
+      if (punctStartOffset != -1) {
+        // We insert a new node and token here:
+
+        int node = newNode();
+        arcAttOut.set(arcAttIn.from(), node);
+        delAttOut.set(true);
+        offsetAttOut.set(punctStartOffset, punctEndOffset+1);
+        // nocommit: copy over the actual punct chars for origText:
+        termAttOut.set(new String(punctFilter.punct, punctStartOffset, punctEndOffset+1-punctStartOffset), punctToken);
+        insertedNode = node;
+        System.out.println("INS: ret punct " + termAttOut.get());
+        lastPunct = true;
+      } else {
+        copyToken();
+        System.out.println("INS: ret non-punct " + termAttOut.get());
+      }
+      lastEndOffset = offsetAttIn.endOffset();
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private void copyToken() {
+    if (delAttIn != null) {
+      delAttOut.set(delAttIn.deleted());
+    } else {
+      delAttOut.set(false);
+    }
+    termAttOut.copyFrom(termAttIn);
+    offsetAttOut.copyFrom(offsetAttIn);
+    arcAttOut.copyFrom(arcAttIn);
+  }
+}
