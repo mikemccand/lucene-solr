@@ -15,10 +15,10 @@ package org.apache.lucene.analysis.miscellaneous;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.KeywordAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
-import org.apache.lucene.analysis.util.CharArraySet;
 
 /**
  * Marks terms as keywords via the {@link KeywordAttribute}. Each token

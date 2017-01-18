@@ -1,4 +1,4 @@
-package org.apache.lucene.analysis.stages;
+package org.apache.lucene.analysis;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -19,10 +19,10 @@ package org.apache.lucene.analysis.stages;
 
 import java.io.IOException;
 
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
-import org.apache.lucene.analysis.util.CharArraySet;
 
 /** Marks stop words as deleted */
 public class StopFilterStage extends Stage {

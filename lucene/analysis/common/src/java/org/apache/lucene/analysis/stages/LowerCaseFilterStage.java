@@ -21,16 +21,13 @@ import java.io.IOException;
 
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
-import org.apache.lucene.analysis.util.CharacterUtils;
 
 public class LowerCaseFilterStage extends Stage {
-  private final CharacterUtils charUtils;
   private final TermAttribute termAttOut;
   private final TermAttribute termAttIn;
 
   public LowerCaseFilterStage(Stage in) {
     super(in);
-    charUtils = CharacterUtils.getInstance();
     termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
   }
@@ -45,7 +42,7 @@ public class LowerCaseFilterStage extends Stage {
         // nocommit correct?
         i += Character.toChars(
                 Character.toLowerCase(
-                   charUtils.codePointAt(term, i)), bufferOut, i);
+                   Character.codePointAt(term, i)), bufferOut, i);
       }
       termAttOut.set(termAttIn.getOrigText(), new String(bufferOut));
       return true;

@@ -27,7 +27,9 @@ import java.util.Map;
 
 import org.apache.lucene.analysis.AssertingStage;
 import org.apache.lucene.analysis.BaseStageTestCase;
+import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.Stage;
+import org.apache.lucene.analysis.StopFilterStage;
 import org.apache.lucene.analysis.charfilter.MappingTextStage;
 import org.apache.lucene.analysis.charfilter.NormalizeCharMap;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
@@ -41,7 +43,6 @@ import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
 import org.apache.lucene.analysis.synonym.SynonymMap;
-import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.lucene.util.IntsRef;

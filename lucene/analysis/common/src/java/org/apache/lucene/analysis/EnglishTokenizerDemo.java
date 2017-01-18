@@ -19,15 +19,15 @@ package org.apache.lucene.analysis;
 
 import java.io.StringReader;
 
+import org.apache.lucene.analysis.StopFilterStage;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.en.PorterStemFilterStage;
-//import org.apache.lucene.analysis.stages.DotStage;
+import org.apache.lucene.analysis.DotStage;
 import org.apache.lucene.analysis.stages.LowerCaseFilterStage;
 import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SplitOnDashFilterStage;
-import org.apache.lucene.analysis.stages.StopFilterStage;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
 import org.apache.lucene.analysis.synonym.SynonymFilterStage;
@@ -56,10 +56,10 @@ public class EnglishTokenizerDemo {
     stage = new StopFilterStage(stage, EnglishAnalyzer.getDefaultStopSet());
     // nocommit StemExclusionSet
     stage = new PorterStemFilterStage(stage);
-    //DotStage dotStage = new DotStage(stage);
-    //dotStage.reset(text);
-    //while (dotStage.next());
-    //System.out.println("\nDOT:");
-    //System.out.println(dotStage.getDotFile());
+    DotStage dotStage = new DotStage(stage);
+    dotStage.reset(text);
+    while (dotStage.next());
+    System.out.println("\nDOT:");
+    System.out.println(dotStage.getDotFile());
   }
 }
