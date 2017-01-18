@@ -202,31 +202,10 @@ public class TestStages extends BaseStageTestCase {
                   "the dog food");
   }
 
-  public void testInsertDeletedPunctuation() throws Exception {
-    assertMatches("a, b c",
-                  new InsertDeletedPunctuationStage(new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())), "p"),
-                  "a p b c");
-  }
-
   public void testTokenizePunctuation() throws Exception {
     assertMatches("a, b c",
                   new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())),
                   "a b c");
-  }
-
-  public void testSynFilterAfterInsertDeletedPunctuation() throws Exception {
-    SynonymMap.Builder b = new SynonymMap.Builder(true);
-    add(b, "a b c", "x");
-
-    Stage s = new SynonymFilterStage(new InsertDeletedPunctuationStage(new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())), "p"),
-                                     b.build(), true);
-
-    // comma prevents syn match, even though tokenizer
-    // skipped it:
-    assertMatches("a, b c", s, "a p b c");
-
-    // no comma allows syn match:
-    assertMatches("a b c", s, "a b c", "x");
   }
 
   private static class ReplayTwiceStage extends Stage {
