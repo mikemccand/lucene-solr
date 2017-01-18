@@ -56,7 +56,6 @@ public final class AppendingStage extends Stage {
     this(prevStage, "_");
   }
 
-  // nocommit why not make an AppendingReader instead?
   public AppendingStage(Stage in, String breakToken) {
     super(in);
 

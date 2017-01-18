@@ -47,7 +47,7 @@ public class HTMLTextStage extends Stage {
   public HTMLTextStage(Stage in) {
     super(in);
     System.out.println("PREV: " + in);
-    if (in.getIfExists(TermAttribute.class) != null) {
+    if (in.exists(TermAttribute.class)) {
       // nocommit need test:
       throw new IllegalArgumentException("this filter cannot handle incoming tokens");
     }

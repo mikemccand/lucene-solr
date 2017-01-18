@@ -24,7 +24,7 @@ import java.io.StringReader;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.TextAttribute;
 
-/** Reads incoming chars from a {@code java.io.Reader} into {@link TextAttribute} */
+/** Reads incoming chars from either a {@code String} or a {@code java.io.Reader} into {@link TextAttribute} */
 public class ReaderStage extends Stage {
   private final TextAttribute textAttOut;
   private final char[] buffer;

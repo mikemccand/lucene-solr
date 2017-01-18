@@ -135,7 +135,14 @@ public abstract class Stage {
     throw new IllegalArgumentException("no stage sets attribute " + attClass + " (stage=" + this + ")");
   }
 
+  public final boolean exists(Class<A> attClass) {
+    return atts.containsKey(attClass) && deletedAtts.containsKey(attClass) == false;
+  }
+  
   public final <A extends Attribute> A getIfExists(Class<A> attClass) {
+    if (deletedAtts.containsKey(attClass)) {
+      return null;
+    }
     Attribute attImpl = atts.get(attClass);
     if (attImpl != null) {
       return attClass.cast(attImpl);

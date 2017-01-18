@@ -34,7 +34,7 @@ public class OffsetAttribute extends Attribute {
   }
 
   /** If parts is non-null, it encodes how characters from term translate back to characters from origText
-   *  pairwise (numCharsTerm, numCharsOrig, numCharsTerm, numCharsOrig...).  If mapping is null it means the
+   *  pairwise (numCharsTerm, numCharsOrig, numCharsTerm, numCharsOrig...).  If parts is null it means the
    *  chars map to each other one for one. */
   public void set(int startOffset, int endOffset, int[] parts) {
 
@@ -59,7 +59,7 @@ public class OffsetAttribute extends Attribute {
         throw new IllegalArgumentException("when parts is non null it should be length >= 4 but got " + parts.length);
       }
       if ((parts.length & 1) == 1) {
-        throw new IllegalArgumentException("when parts is non null it should be length even but got " + parts.length);
+        throw new IllegalArgumentException("when parts is non null it should have even length but got " + parts.length);
       }
       int i = 0;
       int sum = 0;
