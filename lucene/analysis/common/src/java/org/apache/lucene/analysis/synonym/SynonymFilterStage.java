@@ -369,7 +369,7 @@ public class SynonymFilterStage extends Stage {
       if (token != null && (tokenIn == null || token.fromNode == tokenIn.fromNode)) {
         // nocommit what origText?  we could "glom" origText from the inputs..
         pendingOutputs.pollFirst();
-        termAttOut.set("", token.text);
+        termAttOut.set(null, token.text);
         typeAttOut.set(TypeAttribute.GENERATED);
         offsetAttOut.set(token.startOffset, token.endOffset);
         arcAttOut.set(token.fromNode, token.toNode);
