@@ -63,72 +63,10 @@ public class SplitOnDashFilterStage extends Stage {
     parts = null;
   }
 
-  // nocommit move to helper method on Stage?  WDF, others, need this
-  // nocommit is this too simple?  it doesn't allow us to split apart an unmapped chunk?
-  private void copyPart(int start, int end) {
-
-    int[] offsetPartsIn = offsetAttIn.parts();
-    int[] offsetPartsOut;
-    String origTerm;
-    int startOffset;
-    int endOffset;
-
-    if (offsetPartsIn == null) {
-      if (termAttIn.getOrigText() == null) {
-        // Simple case: term was not remapped
-        origTerm = termAttIn.get();
-      } else {
-        if (termAttIn.getOrigText().length() != termAttIn.get().length()) {
-          throw new IllegalArgumentException("cannot slice: token was mapped but has no offset parts");
-        }
-        origTerm = termAttIn.getOrigText().substring(start, end);
-      }
-      startOffset = offsetAttIn.startOffset() + start;
-      endOffset = offsetAttIn.startOffset() + end;
-      offsetPartsOut = null;
-    } else {
-      // Make sure the start/end is "congruent" with the parts:
-      int sum = 0;
-      int sumOrig = 0;
-      int origStart = -1;
-      int origEnd = -1;
-      int i = 0;
-      int partStart = -1;
-      int partEnd = -1;
-      while (i < offsetPartsIn.length) {
-        if (sum == start) {
-          partStart = i;
-          origStart = sumOrig;
-        }
-        sum += offsetPartsIn[i];
-        sumOrig += offsetPartsIn[i+1];
-        if (sum == end) {
-          partEnd = i;
-          origEnd = sumOrig;
-        }
-        i += 2;
-      }
-
-      if (origStart == -1 || origEnd == -1) {
-        // nocommit need test exposing this:
-        throw new IllegalArgumentException("cannot slice token[" + start + ":" + end + "]: it does not match the mapped parts");
-      }
-
-      if (partEnd == partStart) {
-        // Simple case: we excised a single sub-part of the token
-        offsetPartsOut = null;
-      } else {
-        // nocommit need test covering both of these
-        offsetPartsOut = new int[partEnd - partStart + 2];
-        System.arraycopy(offsetPartsIn, partStart, offsetPartsOut, 0, partEnd - partStart + 2);
-      }
-      origTerm = termAttIn.getOrigText().substring(origStart, origEnd);
-      startOffset = origStart;
-      endOffset = origEnd;
-    }
-
-    termAttOut.set(origTerm, termAttIn.get().substring(start, end));
-    offsetAttOut.set(startOffset, endOffset, offsetPartsOut);
+  /** Returns true if the offsets seem to agree with the terms length; this is only approximate, since a char mapping could have remapped
+   *  things while keeping the same token length */
+  private boolean offsetMatches() {
+    return offsetAttIn.endOffset() - offsetAttIn.startOffset() == termAttIn.get().length();
   }
 
   @Override
@@ -136,9 +74,19 @@ public class SplitOnDashFilterStage extends Stage {
     System.out.println("SPLIT next: parts=" + parts + " nextPart=" + nextPart);
     if (parts != null) {
       System.out.println("  parts: " + parts + " nextPart=" + nextPart);
+      int partStart = parts.get(nextPart);
+      int partEnd = parts.get(nextPart+1);
 
-      // Sets offsetAttOut and termAttOut:
-      copyPart(parts.get(nextPart), parts.get(nextPart+1));
+      termAttOut.set(termAttIn.get().substring(partStart, partEnd));
+
+      if (offsetMatches()) {
+        // Optimistically assume we can slice the token
+        offsetAttOut.set(offsetAttIn.startOffset() + parts.get(nextPart),
+                         offsetAttIn.startOffset() + parts.get(nextPart+1));
+      } else {
+        // Something re-mapped the characters and we cannot slice the token:
+        offsetAttOut.copyFrom(offsetAttIn);
+      }
 
       // Now set arcAttOut:
       int from;

@@ -17,26 +17,16 @@ package org.apache.lucene.analysis.stageattributes;
  * limitations under the License.
  */
 
-// TODO: CharSequence again?
+// nocommit: char[] backed again
 public class TermAttribute extends Attribute {
-  private String origText;
   private String term;
 
-  public void set(String origText, String term) {
-    // nocommit enable this:
-    if (false && origText != null && origText.equals(term)) {
-      throw new IllegalArgumentException("origText is the same as term");
-    }
-    this.origText = origText;
+  public void set(String term) {
     this.term = term;
   }
 
   public String get() {
     return term;
-  }
-
-  public String getOrigText() {
-    return origText;
   }
 
   @Override
@@ -47,7 +37,7 @@ public class TermAttribute extends Attribute {
   @Override
   public void copyFrom(Attribute other) {
     TermAttribute t = (TermAttribute) other;
-    set(t.origText, t.term);
+    set(t.term);
   }
 
   @Override
@@ -58,7 +48,6 @@ public class TermAttribute extends Attribute {
   }
 
   public void clear() {
-    origText = null;
     term = null;
   }
 }

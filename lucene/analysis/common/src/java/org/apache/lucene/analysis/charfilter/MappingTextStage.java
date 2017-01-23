@@ -354,7 +354,7 @@ public class MappingTextStage extends Stage {
           textAttOut.set(chunk.text, chunk.text.length);
         }
         if (termAttOut != null) {
-          termAttOut.set("", "");
+          termAttOut.set("");
         }
         return true;
       }

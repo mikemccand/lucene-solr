@@ -106,7 +106,7 @@ public final class AppendingStage extends Stage {
       arcAttOut.set(arcAttIn.from() + nodeShift, arcAttIn.to() + nodeShift);
       frontier.add(arcAttIn.to());
       frontier.remove(arcAttIn.from());
-      offsetAttOut.set(offsetAttIn.startOffset() + offsetShift, offsetAttIn.endOffset() + offsetShift, null);
+      offsetAttOut.set(offsetAttIn.startOffset() + offsetShift, offsetAttIn.endOffset() + offsetShift);
       termAttOut.copyFrom(termAttIn);
       delAttOut.copyFrom(delAttIn);
       return true;
@@ -121,7 +121,7 @@ public final class AppendingStage extends Stage {
       }
 
       // Insert the break token:
-      termAttOut.set(breakToken, breakToken);
+      termAttOut.set(breakToken);
       delAttOut.set(true);
       int node = newNode();
       arcAttOut.set(frontier.iterator().next() + nodeShift, node + nodeShift);

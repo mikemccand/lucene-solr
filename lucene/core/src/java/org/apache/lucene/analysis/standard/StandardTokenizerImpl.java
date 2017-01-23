@@ -467,7 +467,7 @@ public final class StandardTokenizerImpl {
   public final void getText(TermAttribute t) {
     // nocommit fix TermAtt to use char[]
     String s = new String(zzBuffer, zzStartRead, zzMarkedPos-zzStartRead);
-    t.set(s, s);
+    t.set(s);
   }
 
   /**

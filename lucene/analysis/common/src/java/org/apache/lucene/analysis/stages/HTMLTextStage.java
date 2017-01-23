@@ -21,6 +21,7 @@ import java.io.IOException;
 
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.stageattributes.TextAttribute;
 import org.apache.lucene.util.ArrayUtil;
@@ -34,6 +35,7 @@ import org.apache.lucene.util.UnicodeUtil;
 public class HTMLTextStage extends Stage {
   private final TextAttribute textAttIn;
   private final TextAttribute textAttOut;
+  private final OffsetAttribute offsetAttOut;
   private final TermAttribute termAttOut;
   private final DeletedAttribute delAttOut;
   private int inputNextRead;
@@ -43,6 +45,7 @@ public class HTMLTextStage extends Stage {
   private int outputNextWrite;
 
   private boolean end;
+  private int offset;
 
   public HTMLTextStage(Stage in) {
     super(in);
@@ -55,6 +58,7 @@ public class HTMLTextStage extends Stage {
     textAttIn = in.get(TextAttribute.class);
     textAttOut = create(TextAttribute.class);
     termAttOut = create(TermAttribute.class);
+    offsetAttOut = create(OffsetAttribute.class);
     delAttOut = create(DeletedAttribute.class);
   }
 
@@ -70,6 +74,7 @@ public class HTMLTextStage extends Stage {
       inputNextRead = 0;
     }
     char c = textAttIn.getBuffer()[inputNextRead++];
+    offset++;
     //System.out.println("NEXT: " + c);
     return c;
   }
@@ -91,11 +96,12 @@ public class HTMLTextStage extends Stage {
   @Override
   public void reset(Object item) {
     super.reset(item);
+    offset = 0;
     inputNextRead = 0;
     outputNextWrite = 0;
     end = false;
     textAttOut.set(null, 0);
-    termAttOut.set("", "");
+    termAttOut.set(null);
   }
 
   private void append(int ch) {
@@ -110,10 +116,12 @@ public class HTMLTextStage extends Stage {
   }
 
   /** Return a deleted token (HTML tag) */
-  private void fillToken() {
+  private void fillToken(int startOffset, int endOffset) {
     String tag = new String(buffer, 0, outputNextWrite);
     System.out.println("H: fillToken '" + tag + "'");
-    termAttOut.set(tag, tag);
+    termAttOut.set(tag);
+    assert endOffset - startOffset == tag.length();
+    offsetAttOut.set(startOffset, endOffset);
     outputNextWrite = 0;
     textAttOut.set(null, 0);
     delAttOut.set(true);
@@ -124,7 +132,7 @@ public class HTMLTextStage extends Stage {
     System.out.println("H: fillText '" + new String(buffer, 0, outputNextWrite) + "'");
     textAttOut.set(buffer, outputNextWrite);
     outputNextWrite = 0;
-    termAttOut.set("", "");
+    termAttOut.set(null);
     delAttOut.set(false);
   }
 
@@ -133,12 +141,13 @@ public class HTMLTextStage extends Stage {
     char[] mappedChars = mapped.toCharArray();
     textAttOut.set(buffer, outputNextWrite, mappedChars, mappedChars.length);
     outputNextWrite = 0;
-    termAttOut.set("", "");
+    termAttOut.set(null);
     delAttOut.set(false);
   }
 
   private void parseTag() throws IOException {
     System.out.println("H: parseTag");
+    int startOffset = offset;
     int c = nextInputChar();
     assert c == '<';
     append(c);
@@ -155,7 +164,7 @@ public class HTMLTextStage extends Stage {
       }
     }
 
-    fillToken();
+    fillToken(startOffset, offset);
   }
 
   private void parseEscape() throws IOException {

@@ -44,7 +44,7 @@ public class LowerCaseFilterStage extends Stage {
                 Character.toLowerCase(
                    Character.codePointAt(term, i)), bufferOut, i);
       }
-      termAttOut.set(termAttIn.getOrigText(), new String(bufferOut));
+      termAttOut.set(new String(bufferOut));
       return true;
     } else {
       return false;

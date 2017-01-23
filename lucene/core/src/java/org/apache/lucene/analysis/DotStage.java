@@ -102,7 +102,6 @@ public class DotStage extends Stage {
       System.out.println("  now: " + frontier);
 
       String term = termAtt.get();
-      String origText = termAtt.getOrigText();
 
       dot.append("  ");
       dot.append(from);
@@ -118,15 +117,6 @@ public class DotStage extends Stage {
         dot.append(term);
       }
 
-      if (origText.equals(term) == false) {
-        dot.append(" [");
-        if (delAtt.deleted()) {
-          dot.append(escape(origText));
-        } else {
-          dot.append(origText);
-        }
-        dot.append(']');
-      }
       if (delAtt.deleted()) {
         dot.append("</S>>");
       } else {

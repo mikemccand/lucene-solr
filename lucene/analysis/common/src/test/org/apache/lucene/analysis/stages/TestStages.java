@@ -269,7 +269,7 @@ public class TestStages extends BaseStageTestCase {
       arcAttOut.set(remapNode(from), remapNode(to));
 
       // On replay we change all terms to foobar:
-      termAttOut.set(termAttOut.getOrigText(), "foobar");
+      termAttOut.set("foobar");
 
       return true;
     }
@@ -516,11 +516,12 @@ public class TestStages extends BaseStageTestCase {
 
     stage = new SplitOnDashFilterStage(stage);
 
+    // The stage detects that the offsets don't agree with the incoming text and is forced to keep the same start/end offset for all parts:
     assertStageContents(stage, "1939&endash;1945",
                         new String[] {"1939-1945", "1939", "1945"},
                         new String[] {"1939&endash;1945", "1939", "1945"},
-                        new int[] {0, 0, 12},
-                        new int[] {16, 4, 16});
+                        new int[] {0, 0, 0},
+                        new int[] {16, 16, 16});
   }
 
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space

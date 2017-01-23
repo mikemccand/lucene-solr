@@ -19,7 +19,10 @@ package org.apache.lucene.analysis;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
 import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
@@ -179,19 +182,52 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
       //System.out.println("expected:\n" + Automaton.minimize(expected).toDot());
       System.out.println("expected:\n" + expected.toDot());
       System.out.println("actual:\n" + MinimizationOperations.minimize(da, Integer.MAX_VALUE).toDot());
-      System.out.println("actual strings:");
-      for (IntsRef s : AutomatonTestUtil.getFiniteStringsRecursive(a, -1)) {
-        for(int i=0;i<s.length;i++) {
-          if (s.ints[i] == AutomatonStage.POS_SEP) {
-            s.ints[i] = ' ';
-          }
+      Set<String> actualStrings = getStrings(da);
+      Set<String> expectedStrings = getStrings(expected);
+
+      StringBuilder b = new StringBuilder();
+      
+      b.append("expected strings:\n");
+      for(String s : sorted(expectedStrings)) {
+        b.append("  " + s);
+        if (actualStrings.contains(s) == false) {
+          b.append(" [missing!]");
         }
-        BytesRefBuilder bytes = new BytesRefBuilder();
-        Util.toBytesRef(s, bytes);
-        System.out.println("  " + bytes.get().utf8ToString());
+        b.append('\n');
       }
-      throw new AssertionError(desc + ": languages differ");
+
+      b.append("actual strings:\n");
+      for(String s : sorted(actualStrings)) {
+        b.append("  " + s);
+        if (expectedStrings.contains(s) == false) {
+          b.append(" [unexpected!]");
+        }
+        b.append('\n');
+      }
+
+      throw new AssertionError(desc + ": languages differ:\n" + b.toString());
     }
+  }
+
+  protected Set<String> getStrings(Automaton a) {
+    Set<String> strings = new HashSet<>();
+    for (IntsRef s : AutomatonTestUtil.getFiniteStringsRecursive(a, -1)) {
+      for(int i=0;i<s.length;i++) {
+        if (s.ints[i] == AutomatonStage.POS_SEP) {
+          s.ints[i] = ' ';
+        }
+      }
+      BytesRefBuilder bytes = new BytesRefBuilder();
+      Util.toBytesRef(s, bytes);
+      strings.add(bytes.get().utf8ToString());
+    }
+    return strings;
+  }
+
+  private List<String> sorted(Set<String> strings) {
+    List<String> stringsList = new ArrayList<>(strings);
+    Collections.sort(stringsList);
+    return stringsList;
   }
 
   /** Runs the text through the analyzer and verifies the

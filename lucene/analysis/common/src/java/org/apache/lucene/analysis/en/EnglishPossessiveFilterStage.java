@@ -44,7 +44,7 @@ public final class EnglishPossessiveFilterStage extends Stage {
         if ((ch2 == '\'' || ch2 == '\u2019' || ch2 == '\uFF07') &&
             (ch1 == 's' || ch1 == 'S')) {
           // Strip last 2 characters off
-          termAttOut.set(termAttIn.getOrigText(), term.substring(0, term.length()-2));
+          termAttOut.set(term.substring(0, term.length()-2));
         } else {
           termAttOut.copyFrom(termAttIn);
         }

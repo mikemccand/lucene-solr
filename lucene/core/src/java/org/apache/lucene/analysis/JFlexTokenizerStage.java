@@ -35,6 +35,7 @@ public abstract class JFlexTokenizerStage extends Stage {
 
   protected final TextReader reader;
   private final TextAttribute textAttIn;
+  private final OffsetAttribute offsetAttIn;
   private final OffsetAttribute offsetAttOut;
   private final ArcAttribute arcAttOut;
 
@@ -48,6 +49,7 @@ public abstract class JFlexTokenizerStage extends Stage {
   public JFlexTokenizerStage(Stage in) {
     super(in);
     textAttIn = in.get(TextAttribute.class);
+    offsetAttIn = in.getIfExists(OffsetAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);
 
     // Don't let our following stages see the TextAttribute, because we consume that and make
@@ -59,6 +61,9 @@ public abstract class JFlexTokenizerStage extends Stage {
     termAttIn = in.getIfExists(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
 
+    if (termAttIn != null && offsetAttIn == null) {
+      throw new IllegalArgumentException("input stage " + in + " sets TermAttribute but fails to set OffsetAttribute");
+    }
     arcAttOut = create(ArcAttribute.class);
 
     // We never delete tokens, but subsequent stages want to see this:
@@ -111,7 +116,7 @@ public abstract class JFlexTokenizerStage extends Stage {
           end = true;
           return -1;
         }
-        if (termAttIn != null && termAttIn.getOrigText().length() != 0) {
+        if (termAttIn != null && termAttIn.get() != null) {
           // A pre-token
           preToken = true;
           nextReadText = 0;
@@ -147,10 +152,10 @@ public abstract class JFlexTokenizerStage extends Stage {
     } else if (reader.preToken) {
       offset += getTokenEnd();
       termAttOut.copyFrom(termAttIn);
-      System.out.println("JFL: offset after end: " +offset);
+      System.out.println("JFL: offset after end: " + offset);
       System.out.println("JFL: now output preToken " + termAttOut);
-      offsetAttOut.set(offset, offset + termAttIn.getOrigText().length());
-      offset += termAttIn.getOrigText().length();
+      offsetAttOut.copyFrom(offsetAttIn);
+      offset = offsetAttIn.endOffset();
       reader.preToken = false;
 
       int node = newNode();

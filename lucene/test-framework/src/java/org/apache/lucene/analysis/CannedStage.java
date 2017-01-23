@@ -25,7 +25,6 @@ import org.apache.lucene.analysis.stageattributes.TermAttribute;
 public class CannedStage extends Stage {
   private int upto;
   private String[] terms;
-  private String[] origTerms;
   private int[] fromNodes;
   private int[] toNodes;
   private final TermAttribute termAttOut = create(TermAttribute.class);
@@ -45,14 +44,6 @@ public class CannedStage extends Stage {
     terms = (String[]) args[0];
 
     int argUpto = 1;
-    if (args.length > argUpto) {
-      origTerms = (String[]) args[argUpto++];
-      if (origTerms != null && origTerms.length != terms.length) {
-        throw new IllegalArgumentException("origTerms.length=" + origTerms.length + " but terms.length=" + terms.length);
-      }
-    } else {
-      origTerms = null;
-    }
     if (args.length > argUpto) {
       fromNodes = (int[]) args[argUpto++];
       if (fromNodes != null && fromNodes.length != terms.length) {
@@ -79,11 +70,7 @@ public class CannedStage extends Stage {
       return false;
     }
 
-    if (origTerms != null) {
-      termAttOut.set(origTerms[upto], terms[upto]);
-    } else {
-      termAttOut.set(null, terms[upto]);
-    }
+    termAttOut.set(terms[upto]);
 
     if (fromNodes != null) {
       arcAttOut.set(fromNodes[upto], toNodes[upto]);

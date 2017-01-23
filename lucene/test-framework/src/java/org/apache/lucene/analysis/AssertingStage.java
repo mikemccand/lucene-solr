@@ -46,7 +46,11 @@ public class AssertingStage extends Stage {
     arcAtt = in.get(ArcAttribute.class);
     offsetAtt = in.get(OffsetAttribute.class);
     termAtt = in.get(TermAttribute.class);
-    typeAtt = in.get(TypeAttribute.class);
+    if (in.exists(TypeAttribute.class)) {
+      typeAtt = in.get(TypeAttribute.class);
+    } else {
+      typeAtt = null;
+    }
   }
 
   @Override
@@ -72,7 +76,7 @@ public class AssertingStage extends Stage {
   @Override
   public boolean next() throws IOException {
     if (in.next()) {
-      System.out.println("GOT: " + termAtt.get() + (termAtt.getOrigText() != null ? ("/" + termAtt.getOrigText()) : "") + " arc=" + arcAtt);
+      System.out.println("GOT: " + termAtt.get() + " arc=" + arcAtt);
       int from = arcAtt.from();
       int to = arcAtt.to();
 
@@ -91,31 +95,6 @@ public class AssertingStage extends Stage {
         fail("node=" + from + " is frozen, but current token (" + termAtt + ") uses it as from node");
       }
 
-      int[] parts = offsetAtt.parts();
-      if (parts != null) {
-        int len = 0;
-        int origLen = 0;
-        if ((parts.length & 1) != 0) {
-          fail("offset parts.length is not even (got: " + parts.length + ")");
-        }
-        for(int i=0;i<parts.length;i+=2) {
-          len += parts[i];
-          origLen += parts[i+1];
-        }
-
-        if (len != termAtt.get().length()) {
-          fail("offset parts length sums to " + len + " but term length=" + termAtt.get().length());
-        }
-
-        if (termAtt.getOrigText() == null) {
-          fail("offset parts is non-null but orig text is null");
-        }
-
-        if (origLen != termAtt.getOrigText().length()) {
-          fail("offset parts orig length sums to " + origLen + " but origText length=" + termAtt.getOrigText().length());
-        }
-      }
-
       int startOffset = offsetAtt.startOffset();
       int endOffset = offsetAtt.endOffset();
 
@@ -129,17 +108,6 @@ public class AssertingStage extends Stage {
       }
 
       // boolean isRealToken = typeAtt.get().equals(TypeAttribute.TOKEN);
-
-      if (endOffset != startOffset + termAtt.getOrigText().length()) {
-        fail("origText=" + termAtt.getOrigText() + " length disagrees with offsets: startOffset=" + startOffset + " endOffset=" + endOffset);
-      }
-
-      if (itemString != null) {
-        String slice = itemString.substring(startOffset, endOffset);
-        if (slice.equals(termAtt.getOrigText()) == false) {
-          fail("origText=" + termAtt.getOrigText() + " disagrees with the input: inputString[" + startOffset + ":" + endOffset + "] is " + slice);
-        }
-      }
 
       // Detect if startOffset changed for the from node:
       Integer oldStartOffset = nodeToStartOffset.get(from);
