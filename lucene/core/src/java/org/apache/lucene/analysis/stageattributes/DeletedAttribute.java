@@ -23,7 +23,7 @@ public class DeletedAttribute extends Attribute {
   public DeletedAttribute() {
   }
 
-  public boolean deleted() {
+  public boolean isDeleted() {
     return deleted;
   }
 
@@ -63,7 +63,7 @@ public class DeletedAttribute extends Attribute {
   @Override
   public DeletedAttribute copy() {
     DeletedAttribute att = new DeletedAttribute();
-    att.set(deleted());
+    att.set(isDeleted());
     return att;
   }
 }

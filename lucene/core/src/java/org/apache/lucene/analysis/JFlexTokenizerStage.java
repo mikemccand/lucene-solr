@@ -38,6 +38,8 @@ public abstract class JFlexTokenizerStage extends Stage {
   private final OffsetAttribute offsetAttIn;
   private final OffsetAttribute offsetAttOut;
   private final ArcAttribute arcAttOut;
+  private final DeletedAttribute delAttIn;
+  private final DeletedAttribute delAttOut;
 
   private final TermAttribute termAttIn;
   protected final TermAttribute termAttOut;
@@ -66,13 +68,10 @@ public abstract class JFlexTokenizerStage extends Stage {
     }
     arcAttOut = create(ArcAttribute.class);
 
-    // We never delete tokens, but subsequent stages want to see this:
-    if (in.getIfExists(DeletedAttribute.class) == null) {
-      // nocommit we may want to delete?  need to have separate delAttIn/Out if so:
-      create(DeletedAttribute.class);
-    }
+    delAttIn = in.getIfExists(DeletedAttribute.class);
+    delAttOut = create(DeletedAttribute.class);
 
-    if (in.getIfExists(TypeAttribute.class) == null) {
+    if (in.exists(TypeAttribute.class) == false) {
       // nocommit
       /*
       TypeAttribute typeAtt = create(TypeAttribute.class);
@@ -146,11 +145,13 @@ public abstract class JFlexTokenizerStage extends Stage {
       arcAttOut.set(lastNode, node);
       lastNode = node;
       int start = getTokenStart();
+      delAttOut.clear();
       System.out.println("JFL: now output jflex token " + termAttOut);
       offsetAttOut.set(offset+start, offset+start+termAttOut.get().length());
       return true;
     } else if (reader.preToken) {
       offset += getTokenEnd();
+      delAttOut.copyFrom(delAttIn);
       termAttOut.copyFrom(termAttIn);
       System.out.println("JFL: offset after end: " + offset);
       System.out.println("JFL: now output preToken " + termAttOut);

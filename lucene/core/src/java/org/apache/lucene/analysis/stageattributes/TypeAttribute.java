@@ -17,14 +17,13 @@ package org.apache.lucene.analysis.stageattributes;
  * limitations under the License.
  */
 
-// TODO: CharSequence again?
 public class TypeAttribute extends Attribute {
 
   public static final String TOKEN = "TOKEN";
 
   public static final String GENERATED = "GENERATED";
 
-  private String type;
+  private String type = TOKEN;
 
   public void set(String type) {
     this.type = type;

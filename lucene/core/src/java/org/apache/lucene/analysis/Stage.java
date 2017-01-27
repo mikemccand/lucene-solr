@@ -46,6 +46,7 @@ public abstract class Stage {
 
   protected Stage(Stage in) {
     this.in = in;
+    // The entire chain shares a single Nodes instance:
     if (in == null) {
       this.nodes = new Nodes();
     } else {
@@ -125,10 +126,12 @@ public abstract class Stage {
   public final <A extends Attribute> A get(Class<A> attClass) {
     Attribute attImpl = atts.get(attClass);
     if (attImpl != null) {
+      System.out.println("  get " + attClass + " done");
       return attClass.cast(attImpl);
     }
 
     if (in != null) {
+      System.out.println("  get " + attClass + " recurse to " + in);
       return in.get(attClass);
     }
 

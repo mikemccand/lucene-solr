@@ -34,10 +34,10 @@ public class ArcAttribute extends Attribute {
 
   public void set(int from, int to) {
     if (from < 0) {
-      throw new IllegalArgumentException("from must be >= 0; got " + from);
+      throw new IllegalArgumentException("from node must be >= 0; got " + from);
     }
     if (to < 1) {
-      throw new IllegalArgumentException("to must be > 0; got " + to);
+      throw new IllegalArgumentException("to node must be > 0; got " + to);
     }
     this.from = from;
     this.to = to;

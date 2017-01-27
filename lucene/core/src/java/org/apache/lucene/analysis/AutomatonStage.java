@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.util.automaton.Automaton;
 
@@ -43,11 +44,14 @@ public class AutomatonStage extends Stage {
   private Map<Integer,Integer> fromStates;
   private final ArcAttribute arcAtt;
   private final TermAttribute termAtt;
+  private final DeletedAttribute delAtt;
 
   public AutomatonStage(Stage in) {
     super(in);
     arcAtt = in.get(ArcAttribute.class);
     termAtt = in.get(TermAttribute.class);
+    System.out.println("now get del att");
+    delAtt = in.get(DeletedAttribute.class);
   }
 
   @Override
@@ -57,9 +61,6 @@ public class AutomatonStage extends Stage {
     fromStates = new HashMap<>();
     builder = new Automaton.Builder();
     automaton = null;
-    // Node 0 is always the start state:
-    fromStates.put(0, 0);
-    builder.createState();
   }
 
   public Automaton getAutomaton() {
@@ -102,9 +103,18 @@ public class AutomatonStage extends Stage {
   @Override
   public boolean next() throws IOException {
     if (in.next()) {
+      if (fromStates.isEmpty()) {
+        // Node 0 is always the start state:
+        fromStates.put(0, 0);
+        builder.createState();
+      }
       String term = termAtt.get();
       if (term.length() == 0) {
         throw new IllegalStateException("cannot handle empty-string term");
+      }
+      System.out.println("A: term=" + term + " del?=" + delAtt.isDeleted());
+      if (delAtt.isDeleted()) {
+        term = "x:" + term;
       }
       int lastState = getFromState(arcAtt.from());
       if (arcAtt.from() == 0) {

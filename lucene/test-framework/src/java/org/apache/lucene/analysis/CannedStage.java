@@ -18,7 +18,10 @@ package org.apache.lucene.analysis;
  */
 
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
+import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
+import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TypeAttribute;
 
 /** Just iterates through canned token attribute values passed to reset. */
 
@@ -27,16 +30,25 @@ public class CannedStage extends Stage {
   private String[] terms;
   private int[] fromNodes;
   private int[] toNodes;
+  private int[] startOffsets;
+  private int[] endOffsets;
+  private int lastNode;
   private final TermAttribute termAttOut = create(TermAttribute.class);
+  private final TypeAttribute typeAttOut = create(TypeAttribute.class);
+  private final OffsetAttribute offsetAttOut = create(OffsetAttribute.class);
   private final ArcAttribute arcAttOut = create(ArcAttribute.class);
+  private final DeletedAttribute deletedAttOut = create(DeletedAttribute.class);
 
   // Sole constructor
   public CannedStage() {
     super(null);
   }
 
+  // terms, startOffsets, endOffsets, fromNodes, toNodes
+  
   @Override
   public void reset(Object item) {
+    super.reset(item);
     Object[] args = (Object[]) item;
     if (args.length == 0) {
       throw new IllegalArgumentException("items must at least have String[] terms first");
@@ -44,6 +56,30 @@ public class CannedStage extends Stage {
     terms = (String[]) args[0];
 
     int argUpto = 1;
+    if (args.length > argUpto) {
+      startOffsets = (int[]) args[argUpto++];
+      if (startOffsets != null && startOffsets.length != terms.length) {
+        throw new IllegalArgumentException("startOffsets.length=" + startOffsets.length + " but terms.length=" + terms.length);
+      }
+    } else {
+      startOffsets = null;
+    }
+    if (args.length > argUpto) {
+      endOffsets = (int[]) args[argUpto++];
+      if (endOffsets != null) {
+        if (startOffsets == null) {
+          throw new IllegalArgumentException("startOffsets must be provided when endOffsets != null");
+        }
+        if (endOffsets.length != terms.length) {
+          throw new IllegalArgumentException("endOffsets.length=" + endOffsets.length + " but terms.length=" + terms.length);
+        }
+      }
+    } else {
+      if (startOffsets != null) {
+        throw new IllegalArgumentException("endOffsets must be provied when startOffsets != null");
+      }
+      endOffsets = null;
+    }
     if (args.length > argUpto) {
       fromNodes = (int[]) args[argUpto++];
       if (fromNodes != null && fromNodes.length != terms.length) {
@@ -54,14 +90,45 @@ public class CannedStage extends Stage {
     }
     if (args.length > argUpto) {
       toNodes = (int[]) args[argUpto++];
-      if (toNodes != null && toNodes.length != terms.length) {
-        throw new IllegalArgumentException("toNodes.length=" + toNodes.length + " but terms.length=" + terms.length);
+      if (toNodes != null) {
+        if (fromNodes == null) {
+          throw new IllegalArgumentException("fromNodes must be provided when toNodes != null");
+        }
+        if (toNodes.length != terms.length) {
+          throw new IllegalArgumentException("toNodes.length=" + toNodes.length + " but terms.length=" + terms.length);
+        }
       }
-    } else if (fromNodes != null) {
-      throw new IllegalArgumentException("toNodes must be provided when fromNodes != null");
     } else {
+      if (fromNodes != null) {
+        throw new IllegalArgumentException("toNodes must be provided when fromNodes != null");
+      }
       toNodes = null;
     }
+
+    if (args.length > argUpto) {
+      throw new IllegalArgumentException("too many arguments: got " + args.length + " but expected at most " + argUpto);
+    }
+
+    if (fromNodes == null) {
+      lastNode = newNode();
+    } else {
+      int maxNode = 0;
+      for(int node : fromNodes) {
+        maxNode = Math.max(maxNode, node);
+      }
+      for(int node : toNodes) {
+        maxNode = Math.max(maxNode, node);
+      }
+      // make sure nothing can generate node IDs we are already using:
+      while (true) {
+        int node = newNode();
+        if (node > maxNode) {
+          break;
+        }
+      }
+    }
+
+    upto = 0;
   }
 
   @Override
@@ -74,6 +141,15 @@ public class CannedStage extends Stage {
 
     if (fromNodes != null) {
       arcAttOut.set(fromNodes[upto], toNodes[upto]);
+    } else {
+      int nextNode = newNode();
+      arcAttOut.set(lastNode, nextNode);
+      lastNode = nextNode;
+    }
+    if (startOffsets != null) {
+      offsetAttOut.set(startOffsets[upto], endOffsets[upto]);
+    } else {
+      // nocommit fill in based on term length?
     }
     upto++;
     return true;

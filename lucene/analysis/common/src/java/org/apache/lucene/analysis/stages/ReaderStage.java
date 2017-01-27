@@ -69,13 +69,11 @@ public class ReaderStage extends Stage {
     }
 
     if (read == 0) {
-      System.out.println("  end");
       // nocommit close reader here?  or does Stage need a close method ... grr
       return false;
     }
-    System.out.println("  read " + read);
 
-    textAttOut.set(buffer, read);
+    textAttOut.set(null, read, buffer, read);
     return true;
   }
 }

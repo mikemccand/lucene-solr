@@ -38,9 +38,9 @@ import org.apache.lucene.util.fst.Util;
 
 public abstract class BaseStageTestCase extends LuceneTestCase {
   // some helpers to test Stages
-  
-  /** toVerify is text, origText, startOffset, endOffset, fromNodes, toNodes */
-  public static void assertStageContents(Stage stage, String input, Object... toVerify) throws IOException {
+
+  /** toVerify is text, startOffset, endOffset, fromNodes, toNodes */
+  public static void assertStageContents(Stage stage, Object input, Object... toVerify) throws IOException {
     // nocommit carry over other things from the base class, e.g. re-run analysis, etc.
     if (toVerify.length == 0) {
       throw new IllegalArgumentException("must have at least terms to verify");
@@ -53,14 +53,6 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
       throw new IllegalArgumentException("terms must not be null");
     }
     upto++;
-
-    String[] origTerms;
-    if (upto < toVerify.length && toVerify[upto] instanceof String[]) {
-      origTerms = (String[]) toVerify[upto];
-      upto++;
-    } else {
-      origTerms = null;
-    }
 
     int[] startOffsets;
     if (upto < toVerify.length) {
@@ -152,7 +144,7 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
 
   /** Like assertAnalyzesTo, but handles a graph: verifies
    *  the automaton == the union of the expectedStrings. */
-  protected void assertMatches(String desc, Automaton a, String... paths) {
+  protected void assertAllPaths(String desc, Automaton a, String... paths) {
     List<Automaton> subs = new ArrayList<Automaton>();
     for(String path : paths) {
       String[] tokens = path.split(" ");
@@ -182,8 +174,8 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
       //System.out.println("expected:\n" + Automaton.minimize(expected).toDot());
       System.out.println("expected:\n" + expected.toDot());
       System.out.println("actual:\n" + MinimizationOperations.minimize(da, Integer.MAX_VALUE).toDot());
-      Set<String> actualStrings = getStrings(da);
-      Set<String> expectedStrings = getStrings(expected);
+      Set<String> actualStrings = getAllPaths(da);
+      Set<String> expectedStrings = getAllPaths(expected);
 
       StringBuilder b = new StringBuilder();
       
@@ -209,7 +201,10 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
     }
   }
 
-  protected Set<String> getStrings(Automaton a) {
+  protected Set<String> getAllPaths(Automaton a) {
+    if (a.getNumStates() == 0) {
+      return Collections.<String>emptySet();
+    }
     Set<String> strings = new HashSet<>();
     for (IntsRef s : AutomatonTestUtil.getFiniteStringsRecursive(a, -1)) {
       for(int i=0;i<s.length;i++) {
@@ -224,6 +219,14 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
     return strings;
   }
 
+  protected Set<String> getAllPaths(Stage stage, Object item) throws IOException {
+    AutomatonStage a = new AutomatonStage(new AssertingStage(stage));
+    a.reset(item);
+    while (a.next()) {
+    }
+    return getAllPaths(a.getAutomaton());
+  }
+
   private List<String> sorted(Set<String> strings) {
     List<String> stringsList = new ArrayList<>(strings);
     Collections.sort(stringsList);
@@ -232,7 +235,7 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
 
   /** Runs the text through the analyzer and verifies the
    *  resulting automaton == union of the expectedStrings. */
-  protected void assertMatches(Object item, Stage end, String... expectedStrings) throws IOException {
+  protected void assertAllPaths(Stage end, Object item, String... expectedStrings) throws IOException {
     AutomatonStage a = new AutomatonStage(new AssertingStage(end));
     DotStage toDot = new DotStage(a);
     //TermAttribute termAtt = toDot.get(TermAttribute.class);
@@ -248,7 +251,7 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
       if (i == 0) {
         System.out.println("DOT:\n" + toDot.getDotFile());
       }
-      assertMatches(i == 0 ? "first pass" : "second pass (after reset)", a.getAutomaton(), expectedStrings);
+      assertAllPaths(i == 0 ? "first pass" : "second pass (after reset)", a.getAutomaton(), expectedStrings);
     }
   }
 }

@@ -369,7 +369,7 @@ public class TestWordDelimiterGraphFilter extends BaseTokenStreamTestCase {
       a.close();
     }
   }
-  
+
   /** blast some enormous random strings through the analyzer */
   public void testRandomHugeStrings() throws Exception {
     int numIterations = atLeast(5);

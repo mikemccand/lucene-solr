@@ -133,7 +133,7 @@ public class HTMLTextStage extends Stage {
     textAttOut.set(buffer, outputNextWrite);
     outputNextWrite = 0;
     termAttOut.set(null);
-    delAttOut.set(false);
+    delAttOut.clear();
   }
 
   private void fillMappedText(String mapped) {
@@ -142,7 +142,7 @@ public class HTMLTextStage extends Stage {
     textAttOut.set(buffer, outputNextWrite, mappedChars, mappedChars.length);
     outputNextWrite = 0;
     termAttOut.set(null);
-    delAttOut.set(false);
+    delAttOut.clear();
   }
 
   private void parseTag() throws IOException {

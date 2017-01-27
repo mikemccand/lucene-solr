@@ -17,9 +17,13 @@ package org.apache.lucene.analysis;
  * limitations under the License.
  */
 
+/** Generates new nodes (positions) in the token graph.  The tokenizer makes a new node for
+ *  each token it creates, and most token filters do not.  The exception is token filters
+ *  that can create graphs (e.g. {@code WordDelimiterStage}, {@code SynonymGraphStage}. */
 public class Nodes {
   private int nextNodeID;
 
+  /** Returns the next node ID */
   public int newNode() {
     return nextNodeID++;
   }

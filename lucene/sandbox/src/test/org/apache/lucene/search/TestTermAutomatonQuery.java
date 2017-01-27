@@ -440,6 +440,7 @@ public class TestTermAutomatonQuery extends LuceneTestCase {
     ToTermAutomatonQueryStage stage = new ToTermAutomatonQueryStage(new CannedStage(), "field");
     stage.reset(new Object[] {new String[] {"comes", "comes", "*", "sun", "moon"},
                               null,
+                              null,
                               new int[] {0, 0, 1, 2, 2},
                               new int[] {1, 2, 2, 3, 3}});
     while (stage.next());

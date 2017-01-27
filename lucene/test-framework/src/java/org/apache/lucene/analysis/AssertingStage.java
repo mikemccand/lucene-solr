@@ -33,10 +33,8 @@ public class AssertingStage extends Stage {
   final TermAttribute termAtt;
   final TypeAttribute typeAtt;
   final OffsetAttribute offsetAtt;
-  private int lastFrom;
   private int tokenCount;
 
-  private final Set<Integer> frozenNodes = new HashSet<>();
   private final Map<Integer,Integer> nodeToStartOffset = new HashMap<>();
   private final Map<Integer,Integer> nodeToEndOffset = new HashMap<>();
   private String itemString;
@@ -61,11 +59,9 @@ public class AssertingStage extends Stage {
     } else {
       itemString = null;
     }
-    frozenNodes.clear();
     nodeToStartOffset.clear();
     nodeToEndOffset.clear();
     nodeToEndOffset.put(0, 0);
-    lastFrom = 0;
     tokenCount = 0;
   }
 
@@ -80,19 +76,9 @@ public class AssertingStage extends Stage {
       int from = arcAtt.from();
       int to = arcAtt.to();
 
-      if (from != lastFrom) {
-        frozenNodes.add(lastFrom);
-        lastFrom = from;
-      }
-
       // Detect an illegally deleted token (filters should instead set the DeletedAttribute):
       if (nodeToEndOffset.containsKey(from) == false) {
-        fail("from node=" + from + " was never seen as a to node");
-      }
-
-      // Detect if we are trying to go back and add a token to an already frozen node:
-      if (frozenNodes.contains(from)) {
-        fail("node=" + from + " is frozen, but current token (" + termAtt + ") uses it as from node");
+        fail("from node=" + from + " was never seen as a to node, causing an illegal partitioned graph");
       }
 
       int startOffset = offsetAtt.startOffset();

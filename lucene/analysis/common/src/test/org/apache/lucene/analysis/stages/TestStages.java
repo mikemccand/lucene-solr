@@ -55,51 +55,50 @@ import org.apache.lucene.util.fst.Util;
 public class TestStages extends BaseStageTestCase {
 
   public void testSimple() throws Exception {
-    assertMatches("This is a test",
-                  new LowerCaseFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "this is a test");
+    assertAllPaths(new LowerCaseFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "This is a test",
+                   "this is a test");
   }
 
   public void testSplitOnDash() throws Exception {
     Stage stage = new SplitOnDashFilterStage(new LowerCaseFilterStage(new WhitespaceTokenizerStage(new ReaderStage())));
-    assertMatches("The drill-down-test works",
-                  stage,
-                  "the drill-down-test works",
-                  "the drill down test works");
+    assertAllPaths(stage,
+                   "The drill-down-test works",
+                   "the drill-down-test works",
+                   "the drill down test works");
   }
 
   public void testSynBasic() throws Exception {
     SynonymMap.Builder b = new SynonymMap.Builder(true);
     add(b, "a b c", "x");
     SynonymMap map = b.build();
-    assertMatches("a b c foo",
-                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                  "a b c foo", "x foo");
-    assertMatches("a b c",
-                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                  "a b c", "x");
+    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                   "a b c foo",
+                   "a b c foo", "x foo");
+    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                   "a b c",
+                   "a b c", "x");
   }
 
   public void testSynSingleToken() throws Exception {
     SynonymMap.Builder b = new SynonymMap.Builder(true);
     add(b, "a", "x");
     SynonymMap map = b.build();
-    assertMatches("a b c foo",
-                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                  "a b c foo", "x b c foo");
-    assertMatches("a b c",
-                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                  "a b c", "x b c");
+    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                   "a b c foo",
+                   "a b c foo", "x b c foo");
+    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                   "a b c",
+                   "a b c", "x b c");
   }
 
   public void testSynDNS() throws Exception {
     SolrSynonymParser parser = new SolrSynonymParser(true, true, new WhitespaceAnalyzer());
     parser.parse(new StringReader("dns, domain name service"));
     SynonymMap map = parser.build();
-
-    assertMatches("dns is down",
-                  new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                  "dns is down", "domain name service is down");
+    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
+                   "dns is down",
+                   "dns is down", "domain name service is down");
   }
 
   public void testSynAfterDecompound() throws Exception {
@@ -109,9 +108,9 @@ public class TestStages extends BaseStageTestCase {
 
     // Decompounder splits a-b into a and b, and then
     // SynFilter runs after that and sees "a b c" match: 
-    assertMatches("a-b c foo",
-                  new SynonymFilterStage(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), map, true),
-                  "a b c foo", "a-b c foo", "x foo");
+    assertAllPaths(new SynonymFilterStage(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), map, true),
+                   "a-b c foo",
+                   "a b c foo", "a-b c foo", "x foo");
   }
 
   public void testBasicStage() throws Exception {
@@ -127,33 +126,34 @@ public class TestStages extends BaseStageTestCase {
     stopWords.add("the");
     // nocommit need better test (that checks deleted att)
     // nocommit make another test, adding syn filter, showing it works on 1) the decompounded term, and 2) the deleted term
-    assertMatches("the-dog barks",
-                  new StopFilterStage(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), stopWords),
-                  "the-dog barks", "the dog barks");
+    assertAllPaths(new StopFilterStage(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), stopWords),
+                   "the-dog barks",
+                   "the-dog barks",
+                   "x:the dog barks");
   }
 
   public void testLeadingDash1() throws Exception {
-    assertMatches("--the",
-                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "--the", "the");
+    assertAllPaths(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "--the",
+                   "--the", "the");
   }
 
   public void testLeadingDash2() throws Exception {
-    assertMatches("--the-foo bar",
-                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "--the-foo bar", "the foo bar");
+    assertAllPaths(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "--the-foo bar",
+                   "--the-foo bar", "the foo bar");
   }
 
   public void testTrailingDash1() throws Exception {
-    assertMatches("the--",
-                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "the--", "the");
+    assertAllPaths(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "the--",
+                   "the--", "the");
   }
 
   public void testTrailingDash2() throws Exception {
-    assertMatches("the-foo-- bar",
-                  new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "the-foo-- bar", "the foo bar");
+    assertAllPaths(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "the-foo-- bar",
+                   "the-foo-- bar", "the foo bar");
   }
 
   // nocommit get offset corrections working again:
@@ -197,15 +197,15 @@ public class TestStages extends BaseStageTestCase {
   }
 
   public void testEnglishPossesiveFilter() throws Exception {
-    assertMatches("the dog's food",
-                  new EnglishPossessiveFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "the dog food");
+    assertAllPaths(new EnglishPossessiveFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "the dog's food",
+                   "the dog food");
   }
 
   public void testTokenizePunctuation() throws Exception {
-    assertMatches("a, b c",
-                  new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())),
-                  "a b c");
+    assertAllPaths(new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())),
+                   "a, b c",
+                   "a b c");
   }
 
   private static class ReplayTwiceStage extends Stage {
@@ -295,65 +295,65 @@ public class TestStages extends BaseStageTestCase {
   }
 
   public void testCaptureRestore() throws Exception {
-    assertMatches("foo bar baz",
-                  new ReplayTwiceStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "foo bar baz foobar foobar foobar");
+    assertAllPaths(new ReplayTwiceStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "foo bar baz",
+                   "foo bar baz foobar foobar foobar");
   }
 
   public void testAppendingStage() throws Exception {
-    assertMatches(new String[] {"foo", "bar", "baz"},
-                  new AppendingStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "foo _ bar _ baz");
+    assertAllPaths(new AppendingStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   new String[] {"foo", "bar", "baz"},
+                   "foo x:_ bar x:_ baz");
   }
 
   public void testHTMLTag() throws Exception {
-    assertMatches("foo <p> bar baz",
-                  new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                  "foo <p> bar baz");
+    assertAllPaths(new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
+                   "foo <p> bar baz",
+                   "foo x:<p> bar baz");
   }
 
   public void testHTMLEscape1() throws Exception {
-    assertMatches("foo &Eacute;mily bar baz",
-                  new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                  "foo \u00c9mily bar baz");
+    assertAllPaths(new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
+                   "foo &Eacute;mily bar baz",
+                   "foo \u00c9mily bar baz");
   }
 
   public void testHTMLEscape2() throws Exception {
-    assertMatches("foo&nbsp;bar",
-                  new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                  "foo bar");
+    assertAllPaths(new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
+                   "foo&nbsp;bar",
+                   "foo bar");
   }
 
   public void testStandardTokenizer1() throws Exception {
-    assertMatches("foo bar baz",
-                  new StandardTokenizerStage(new ReaderStage()),
-                  "foo bar baz");
+    assertAllPaths(new StandardTokenizerStage(new ReaderStage()),
+                   "foo bar baz",
+                   "foo bar baz");
   }
 
   public void testStandardTokenizer2() throws Exception {
-    assertMatches("foo <p> bar baz",
-                  new StandardTokenizerStage(new ReaderStage()),
-                  "foo p bar baz");
+    assertAllPaths(new StandardTokenizerStage(new ReaderStage()),
+                   "foo <p> bar baz",
+                   "foo p bar baz");
   }
 
   public void testStandardTokenizerWithHTMLText() throws Exception {
-    assertMatches("foo <p> bar baz",
-                  new StandardTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                  "foo <p> bar baz");
+    assertAllPaths(new StandardTokenizerStage(new HTMLTextStage(new ReaderStage())),
+                   "foo <p> bar baz",
+                   "foo x:<p> bar baz");
   }
 
   public void testPorterStemmerBasic() throws Exception {
-    assertMatches("dogs are running",
-                  new PorterStemFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                  "dog ar run");
+    assertAllPaths(new PorterStemFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
+                   "dogs are running",
+                   "dog ar run");
   }
 
   public void testPorterStemmerKeyword() throws Exception {
     CharArraySet set = new CharArraySet(1, true);
     set.add("running");
-    assertMatches("dogs are running",
-                  new PorterStemFilterStage(new SetKeywordMarkerFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), set)),
-                  "dog ar running");
+    assertAllPaths(new PorterStemFilterStage(new SetKeywordMarkerFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), set)),
+                   "dogs are running",
+                   "dog ar running");
   }
 
   public void testMapBeforeTokenizing1() throws Exception {
@@ -365,7 +365,6 @@ public class TestStages extends BaseStageTestCase {
     stage = new WhitespaceTokenizerStage(stage);
     assertStageContents(stage, "fooaa baar boo aabaz",
                         new String[] {"foox", "bxr", "boo", "xbaz"},
-                        new String[] {"fooaa", "baar", null, "aabaz"},
                         new int[] {0, 6, 11, 15},
                         new int[] {5, 10, 14, 20});
   }
@@ -379,7 +378,6 @@ public class TestStages extends BaseStageTestCase {
     stage = new WhitespaceTokenizerStage(stage);
     assertStageContents(stage, "fooaabar",
                         new String[] {"foo", "bar"},
-                        new String[] {null, null},
                         new int[] {0, 5},
                         new int[] {3, 8});
   }
@@ -422,7 +420,6 @@ public class TestStages extends BaseStageTestCase {
 
     assertStageContents(stage, "Andr&eacute; Saraiva",
                         new String[] {"Andre", "Saraiva"},
-                        new String[] {"Andr&eacute;", "Saraiva"},
                         new int[] {0, 13},
                         new int[] {12, 20});
   }
@@ -444,7 +441,6 @@ public class TestStages extends BaseStageTestCase {
     stage = new WhitespaceTokenizerStage(stage);
 
     assertStageContents(stage, "(foo) (bar) baz",
-                        new String[] {"foo", "bar", "baz"},
                         new String[] {"foo", "bar", "baz"},
                         new int[] {1, 7, 12},
                         new int[] {4, 10, 15});
@@ -468,7 +464,6 @@ public class TestStages extends BaseStageTestCase {
 
     assertStageContents(stage, "ice-cream",
                         new String[] {"icecream"},
-                        new String[] {"ice-cream"},
                         new int[] {0},
                         new int[] {9});
   }
@@ -479,25 +474,25 @@ public class TestStages extends BaseStageTestCase {
     // nocommit put back:
     // stage = new SpoonFeedingReaderStage(stage, random());
 
-    assertMatches("--foo bar",
-                  stage,
-                  "--foo bar",
+    assertAllPaths(stage,
+                   "--foo bar",
+                   "--foo bar",
                   "foo bar");
-    assertMatches("foo-- bar",
-                  stage,
-                  "foo-- bar",
-                  "foo bar");
-    assertMatches("--fo-o bar",
-                  stage,
-                  "--fo-o bar",
+    assertAllPaths(stage,
+                   "foo-- bar",
+                   "foo-- bar",
+                   "foo bar");
+    assertAllPaths(stage,
+                   "--fo-o bar",
+                   "--fo-o bar",
+                   "fo o bar");
+    assertAllPaths(stage,
+                   "fo-o-- bar",
+                   "fo-o-- bar",
                   "fo o bar");
-    assertMatches("fo-o-- bar",
-                  stage,
-                  "fo-o-- bar",
-                  "fo o bar");
-    assertMatches("----- bar",
-                  stage,
-                  "----- bar");
+    assertAllPaths(stage,
+                   "----- bar",
+                   "----- bar");
   }
 
   public void testMappingAndDecompound() throws Exception {
@@ -519,7 +514,6 @@ public class TestStages extends BaseStageTestCase {
     // The stage detects that the offsets don't agree with the incoming text and is forced to keep the same start/end offset for all parts:
     assertStageContents(stage, "1939&endash;1945",
                         new String[] {"1939-1945", "1939", "1945"},
-                        new String[] {"1939&endash;1945", "1939", "1945"},
                         new int[] {0, 0, 0},
                         new int[] {16, 16, 16});
   }

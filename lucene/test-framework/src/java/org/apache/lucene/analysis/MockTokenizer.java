@@ -40,6 +40,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
  *   <li>For convenience, optionally lowercases terms that it outputs.
  * </ul>
  */
+// nocommit MockStage too?  but we don't have so many "states" in the state machine?
 public class MockTokenizer extends Tokenizer {
   /** Acts Similar to WhitespaceTokenizer */
   public static final CharacterRunAutomaton WHITESPACE = 
@@ -87,6 +88,8 @@ public class MockTokenizer extends Tokenizer {
   
   // evil: but we don't change the behavior with this random, we only switch up how we read
   private final Random random = new Random(RandomizedContext.current().getRandom().nextLong());
+
+  // nocommit make a MockTextStage that just splits up text into random chunks
   
   public MockTokenizer(AttributeFactory factory, CharacterRunAutomaton runAutomaton, boolean lowerCase, int maxTokenLength) {
     super(factory);

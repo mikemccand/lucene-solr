@@ -108,7 +108,7 @@ public class DotStage extends Stage {
       dot.append(" -> ");
       dot.append(to);
       dot.append(" [label=");
-      if (delAtt.deleted()) {
+      if (delAtt.isDeleted()) {
         // Add strike-through:
         dot.append("<<S>");
         dot.append(escape(term));
@@ -117,12 +117,12 @@ public class DotStage extends Stage {
         dot.append(term);
       }
 
-      if (delAtt.deleted()) {
+      if (delAtt.isDeleted()) {
         dot.append("</S>>");
       } else {
         dot.append('"');
       }
-      if (delAtt.deleted()) {
+      if (delAtt.isDeleted()) {
         dot.append(" fontcolor=red");
       }
 

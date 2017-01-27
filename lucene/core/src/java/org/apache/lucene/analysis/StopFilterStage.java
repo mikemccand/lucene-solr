@@ -43,7 +43,7 @@ public class StopFilterStage extends Stage {
   @Override
   public boolean next() throws IOException {
     if (in.next()) {
-      if ((delAttIn != null && delAttIn.deleted()) || stopWords.contains(termAtt.get())) {
+      if ((delAttIn != null && delAttIn.isDeleted()) || stopWords.contains(termAtt.get())) {
         delAttOut.set(true);
       } else {
         delAttOut.set(false);
