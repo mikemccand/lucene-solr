@@ -103,6 +103,16 @@ public class TestMappingTextStage extends BaseTokenStreamTestCase {
                         new String[] {null, "xxx", null});
   }
 
+  public void testBackToBack() throws Exception {
+    NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
+    b.add("foo", "x");
+    b.add("bar", "y");
+
+    Stage stage = getStage(b.build());
+
+    assertMatches(stage, "abcfoobarfooxyz", "abcxyxxyz");
+  }
+
   private Stage getStage(NormalizeCharMap map) {
     return new MappingTextStage(new SpoonFeedingReaderStage(new ReaderStage(), random()), map);
   }

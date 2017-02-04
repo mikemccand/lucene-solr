@@ -65,6 +65,7 @@ public class MappingTextStage extends Stage {
     public Chunk(char[] origText, char[] text) {
       this.origText = origText;
       this.text = text;
+      System.out.println("CHUNK: origText=" + (origText == null ? "null" : new String(origText)) + " text=" + new String(text) + " ch=" + (text.length == 0 ? "" : (int) text[0]));
     }
 
     @Override

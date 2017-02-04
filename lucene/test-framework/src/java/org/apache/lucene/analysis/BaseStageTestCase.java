@@ -39,7 +39,7 @@ import org.apache.lucene.util.fst.Util;
 public abstract class BaseStageTestCase extends LuceneTestCase {
   // some helpers to test Stages
 
-  /** toVerify is text, startOffset, endOffset, fromNodes, toNodes */
+  /** toVerify is text, startOffset, endOffset, fromNodes, toNodes, endOffset */
   public static void assertStageContents(Stage stage, Object input, Object... toVerify) throws IOException {
     // nocommit carry over other things from the base class, e.g. re-run analysis, etc.
     if (toVerify.length == 0) {
@@ -47,6 +47,7 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
     }
 
     int upto = 0;
+    System.out.println("GOT: " + toVerify[0]);
 
     String[] terms = (String[]) toVerify[upto];
     if (terms == null) {
@@ -84,6 +85,14 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
       upto++;
     } else {
       toNodes = null;
+    }
+
+    Integer finalOffset;
+    if (upto < toVerify.length) {
+      finalOffset = (Integer) toVerify[upto];
+      upto++;
+    } else {
+      finalOffset = null;
     }
 
     if (upto != toVerify.length) {
@@ -138,6 +147,20 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
         if (endOffsets != null && offsetAtt.endOffset() != endOffsets[i]) {
           throw new RuntimeException(desc + ": expected endOffset=" + endOffsets[i] + " but got " + offsetAtt.endOffset());
         }
+      }
+
+      String desc;
+      if (iter == 0) {
+        desc = "1st pass";
+      } else {
+        desc = "2nd pass";
+      }
+      if (stage.next()) {
+        throw new RuntimeException(desc + ": too many tokens returned: saw another term=" + termAtt.get() + " but expected EOF");
+      }
+
+      if (finalOffset != null && offsetAtt.endOffset() != finalOffset) {
+        throw new RuntimeException(desc + ": expected finalOffset=" + finalOffset + " but got " + offsetAtt.endOffset());
       }
     }
   }

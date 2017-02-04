@@ -30,7 +30,7 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.UnicodeUtil;
 import org.apache.lucene.util.Version;
 
-// nocommit factor out another abstract class, that deals with pre-tokens, so that sub-class is just fed characters and produces tokens
+// nocommit switch this to BaseTokenizerStage:
 
 /** Simple tokenizer to split incoming {@link TextAttribute} chunks on
  *  delimiter characters as specified by a subclass overriding {@link #isTokenChar}.  This
