@@ -108,10 +108,10 @@ public class AutomatonStage extends Stage {
         fromStates.put(0, 0);
         builder.createState();
       }
-      String term = termAtt.get();
-      if (term.length() == 0) {
+      if (termAtt.getLength() == 0) {
         throw new IllegalStateException("cannot handle empty-string term");
       }
+      String term = termAtt.toString();
       System.out.println("A: term=" + term + " del?=" + delAtt.isDeleted());
       if (delAtt.isDeleted()) {
         term = "x:" + term;

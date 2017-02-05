@@ -101,7 +101,7 @@ public class HTMLTextStage extends Stage {
     outputNextWrite = 0;
     end = false;
     textAttOut.set(null, 0);
-    termAttOut.set(null);
+    termAttOut.clear();
   }
 
   private void append(int ch) {
@@ -117,10 +117,10 @@ public class HTMLTextStage extends Stage {
 
   /** Return a deleted token (HTML tag) */
   private void fillToken(int startOffset, int endOffset) {
-    String tag = new String(buffer, 0, outputNextWrite);
-    System.out.println("H: fillToken '" + tag + "'");
-    termAttOut.set(tag);
-    assert endOffset - startOffset == tag.length();
+    termAttOut.clear();
+    termAttOut.append(buffer, 0, outputNextWrite);
+    System.out.println("H: fillToken '" + termAttOut + "'");
+    assert endOffset - startOffset == outputNextWrite;
     offsetAttOut.set(startOffset, endOffset);
     outputNextWrite = 0;
     textAttOut.set(null, 0);
@@ -132,7 +132,7 @@ public class HTMLTextStage extends Stage {
     System.out.println("H: fillText '" + new String(buffer, 0, outputNextWrite) + "'");
     textAttOut.set(buffer, outputNextWrite);
     outputNextWrite = 0;
-    termAttOut.set(null);
+    termAttOut.clear();
     delAttOut.clear();
   }
 
@@ -141,7 +141,7 @@ public class HTMLTextStage extends Stage {
     char[] mappedChars = mapped.toCharArray();
     textAttOut.set(buffer, outputNextWrite, mappedChars, mappedChars.length);
     outputNextWrite = 0;
-    termAttOut.set(null);
+    termAttOut.clear();
     delAttOut.clear();
   }
 

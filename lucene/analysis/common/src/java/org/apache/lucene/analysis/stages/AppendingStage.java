@@ -39,7 +39,7 @@ public final class AppendingStage extends Stage {
   private final TermAttribute termAttOut;
   private final DeletedAttribute delAttIn;
   private final DeletedAttribute delAttOut;
-  private final String breakToken;
+  private final char[] breakToken;
 
   private final int offsetGap;
   private String[] values;
@@ -59,7 +59,7 @@ public final class AppendingStage extends Stage {
   public AppendingStage(Stage in, String breakToken) {
     super(in);
 
-    this.breakToken = breakToken;
+    this.breakToken = breakToken.toCharArray();
 
     termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
@@ -121,7 +121,8 @@ public final class AppendingStage extends Stage {
       }
 
       // Insert the break token:
-      termAttOut.set(breakToken);
+      termAttOut.clear();
+      termAttOut.append(breakToken, 0, breakToken.length);
       delAttOut.set(true);
       int node = newNode();
       arcAttOut.set(frontier.iterator().next() + nodeShift, node + nodeShift);

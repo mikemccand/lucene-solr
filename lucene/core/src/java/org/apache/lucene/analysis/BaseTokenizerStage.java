@@ -198,7 +198,7 @@ public abstract class BaseTokenizerStage extends Stage {
           end = true;
           return -1;
         }
-        if (termAttIn != null && termAttIn.get() != null) {
+        if (termAttIn != null && termAttIn.getLength() > 0) {
           // A pre-token
           System.out.println("TR: hit pre-token");
           preToken = true;
@@ -245,7 +245,7 @@ public abstract class BaseTokenizerStage extends Stage {
       lastNode = node;
       int start = getTokenStart();
       delAttOut.clear();
-      System.out.println("BASE: now output token " + termAttOut + " offset=" + offset + " start=" + start + " term.length()=" + termAttOut.get().length());
+      System.out.println("BASE: now output token " + termAttOut + " offset=" + offset + " start=" + start + " term.length()=" + termAttOut.getLength());
       reader.shiftOffsetParts(start);
       offsetAttOut.set(reader.correctStartOffset(start), reader.correctEndOffset(getTokenEnd()));
       System.out.println("  offset=" + offsetAttOut.startOffset() + "-" + offsetAttOut.endOffset());

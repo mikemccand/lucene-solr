@@ -17,27 +17,51 @@ package org.apache.lucene.analysis.stageattributes;
  * limitations under the License.
  */
 
-// nocommit: char[] backed again
-public class TermAttribute extends Attribute {
-  private String term;
+import org.apache.lucene.util.ArrayUtil;
 
-  public void set(String term) {
-    this.term = term;
+public class TermAttribute extends Attribute {
+  private char[] buffer = new char[16];
+  private int length;
+  
+  public char[] getBuffer() {
+    return buffer;
   }
 
-  public String get() {
-    return term;
+  public int getLength() {
+    return length;
+  }
+
+  public void setLength(int newLength) {
+    if (newLength > buffer.length) {
+      throw new IllegalArgumentException("newLength=" + newLength + " is longer than current buffer.length=" + buffer.length);
+    }
+    length = newLength;
+  }
+
+  public void grow(int newLength) {
+    if (newLength > buffer.length) {
+      buffer = ArrayUtil.grow(buffer, newLength);
+    }
   }
 
   @Override
   public String toString() {
-    return term;
+    return new String(buffer, 0, length);
   }
 
   @Override
   public void copyFrom(Attribute other) {
     TermAttribute t = (TermAttribute) other;
-    set(t.term);
+    clear();
+    append(t.getBuffer(), 0, t.getLength());
+  }
+
+  public void append(char[] in, int offset, int lengthIn) {
+    if (length + lengthIn > buffer.length) {
+      buffer = ArrayUtil.grow(buffer, length + lengthIn);
+    }
+    System.arraycopy(in, offset, buffer, length, lengthIn);
+    length += lengthIn;
   }
 
   @Override
@@ -48,6 +72,6 @@ public class TermAttribute extends Attribute {
   }
 
   public void clear() {
-    term = null;
+    length = 0;
   }
 }

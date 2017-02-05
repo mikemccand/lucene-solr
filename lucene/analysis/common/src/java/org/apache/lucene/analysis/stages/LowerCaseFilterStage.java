@@ -35,16 +35,16 @@ public class LowerCaseFilterStage extends Stage {
   @Override
   public final boolean next() throws IOException {
     if (in.next()) {
-      final String term = termAttIn.get();
-      int length = term.length();
-      final char[] bufferOut = new char[length];
+      char[] term = termAttIn.getBuffer();
+      int length = termAttIn.getLength();
+      termAttOut.grow(length);
+      char[] bufferOut = termAttOut.getBuffer();
       for (int i = 0; i < length;) {
-        // nocommit correct?
         i += Character.toChars(
                 Character.toLowerCase(
                    Character.codePointAt(term, i)), bufferOut, i);
       }
-      termAttOut.set(new String(bufferOut));
+      termAttOut.setLength(length);
       return true;
     } else {
       return false;

@@ -67,7 +67,13 @@ public final class PorterStemFilterStage extends Stage {
   public boolean next() throws IOException {
     if (in.next()) {
       if (keywordAttIn == null || keywordAttIn.get() == false) {
-        termAttOut.set(stemmer.stem(termAttIn.get()));
+        if (stemmer.stem(termAttIn.getBuffer(), 0, termAttIn.getLength())) {
+          // stemmer did something:
+          termAttOut.clear();
+          termAttOut.append(stemmer.getResultBuffer(), 0, stemmer.getResultLength());
+        } else {
+          termAttOut.copyFrom(termAttIn);
+        }
       } else {
         termAttOut.copyFrom(termAttIn);
       }

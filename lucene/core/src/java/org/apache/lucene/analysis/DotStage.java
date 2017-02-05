@@ -101,7 +101,7 @@ public class DotStage extends Stage {
       System.out.println("F: add " + to + " remove " + from);
       System.out.println("  now: " + frontier);
 
-      String term = termAtt.get();
+      String term = termAtt.toString();
 
       dot.append("  ");
       dot.append(from);

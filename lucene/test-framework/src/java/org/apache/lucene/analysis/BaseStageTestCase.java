@@ -132,8 +132,8 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
         if (result == false) {
           throw new RuntimeException(desc + ": expected term=" + terms[i] + " but next() returned false");
         }
-        if (termAtt.get().equals(terms[i]) == false) {
-          throw new RuntimeException(desc + ": expected term=" + terms[i] + " but got " + termAtt.get());
+        if (termAtt.toString().equals(terms[i]) == false) {
+          throw new RuntimeException(desc + ": expected term=" + terms[i] + " but got " + termAtt.toString());
         }
         if (fromNodes != null && arcAtt.from() != fromNodes[i]) {
           throw new RuntimeException(desc + ": expected fromNode=" + fromNodes[i] + " but got " + arcAtt.from());
@@ -156,7 +156,7 @@ public abstract class BaseStageTestCase extends LuceneTestCase {
         desc = "2nd pass";
       }
       if (stage.next()) {
-        throw new RuntimeException(desc + ": too many tokens returned: saw another term=" + termAtt.get() + " but expected EOF");
+        throw new RuntimeException(desc + ": too many tokens returned: saw another term=" + termAtt.toString() + " but expected EOF");
       }
 
       if (finalOffset != null && offsetAtt.endOffset() != finalOffset) {

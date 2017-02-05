@@ -196,7 +196,6 @@ public final class WordDelimiterStage extends Stage {
   // used for catenate all
   private final WordDelimiterConcatenation concatAll = new WordDelimiterConcatenation();
 
-  private char[] savedTermBuffer = new char[16];
   private int lastStartOffset;
   
   // if length by start + end offsets doesn't match the term text then assume
@@ -260,14 +259,10 @@ public final class WordDelimiterStage extends Stage {
 
   /** Iterates all words parts and concatenations, buffering up the term parts we should return. */
   private void bufferWordParts() throws IOException {
-    if (savedTermBuffer.length < termAttIn.get().length()) {
-      savedTermBuffer = new char[ArrayUtil.oversize(termAttIn.get().length(), Character.BYTES)];
-    }
-    termAttIn.get().getChars(0, termAttIn.get().length(), savedTermBuffer, 0);
 
     // if length by start + end offsets doesn't match the term's text then set offsets for all our word parts/concats to the incoming
     // offsets.  this can happen if WDGF is applied to an injected synonym, or to a stem'd form, etc:
-    hasIllegalOffsets = (offsetAttIn.endOffset() - offsetAttIn.startOffset() != termAttIn.get().length());
+    hasIllegalOffsets = (offsetAttIn.endOffset() - offsetAttIn.startOffset() != termAttIn.getLength());
 
     bufferedLen = 0;
     lastConcatCount = 0;
@@ -331,7 +326,7 @@ public final class WordDelimiterStage extends Stage {
         wordPos++;
       }
       // add the original token now so that we can set the correct end position
-      buffer(0, wordPos, 0, termAttIn.get().length());
+      buffer(0, wordPos, 0, termAttIn.getLength());
     }
 
     // maps our 0 based wordPos to true node ides
@@ -377,8 +372,8 @@ public final class WordDelimiterStage extends Stage {
 
         delAttOut.clear();
         
-        int termLength = termAttIn.get().length();
-        char[] termBuffer = termAttIn.get().toCharArray();
+        int termLength = termAttIn.getLength();
+        char[] termBuffer = termAttIn.getBuffer();
 
         // iterate & cache all word parts up front:
         iterator.setText(termBuffer, termLength);
@@ -431,10 +426,11 @@ public final class WordDelimiterStage extends Stage {
         offsetAttOut.set(startOffset, endOffset);
         lastStartOffset = startOffset;
 
+        termAttOut.clear();
         if (termPart == null) {
-          termAttOut.set(new String(savedTermBuffer, startPart, endPart - startPart));
+          termAttOut.append(termAttIn.getBuffer(), startPart, endPart - startPart);
         } else {
-          termAttOut.set(new String(termPart, 0, termPart.length));
+          termAttOut.append(termPart, 0, termPart.length);
         }
 
         System.out.println("startPos=" + startPos + " endPos=" + endPos);
@@ -508,16 +504,8 @@ public final class WordDelimiterStage extends Stage {
    * a null termPart means it's a simple slice of the original term
    */
   void buffer(char[] termPart, int startPos, int endPos, int startPart, int endPart) {
-    /*
-    System.out.println("buffer: pos=" + startPos + "-" + endPos + " part=" + startPart + "-" + endPart);
-    if (termPart != null) {
-      System.out.println("  termIn=" + new String(termPart));
-    } else {
-      System.out.println("  term=" + new String(savedTermBuffer, startPart, endPart-startPart));
-    }
-    */
     assert endPos > startPos: "startPos=" + startPos + " endPos=" + endPos;
-    assert endPart > startPart || (endPart == 0 && startPart == 0 && termAttIn.get().length() == 0): "startPart=" + startPart + " endPart=" + endPart;
+    assert endPart > startPart || (endPart == 0 && startPart == 0 && termAttIn.getLength() == 0): "startPart=" + startPart + " endPart=" + endPart;
     if ((bufferedLen+1)*4 > bufferedParts.length) {
       bufferedParts = ArrayUtil.grow(bufferedParts, (bufferedLen+1)*4);
     }
@@ -589,7 +577,7 @@ public final class WordDelimiterStage extends Stage {
       concatenation.startPart = iterator.current;
       concatenation.startPos = wordPos;
     }
-    concatenation.append(savedTermBuffer, iterator.current, iterator.end - iterator.current);
+    concatenation.append(termAttIn.getBuffer(), iterator.current, iterator.end - iterator.current);
     concatenation.endPart = iterator.end;
   }
 

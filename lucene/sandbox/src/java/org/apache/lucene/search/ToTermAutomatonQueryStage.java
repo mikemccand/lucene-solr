@@ -69,7 +69,7 @@ public class ToTermAutomatonQueryStage extends Stage {
     finalNodes.add(to);
     finalNodes.remove(from);
 
-    String term = termAtt.get();
+    String term = termAtt.toString();
     if (term.length() == 1 && term.charAt(0) == '*') {
       query.addAnyTransition(from, to);
     } else {

@@ -137,7 +137,8 @@ public class CannedStage extends Stage {
       return false;
     }
 
-    termAttOut.set(terms[upto]);
+    termAttOut.clear();
+    termAttOut.append(terms[upto].toCharArray(), 0, terms[upto].length());
 
     if (fromNodes != null) {
       arcAttOut.set(fromNodes[upto], toNodes[upto]);

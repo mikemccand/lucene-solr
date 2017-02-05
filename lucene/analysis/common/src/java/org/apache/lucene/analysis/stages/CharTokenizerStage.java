@@ -100,7 +100,9 @@ public abstract class CharTokenizerStage extends BaseTokenizerStage {
       if (ch == -1) {
         if (inToken) {
           System.out.println("  return token=" + new String(buffer, 0, tokenLimit));
-          termAttOut.set(new String(buffer, 0, tokenLimit));
+          termAttOut.clear();
+          termAttOut.grow(tokenLimit);
+          termAttOut.append(buffer, 0, tokenLimit);
           end = true;
           return true;
         }
@@ -144,7 +146,8 @@ public abstract class CharTokenizerStage extends BaseTokenizerStage {
         // This is a char that separates tokens (e.g. whitespace, punct.)
         if (inToken) {
           System.out.println("  return token=" + new String(buffer, 0, tokenLimit));
-          termAttOut.set(new String(buffer, 0, tokenLimit));
+          termAttOut.clear();
+          termAttOut.append(buffer, 0, tokenLimit);
           return true;
         }
         tokenUpto = 0;

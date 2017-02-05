@@ -120,7 +120,7 @@ public class MappingTextStage extends Stage {
   }
 
   private boolean tokenPending() {
-    return termAttIn != null && termAttIn.get().length() > 0 && termAttOut.get().length() == 0;
+    return termAttIn != null && termAttIn.getLength() > 0 && termAttOut.getLength() == 0;
   }
 
   private void findNextMatch() throws IOException {
@@ -355,7 +355,7 @@ public class MappingTextStage extends Stage {
           textAttOut.set(chunk.text, chunk.text.length);
         }
         if (termAttOut != null) {
-          termAttOut.set("");
+          termAttOut.clear();
         }
         return true;
       }

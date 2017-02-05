@@ -72,7 +72,7 @@ public class AssertingStage extends Stage {
   @Override
   public boolean next() throws IOException {
     if (in.next()) {
-      System.out.println("GOT: " + termAtt.get() + " arc=" + arcAtt);
+      System.out.println("GOT: " + termAtt.toString() + " arc=" + arcAtt);
       int from = arcAtt.from();
       int to = arcAtt.to();
 

@@ -66,7 +66,7 @@ public class SplitOnDashFilterStage extends Stage {
   /** Returns true if the offsets seem to agree with the terms length; this is only approximate, since a char mapping could have remapped
    *  things while keeping the same token length */
   private boolean offsetMatches() {
-    return offsetAttIn.endOffset() - offsetAttIn.startOffset() == termAttIn.get().length();
+    return offsetAttIn.endOffset() - offsetAttIn.startOffset() == termAttIn.getLength();
   }
 
   @Override
@@ -77,7 +77,8 @@ public class SplitOnDashFilterStage extends Stage {
       int partStart = parts.get(nextPart);
       int partEnd = parts.get(nextPart+1);
 
-      termAttOut.set(termAttIn.get().substring(partStart, partEnd));
+      termAttOut.clear();
+      termAttOut.append(termAttIn.getBuffer(), partStart, partEnd-partStart);
 
       if (offsetMatches()) {
         // Optimistically assume we can slice the token
@@ -122,8 +123,8 @@ public class SplitOnDashFilterStage extends Stage {
       int lastStart = -1;
       int tokenUpto = 0;
 
-      while (i < termAttIn.get().length()) {
-        char ch = termAttIn.get().charAt(i);
+      while (i < termAttIn.getLength()) {
+        char ch = termAttIn.getBuffer()[i];
         if (ch == '-') {
           if (lastStart != -1) {
             if (parts == null) {
@@ -150,7 +151,7 @@ public class SplitOnDashFilterStage extends Stage {
         // Inclusive:
         parts.add(lastStart);
         // Exclusive:
-        parts.add(termAttIn.get().length());
+        parts.add(termAttIn.getLength());
       }
 
       if (parts != null) {

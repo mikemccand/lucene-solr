@@ -38,7 +38,6 @@ public final class KeywordStage extends Stage {
   private final OffsetAttribute offsetAttOut;
   private final ArcAttribute arcAttOut;
   private final DeletedAttribute delAttOut;
-  private final StringBuilder sb = new StringBuilder();
   
   public KeywordStage(Stage in) {
     super(in);
@@ -61,10 +60,9 @@ public final class KeywordStage extends Stage {
     if (done == false) {
       int offset = 0;
       while (in.next()) {
-        sb.append(textAttIn.getBuffer(), 0, textAttIn.getLength());
+        termAttOut.append(textAttIn.getBuffer(), 0, textAttIn.getLength());
         offset += textAttIn.getOrigLength();
       }
-      termAttOut.set(sb.toString());
       int startNode = newNode();
       arcAttOut.set(startNode, newNode());
       offsetAttOut.set(0, offset);
@@ -77,7 +75,7 @@ public final class KeywordStage extends Stage {
   @Override
   public void reset(Object item) {
     super.reset(item);
-    sb.setLength(0);
+    termAttOut.clear();
     done = false;
   }
 }

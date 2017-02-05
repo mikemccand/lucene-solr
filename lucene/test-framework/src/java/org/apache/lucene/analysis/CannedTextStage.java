@@ -113,7 +113,8 @@ public class CannedTextStage extends Stage {
 
     if (origText[upto] == null) {
       // a pre-token
-      termAttOut.set(terms[upto]);
+      termAttOut.clear();
+      termAttOut.append(terms[upto].toCharArray(), 0, terms[upto].length());
       textAttOut.clear();
     } else if (mappedText != null && mappedText[upto] != null) {
       termAttOut.clear();

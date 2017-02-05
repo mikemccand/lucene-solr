@@ -186,10 +186,10 @@ public class SynonymFilterStage extends Stage {
       output = fst.outputs.getNoOutput();
     }
 
-    int bufferLen = termAttIn.get().length();
+    int bufferLen = termAttIn.getLength();
     int bufUpto = 0;
     while(bufUpto < bufferLen) {
-      final int codePoint = Character.codePointAt(termAttIn.get(), bufUpto);
+      final int codePoint = Character.codePointAt(termAttIn.getBuffer(), bufUpto);
       if (fst.findTargetArc(ignoreCase ? Character.toLowerCase(codePoint) : codePoint, scratchArc, scratchArc, fstReader) == null) {
         return false;
       }
@@ -326,7 +326,7 @@ public class SynonymFilterStage extends Stage {
     int end = pendingMatches.size();
     for(int i=0;i<end;i++) {
       PartialMatch match = pendingMatches.get(i);
-      System.out.println("  try to extend match term=" + termAttIn.get() + " ending @ node=" + match.toNode + " vs from=" + fromNode);
+      System.out.println("  try to extend match term=" + termAttIn + " ending @ node=" + match.toNode + " vs from=" + fromNode);
       if (match.toNode == fromNode) {
         System.out.println("    match one");
         any |= matchOne(match);
@@ -369,7 +369,8 @@ public class SynonymFilterStage extends Stage {
       if (token != null && (tokenIn == null || token.fromNode == tokenIn.fromNode)) {
         // nocommit what origText?  we could "glom" origText from the inputs..
         pendingOutputs.pollFirst();
-        termAttOut.set(token.text);
+        termAttOut.clear();
+        termAttOut.append(token.text.toCharArray(), 0, token.text.length());
         typeAttOut.set(TypeAttribute.GENERATED);
         offsetAttOut.set(token.startOffset, token.endOffset);
         arcAttOut.set(token.fromNode, token.toNode);

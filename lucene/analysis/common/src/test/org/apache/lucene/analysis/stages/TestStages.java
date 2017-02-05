@@ -246,7 +246,8 @@ public class TestStages extends BaseStageTestCase {
       arcAttOut.set(remapNode(from), remapNode(to));
 
       // On replay we change all terms to foobar:
-      termAttOut.set("foobar");
+      termAttOut.clear();
+      termAttOut.append("foobar".toCharArray(), 0, 6);
 
       return true;
     }

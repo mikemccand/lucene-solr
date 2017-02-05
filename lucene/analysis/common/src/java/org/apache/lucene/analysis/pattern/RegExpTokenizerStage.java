@@ -157,7 +157,10 @@ public final class RegExpTokenizerStage extends BaseTokenizerStage {
             pushBack(extra);
           }
           sb.setLength(lastAcceptLength);
-          termAttOut.set(sb.toString());
+          termAttOut.clear();
+          termAttOut.grow(sb.length());
+          sb.getChars(0, sb.length(), termAttOut.getBuffer(), 0);
+          termAttOut.setLength(sb.length());
           return true;
         } else {
           // false alarm: there was no token here; push back all but the first character we scanned, so we can try again starting at the 2nd character

@@ -36,17 +36,17 @@ public final class EnglishPossessiveFilterStage extends Stage {
   @Override
   public boolean next() throws IOException {
     if (in.next()) {
-      String term = termAttIn.get();
+      String term = termAttIn.toString();
     
-      if (term.length() >= 2) {
-        char ch2 = term.charAt(term.length()-2);
-        char ch1 = term.charAt(term.length()-1);
+      if (termAttIn.getLength() >= 2) {
+        char[] termBuffer = termAttIn.getBuffer();
+        char ch2 = termBuffer[termAttIn.getLength()-2];
+        char ch1 = termBuffer[termAttIn.getLength()-1];
+        termAttOut.copyFrom(termAttIn);
         if ((ch2 == '\'' || ch2 == '\u2019' || ch2 == '\uFF07') &&
             (ch1 == 's' || ch1 == 'S')) {
           // Strip last 2 characters off
-          termAttOut.set(term.substring(0, term.length()-2));
-        } else {
-          termAttOut.copyFrom(termAttIn);
+          termAttOut.setLength(termAttIn.getLength()-2);
         }
       } else {
         termAttOut.copyFrom(termAttIn);
