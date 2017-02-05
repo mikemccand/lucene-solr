@@ -114,17 +114,16 @@ public class CannedTextStage extends Stage {
     if (origText[upto] == null) {
       // a pre-token
       termAttOut.set(terms[upto]);
+      textAttOut.clear();
     } else if (mappedText != null && mappedText[upto] != null) {
-      termAttOut.set(null);
+      termAttOut.clear();
       textAttOut.set(origText[upto].toCharArray(), origText[upto].length(),
                      mappedText[upto].toCharArray(), mappedText[upto].length());
     } else {
       // no char filter
-      termAttOut.set(null);
+      termAttOut.clear();
       textAttOut.set(origText[upto].toCharArray(), origText[upto].length());
     }
-
-    termAttOut.set(terms[upto]);
 
     if (startOffsets != null) {
       offsetAttOut.set(startOffsets[upto], endOffsets[upto]);

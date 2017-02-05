@@ -18,7 +18,9 @@ package org.apache.lucene.analysis.stages;
  */
 
 import java.io.IOException;
+import java.io.Reader;
 
+import org.apache.lucene.analysis.BaseTokenizerStage;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
 import org.apache.lucene.analysis.stageattributes.DeletedAttribute;
@@ -35,241 +37,119 @@ import org.apache.lucene.util.Version;
 /** Simple tokenizer to split incoming {@link TextAttribute} chunks on
  *  delimiter characters as specified by a subclass overriding {@link #isTokenChar}.  This
  *  does not split inside a mapped chunk of text. */
-public abstract class CharTokenizerStage extends Stage {
+public abstract class CharTokenizerStage extends BaseTokenizerStage {
 
-  private final TextAttribute textAttIn;
-  private final OffsetAttribute offsetAttOut;
-  private final OffsetAttribute offsetAttIn;
-  private final TermAttribute termAttIn;
-  private final TermAttribute termAttOut;
-  private final ArcAttribute arcAtt;
-
-  private int lastNode;
-
-  private int[] buffer = new int[10];
-
-  private int inputBufferNextRead;
+  private char[] buffer = new char[16];
 
   // Net offset so far
   private int offset;
-
+  private int tokenOffsetStart;
+  private int tokenOffsetEnd;
   private boolean end;
 
-  private boolean pendingToken;
+  private Reader reader;
 
   public CharTokenizerStage(Stage in) {
     super(in);
-    textAttIn = in.get(TextAttribute.class);
-    offsetAttOut = create(OffsetAttribute.class);
-    offsetAttIn = in.getIfExists(OffsetAttribute.class);
-
-    // Don't let our following stages see the TextAttribute, because we consume that and make
-    // tokens (they should only work with TermAttribute):
-    delete(TextAttribute.class);
-
-    // This can be non-null if we have a pre-tokenizer before, e.g. an HTML filter, that
-    // turns markup like <p> into deleted tokens:
-    termAttIn = in.getIfExists(TermAttribute.class);
-    termAttOut = create(TermAttribute.class);
-    if (termAttIn != null && offsetAttIn == null) {
-      throw new IllegalArgumentException("input stage " + in + " sets TermAttribute but fails to set OffsetAttribute");
-    }
-
-    arcAtt = create(ArcAttribute.class);
-
-    // We never delete tokens, but subsequent stages want to see this:
-    if (in.getIfExists(DeletedAttribute.class) == null) {
-      create(DeletedAttribute.class);
-    }
-    
-    if (in.getIfExists(TypeAttribute.class) == null) {
-      TypeAttribute typeAtt = create(TypeAttribute.class);
-      typeAtt.set(TypeAttribute.TOKEN);
-    }
   }
 
   @Override
   public void reset(Object item) {
-    System.out.println("\nC: RESET");
     super.reset(item);
-    inputBufferNextRead = 0;
-    lastNode = newNode();
-    offset = 0;
     end = false;
-    pendingToken = false;
   }
 
-  private void copyPreToken() {
-    termAttOut.copyFrom(termAttIn);
-    int node = newNode();
-    arcAtt.set(lastNode, node);
-    offsetAttOut.copyFrom(offsetAttIn);
-    offset = offsetAttIn.endOffset();
-    lastNode = node;
-    pendingToken = false;
-    System.out.println("C: send preToken " + termAttOut);
+  protected void init(Reader reader) {
+    this.reader = reader;
+    offset = 0;
+  }
+
+  @Override
+  protected int getTokenStart() {
+    return tokenOffsetStart;
+  }
+
+  @Override
+  protected int getTokenEnd() {
+    return tokenOffsetEnd;
   }
 
   // nocommit need test of invalid use where mapper produced some token chars and some non-token chars
 
   @Override
-  public boolean next() throws IOException {
-    System.out.println("C: next");
+  protected boolean readNextToken() throws IOException {
 
     if (end) {
       return false;
     }
 
-    if (pendingToken) {
-      copyPreToken();
-      return true;
-    }
+    int tokenUpto = 0;
 
-    int nextWrite = 0;
-    int startOffset = offset;
-    int endOffset = offset;
-    int lastHighSurrogate = -1;
-    int mappedPending = 0;
-
-    // TODO: can we simplify this!
-
-    // nocommit should we be able to split inside a mapped chunk?  offsets get wonky then?
-
-    token:
+    boolean inToken = false;
+    
     while (true) {
 
-      if (nextWrite == 0 && lastHighSurrogate == -1) {
-        startOffset = offset;
-        System.out.println("C: set token startOffset=" + startOffset);
+      if (inToken == false) {
+        tokenOffsetStart = offset;
       }
+      tokenOffsetEnd = offset;
 
-      if (inputBufferNextRead == textAttIn.getLength()) {
-        assert mappedPending == 0;
-        // we need more text input:
-        System.out.println("C: fill textAttIn");
+      int tokenLimit = tokenUpto;
 
-        inputBufferNextRead = 0;
-
-        // nocommit make sure this case is tested:
-
-        // nocommit make sure "mapped to empty string" is not included in the end offset
-
-        // Iterate until we have some input chars to look at, because stage before us could send us
-        // multiple TextAtt in a row that mapped to empty string (e.g. deleted punct or something):
-        while (true) {
-
-          if (nextWrite == 0 && lastHighSurrogate == -1) {
-            startOffset = offset;
-            System.out.println("C: set token startOffset=" + startOffset);
-          }
-
-          if (in.next() == false) {
-            end = true;
-            break token;
-          }
-
-          if (termAttIn != null && termAttIn.get() != null) {
-            // Stage before us now wants to pass through a pre-token:
-            if (nextWrite > 0) {
-              // ... but we have our own token to output first:
-              pendingToken = true;
-              break token;
-            } else { 
-              // ... or not, so we just return the pre-token now:
-              copyPreToken();
-              return true;
-            }
-          }
-          
-          int textLength = textAttIn.getLength();
-
-          if (textAttIn.getOrigBuffer() != null) {
-            // Text was remapped before us:
-            System.out.println("  text was changed: " + textAttIn.getLength() + " vs " + textAttIn.getOrigLength());
-            mappedPending = textLength;
-            offset += textAttIn.getOrigLength();
-          }
-
-          if (textLength > 0) {
-            break;
-          }
-
-          System.out.println("C: cycle empty mapped string nextWrite=" + nextWrite);
+      int ch = reader.read();
+      if (ch == -1) {
+        if (inToken) {
+          System.out.println("  return token=" + new String(buffer, 0, tokenLimit));
+          termAttOut.set(new String(buffer, 0, tokenLimit));
+          end = true;
+          return true;
         }
-        System.out.println("  length=" + textAttIn.getLength() + " origLength=" + textAttIn.getOrigLength());
+        return false;
       }
-
-      char c = textAttIn.getBuffer()[inputBufferNextRead++];
-      boolean wasMapped = mappedPending > 0;
-      if (wasMapped) {
-        // We are still inside a mapped chunk of text:
-        mappedPending--;
-      } else {
-        offset++;
+      offset++;
+      if (tokenUpto == buffer.length) {
+        buffer = ArrayUtil.grow(buffer);
       }
+      buffer[tokenUpto++] = (char) ch;
 
       int utf32;
 
+      System.out.println("CH: read " + (char) ch + " " + ch);
+
       // nocommit test surrogates, offsets are buggy now?:
-      if (lastHighSurrogate == -1 && c >= UnicodeUtil.UNI_SUR_HIGH_START && c <= UnicodeUtil.UNI_SUR_HIGH_END) {
+      if (ch >= UnicodeUtil.UNI_SUR_HIGH_START && ch <= UnicodeUtil.UNI_SUR_HIGH_END) {
         // Join up surrogate pairs:
-        // NOTE: we don't correct invalid unicode inputs here... should we?
-        lastHighSurrogate = c;
-        continue;
-      } else if (lastHighSurrogate != -1) {
-        if (c < UnicodeUtil.UNI_SUR_LOW_START || c > UnicodeUtil.UNI_SUR_LOW_END) {
-          throw new IllegalArgumentException("invalid Unicode surrogate sequence: high surrogate " + Integer.toHexString(lastHighSurrogate) + " was not followed by a low surrogate: got " + Integer.toHexString(c));
+        int ch2 = reader.read();
+        if (ch2 == -1) {
+          throw new IllegalArgumentException("invalid Unicode surrogate sequence: input ended on a high surrogate " + Integer.toHexString(ch));
         }
-        utf32 = (c << 10) + c + UnicodeUtil.SURROGATE_OFFSET;
-        lastHighSurrogate = -1;
+        if (ch2 < UnicodeUtil.UNI_SUR_LOW_START || ch2 > UnicodeUtil.UNI_SUR_LOW_END) {
+          throw new IllegalArgumentException("invalid Unicode surrogate sequence: high surrogate " + Integer.toHexString(ch2) + " was not followed by a low surrogate: got " + Integer.toHexString(ch2));
+        }
+        if (tokenUpto == buffer.length) {
+          buffer = ArrayUtil.grow(buffer);
+        }
+        buffer[tokenUpto++] = (char) ch2;
+        offset++;
+        utf32 = (ch2 << 10) + ch + UnicodeUtil.SURROGATE_OFFSET;
       } else {
-        utf32 = c;
+        utf32 = ch;
       }
 
-      if (isTokenChar(utf32) == false) {
-        // This is a char that separates tokens (e.g. whitespace, punct.)
+      if (isTokenChar(utf32)) {
+        System.out.println("  is token");
+        inToken = true;
+      } else {
         System.out.println("  is not token");
-        if (nextWrite > 0) {
-          // We have a token!
-          break;
+        // This is a char that separates tokens (e.g. whitespace, punct.)
+        if (inToken) {
+          System.out.println("  return token=" + new String(buffer, 0, tokenLimit));
+          termAttOut.set(new String(buffer, 0, tokenLimit));
+          return true;
         }
-        // In case a mapper remapped something to whitespace which we then tokenized away:
-        System.out.println("C: skip offset=" + offset);
-      } else {
-        // Keep this char
-        System.out.println("  is token: " + (char) utf32);
-        if (buffer.length == nextWrite) {
-          buffer = ArrayUtil.grow(buffer, buffer.length+1);
-        }
-        buffer[nextWrite++] = utf32;
-        endOffset = offset;
+        tokenUpto = 0;
       }
     }
-
-    if (nextWrite == 0) {
-      // Set final offset
-      assert end;
-      offsetAttOut.set(offset, offset);
-      return false;
-    }
-
-    if (mappedPending != 0) {
-      // nocommit need test case
-      // nocommit add more details here
-      // nocommit should we "relax" this and make a best effort instead?
-      throw new IllegalArgumentException("cannot split token inside a mapping: mappedPending=" + mappedPending);
-    }
-
-    String term = UnicodeUtil.newString(buffer, 0, nextWrite);
-    termAttOut.set(term);
-    assert startOffset != -1;
-
-    System.out.println("TOKEN: " + term + " " + startOffset + "-" + endOffset);
-    offsetAttOut.set(startOffset, endOffset);
-    int node = newNode();
-    arcAtt.set(lastNode, node);
-    lastNode = node;
-    return true;
   }
 
   protected abstract boolean isTokenChar(int c);

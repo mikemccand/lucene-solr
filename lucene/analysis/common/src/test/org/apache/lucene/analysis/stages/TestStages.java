@@ -185,29 +185,6 @@ public class TestStages extends BaseStageTestCase {
   }
   */
 
-  static class WhitespaceOrPunctTokenizerStage extends CharTokenizerStage {
-    public WhitespaceOrPunctTokenizerStage(Stage prevStage) {
-      super(prevStage);
-    }
-
-    @Override
-    protected boolean isTokenChar(int c) {
-      return Character.isWhitespace(c) == false && c != ',';
-    }
-  }
-
-  public void testEnglishPossesiveFilter() throws Exception {
-    assertAllPaths(new EnglishPossessiveFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
-                   "the dog's food",
-                   "the dog food");
-  }
-
-  public void testTokenizePunctuation() throws Exception {
-    assertAllPaths(new LowerCaseFilterStage(new WhitespaceOrPunctTokenizerStage(new ReaderStage())),
-                   "a, b c",
-                   "a b c");
-  }
-
   private static class ReplayTwiceStage extends Stage {
 
     private final List<AttributePair> otherAtts;
@@ -382,6 +359,8 @@ public class TestStages extends BaseStageTestCase {
                         new int[] {3, 8});
   }
 
+  // nocommit should we make offset correction non-lenient again?
+  /*
   public void testIllegalMapBeforeTokenizing() throws Exception {
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("aa", "x x");
@@ -397,6 +376,7 @@ public class TestStages extends BaseStageTestCase {
       // expected
     }
   }
+  */
 
   public void testTokenizeWithDoubleMap() throws Exception {
 
@@ -431,7 +411,7 @@ public class TestStages extends BaseStageTestCase {
     // nocommit put back:
     // stage = new SpoonFeedingReaderStage(stage, random());
 
-    // First map HTML escape code:
+    // First map parens away:
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
     b.add("(", "");
     b.add(")", "");

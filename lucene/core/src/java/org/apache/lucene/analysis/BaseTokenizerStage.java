@@ -73,11 +73,8 @@ public abstract class BaseTokenizerStage extends Stage {
     delAttOut = create(DeletedAttribute.class);
 
     if (in.exists(TypeAttribute.class) == false) {
-      // nocommit
-      /*
       TypeAttribute typeAtt = create(TypeAttribute.class);
-      typeAtt.set(CharTokenizerStage.TYPE);
-      */
+      typeAtt.set(TypeAttribute.TOKEN);
     }
 
     reader = new TextReader();
@@ -97,6 +94,8 @@ public abstract class BaseTokenizerStage extends Stage {
   }
 
   // nocommit make sure this class is well tested, mixed w/ random pre-tokens / text / mapped text combos
+
+  // nocommit maybe make this API use utf32?
   
   private class TextReader extends Reader {
 
@@ -122,12 +121,14 @@ public abstract class BaseTokenizerStage extends Stage {
 
     /** Given the mappedOffset (offset on the incoming remap'd text) where a token starts, inclusive, returns the corrected (un-mapped) offset */
     int correctStartOffset(int mappedOffset) {
+      //System.out.println("  correctStartOffset " + mappedOffset + " offsetPartsShift=" + offsetPartsShift + " offsetPartsMappedShift=" + offsetPartsMappedShift);
       int i = 0;
       int offset = offsetPartsShift;
       mappedOffset -= offsetPartsMappedShift;
       while (i < offsetPartsCount && mappedOffset >= offsetParts[i]) {
         mappedOffset -= offsetParts[i];
         offset += offsetParts[i+1];
+        //System.out.println("  cycle i=" + i + " offsetParts=" + offsetParts[i] + "/" + offsetParts[i+1]);
         i += 2;
       }
       if (mappedOffset != 0) {
@@ -142,8 +143,25 @@ public abstract class BaseTokenizerStage extends Stage {
 
     /** Given the mappedOffset (offset on the incoming remap'd text) where a token ends, exclusive, returns the corrected (un-mapped) offset */
     int correctEndOffset(int mappedOffset) {
-      // nocommit shouldn't it be different...?
-      return correctStartOffset(mappedOffset);
+      //System.out.println("  correctEndOffset " + mappedOffset + " offsetPartsShift=" + offsetPartsShift + " offsetPartsMappedShift=" + offsetPartsMappedShift);
+      int i = 0;
+      int offset = offsetPartsShift;
+      mappedOffset -= offsetPartsMappedShift;
+      // just like correctStartOffset but we stop iterating once mappedOffset == 0
+      while (i < offsetPartsCount && mappedOffset != 0 && mappedOffset >= offsetParts[i]) {
+        mappedOffset -= offsetParts[i];
+        offset += offsetParts[i+1];
+        //System.out.println("  cycle i=" + i + " offsetParts=" + offsetParts[i] + "/" + offsetParts[i+1]);
+        i += 2;
+      }
+      if (mappedOffset != 0) {
+        assert i < offsetPartsCount: "i=" + i + " mappedOffset=" + mappedOffset + " offsetPartsCount=" + offsetPartsCount;
+        if (offsetParts[i] != offsetParts[i+1]) {
+          // nocommit should we become angry here if the token started inside a mapped chunk, because we can't compute the offset accurately?
+        }
+        offset += mappedOffset;
+      }
+      return offset;
     }
 
     void shiftOffsetParts(int mappedOffset) {
@@ -173,7 +191,8 @@ public abstract class BaseTokenizerStage extends Stage {
       }
       System.out.println("TextReader.read nextReadText=" + nextReadText + " vs " + textAttIn.getLength());
 
-      if (nextReadText == textAttIn.getLength()) {
+      // while loop because we could read a text chunk that mapped to 0 chars:
+      while (nextReadText == textAttIn.getLength()) {
         if (in.next() == false) {
           // EOF
           end = true;
