@@ -94,6 +94,7 @@ public class DotStage extends Stage {
       addNode(from);
 
       int to = arcAtt.to();
+
       addNode(to);
 
       frontier.add(to);

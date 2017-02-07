@@ -40,9 +40,6 @@ import org.apache.lucene.analysis.stageattributes.ArcAttribute;
 import org.apache.lucene.analysis.stageattributes.Attribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
-import org.apache.lucene.analysis.synonym.SolrSynonymParser;
-import org.apache.lucene.analysis.synonym.SynonymFilterStage;
-import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CharsRefBuilder;
 import org.apache.lucene.util.IntsRef;
@@ -66,51 +63,6 @@ public class TestStages extends BaseStageTestCase {
                    "The drill-down-test works",
                    "the drill-down-test works",
                    "the drill down test works");
-  }
-
-  public void testSynBasic() throws Exception {
-    SynonymMap.Builder b = new SynonymMap.Builder(true);
-    add(b, "a b c", "x");
-    SynonymMap map = b.build();
-    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                   "a b c foo",
-                   "a b c foo", "x foo");
-    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                   "a b c",
-                   "a b c", "x");
-  }
-
-  public void testSynSingleToken() throws Exception {
-    SynonymMap.Builder b = new SynonymMap.Builder(true);
-    add(b, "a", "x");
-    SynonymMap map = b.build();
-    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                   "a b c foo",
-                   "a b c foo", "x b c foo");
-    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                   "a b c",
-                   "a b c", "x b c");
-  }
-
-  public void testSynDNS() throws Exception {
-    SolrSynonymParser parser = new SolrSynonymParser(true, true, new WhitespaceAnalyzer());
-    parser.parse(new StringReader("dns, domain name service"));
-    SynonymMap map = parser.build();
-    assertAllPaths(new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true),
-                   "dns is down",
-                   "dns is down", "domain name service is down");
-  }
-
-  public void testSynAfterDecompound() throws Exception {
-    SynonymMap.Builder b = new SynonymMap.Builder(true);
-    add(b, "a b c", "x");
-    SynonymMap map = b.build();
-
-    // Decompounder splits a-b into a and b, and then
-    // SynFilter runs after that and sees "a b c" match: 
-    assertAllPaths(new SynonymFilterStage(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), map, true),
-                   "a-b c foo",
-                   "a b c foo", "a-b c foo", "x foo");
   }
 
   public void testBasicStage() throws Exception {
@@ -504,17 +456,4 @@ public class TestStages extends BaseStageTestCase {
   // nocommit break out separate test classes for each
 
 
-  // nocommit break out to TestSyns
-  private void add(SynonymMap.Builder b, String input, String output) {
-    if (VERBOSE) {
-      System.out.println("  add input=" + input + " output=" + output);
-    }
-    CharsRefBuilder inputCharsRef = new CharsRefBuilder();
-    SynonymMap.Builder.join(input.split(" +"), inputCharsRef);
-
-    CharsRefBuilder outputCharsRef = new CharsRefBuilder();
-    SynonymMap.Builder.join(output.split(" +"), outputCharsRef);
-
-    b.add(inputCharsRef.get(), outputCharsRef.get(), true);
-  }
 }
