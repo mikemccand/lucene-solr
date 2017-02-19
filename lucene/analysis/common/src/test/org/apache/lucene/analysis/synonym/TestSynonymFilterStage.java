@@ -17,11 +17,13 @@ package org.apache.lucene.analysis.synonym;
  * limitations under the License.
  */
 
+import java.io.IOException;
 import java.io.StringReader;
 
 import org.apache.lucene.analysis.BaseStageTestCase;
+import org.apache.lucene.analysis.ReaderStage;
+import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
-import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SplitOnDashFilterStage;
 import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;
@@ -30,6 +32,14 @@ import org.apache.lucene.analysis.synonym.SynonymMap;
 import org.apache.lucene.util.CharsRefBuilder;
 
 public class TestSynonymFilterStage extends BaseStageTestCase {
+
+  @Override
+  protected Stage getStage() throws IOException {
+    SynonymMap.Builder b = new SynonymMap.Builder(true);
+    add(b, "a b c", "x");
+    SynonymMap map = b.build();
+    return new SynonymFilterStage(new WhitespaceTokenizerStage(new ReaderStage()), map, true);
+  }
 
   public void testSynBasic() throws Exception {
     SynonymMap.Builder b = new SynonymMap.Builder(true);

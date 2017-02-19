@@ -163,4 +163,9 @@ public class SplitOnDashFilterStage extends Stage {
       return false;
     }
   }
+
+  @Override
+  public SplitOnDashFilterStage duplicate() {
+    return new SplitOnDashFilterStage(in.duplicate());
+  }
 }

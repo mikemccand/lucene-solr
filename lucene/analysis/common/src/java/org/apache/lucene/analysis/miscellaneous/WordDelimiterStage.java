@@ -271,8 +271,6 @@ public final class WordDelimiterStage extends Stage {
     if (iterator.isSingleWord()) {
       buffer(wordPos, wordPos+1, iterator.current, iterator.end);
       wordPos++;
-      // nocommit no need?
-      // iterator.next();
     } else {
 
       // iterate all words parts, possibly buffering them, building up concatenations and possibly buffering them too:
@@ -714,6 +712,11 @@ public final class WordDelimiterStage extends Stage {
     return b.toString();
   }
   
+  @Override
+  public WordDelimiterStage duplicate() {
+    return new WordDelimiterStage(in.duplicate(), iterator.charTypeTable, flags, protWords);
+  }
+
   // questions:
   // negative numbers?  -42 indexed as just 42?
   // dollar sign?  $42

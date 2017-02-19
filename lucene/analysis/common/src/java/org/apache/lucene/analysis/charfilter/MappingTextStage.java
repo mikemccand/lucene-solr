@@ -101,6 +101,25 @@ public class MappingTextStage extends Stage {
     }
   }
 
+  private MappingTextStage(Stage in, FST<CharsRef> map, Map<Character,FST.Arc<CharsRef>> cachedRootArcs) {
+    super(in);
+    textAttIn = in.get(TextAttribute.class);
+    textAttOut = create(TextAttribute.class);
+    this.map = map;
+    this.cachedRootArcs = cachedRootArcs;
+    if (map != null) {
+      fstReader = map.getBytesReader();
+    } else {
+      fstReader = null;
+    }
+    termAttIn = in.getIfExists(TermAttribute.class);
+    if (termAttIn != null) {
+      termAttOut = create(TermAttribute.class);
+    } else {
+      termAttOut = null;
+    }
+  }
+
   @Override
   public void reset(Object item) {
     in.reset(item);
@@ -371,5 +390,10 @@ public class MappingTextStage extends Stage {
 
       findNextMatch();
     }
+  }
+
+  @Override
+  public MappingTextStage duplicate() {
+    return new MappingTextStage(in.duplicate(), map, cachedRootArcs);
   }
 }

@@ -19,10 +19,18 @@ package org.apache.lucene.analysis.stages;
 
 import org.apache.lucene.analysis.BaseStageTestCase;
 import org.apache.lucene.analysis.CannedTextStage;
+import org.apache.lucene.analysis.LowerCaseFilterStage;
+import org.apache.lucene.analysis.ReaderStage;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 
 public class TestCharTokenizerStage extends BaseStageTestCase {
+
+  @Override
+  protected Stage getStage() {
+    return new WhitespaceOrPunctTokenizerStage(new ReaderStage());
+  }
+
   static class WhitespaceOrPunctTokenizerStage extends CharTokenizerStage {
     public WhitespaceOrPunctTokenizerStage(Stage prevStage) {
       super(prevStage);
@@ -31,6 +39,11 @@ public class TestCharTokenizerStage extends BaseStageTestCase {
     @Override
     protected boolean isTokenChar(int c) {
       return Character.isWhitespace(c) == false && c != ',';
+    }
+
+    @Override
+    public WhitespaceOrPunctTokenizerStage duplicate() {
+      return new WhitespaceOrPunctTokenizerStage(in.duplicate());
     }
   }
 

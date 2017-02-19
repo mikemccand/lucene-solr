@@ -18,7 +18,8 @@
 package org.apache.lucene.analysis.en;
 
 import org.apache.lucene.analysis.BaseStageTestCase;
-import org.apache.lucene.analysis.stages.ReaderStage;
+import org.apache.lucene.analysis.ReaderStage;
+import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stages.WhitespaceTokenizerStage;
 
 public class TestEnglishPossessiveFilterStage extends BaseStageTestCase {
@@ -26,5 +27,10 @@ public class TestEnglishPossessiveFilterStage extends BaseStageTestCase {
     assertAllPaths(new EnglishPossessiveFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
                    "the dog's food",
                    "the dog food");
+  }
+
+  @Override
+  protected Stage getStage() {
+    return new EnglishPossessiveFilterStage(new WhitespaceTokenizerStage(new ReaderStage()));
   }
 }

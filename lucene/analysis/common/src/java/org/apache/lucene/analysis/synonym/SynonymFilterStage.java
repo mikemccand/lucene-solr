@@ -431,4 +431,8 @@ public class SynonymFilterStage extends Stage {
   }
   
   // nocommit bring over all syn filter tests, e.g. capture count tests
+  @Override
+  public SynonymFilterStage duplicate() {
+    return new SynonymFilterStage(in.duplicate(), synonyms, ignoreCase);
+  }
 }

@@ -19,14 +19,14 @@ package org.apache.lucene.analysis;
 
 import java.io.StringReader;
 
+import org.apache.lucene.analysis.DotStage;
+import org.apache.lucene.analysis.LowerCaseFilterStage;
+import org.apache.lucene.analysis.ReaderStage;
 import org.apache.lucene.analysis.StopFilterStage;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.analysis.en.EnglishPossessiveFilterStage;
 import org.apache.lucene.analysis.en.PorterStemFilterStage;
-import org.apache.lucene.analysis.DotStage;
-import org.apache.lucene.analysis.stages.LowerCaseFilterStage;
-import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SplitOnDashFilterStage;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.analysis.synonym.SolrSynonymParser;

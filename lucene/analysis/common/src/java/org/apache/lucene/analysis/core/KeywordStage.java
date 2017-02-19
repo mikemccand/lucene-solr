@@ -78,4 +78,9 @@ public final class KeywordStage extends Stage {
     termAttOut.clear();
     done = false;
   }
+
+  @Override
+  public KeywordStage duplicate() {
+    return new KeywordStage(in.duplicate());
+  }
 }

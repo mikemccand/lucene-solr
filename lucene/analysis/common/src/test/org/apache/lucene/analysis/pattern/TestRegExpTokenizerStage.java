@@ -26,6 +26,7 @@ import org.apache.lucene.analysis.BaseStageTestCase;
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
 import org.apache.lucene.analysis.CannedTextStage;
 import org.apache.lucene.analysis.CharFilter;
+import org.apache.lucene.analysis.ReaderStage;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
@@ -33,11 +34,15 @@ import org.apache.lucene.analysis.charfilter.MappingCharFilter;
 import org.apache.lucene.analysis.charfilter.MappingTextStage;
 import org.apache.lucene.analysis.charfilter.NormalizeCharMap;
 import org.apache.lucene.analysis.stageattributes.OffsetAttribute;
-import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.util.TestUtil;
 import org.apache.lucene.util.automaton.Automaton;
 
 public class TestRegExpTokenizerStage extends BaseStageTestCase {
+
+  @Override
+  protected Stage getStage() {
+    return new RegExpTokenizerStage(new ReaderStage(), ".");
+  }
 
   public void testGreedy() throws Exception {
     assertStageContents(new RegExpTokenizerStage(new ReaderStage(), "(foo)+"),

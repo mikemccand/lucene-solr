@@ -82,4 +82,9 @@ public final class PorterStemFilterStage extends Stage {
       return false;
     }
   }
+
+  @Override
+  public PorterStemFilterStage duplicate() {
+    return new PorterStemFilterStage(in.duplicate());
+  }
 }

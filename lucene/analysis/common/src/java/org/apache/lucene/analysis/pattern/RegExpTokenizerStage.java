@@ -87,6 +87,11 @@ public final class RegExpTokenizerStage extends BaseTokenizerStage {
     runDFA = new CharacterRunAutomaton(dfa, Operations.DEFAULT_MAX_DETERMINIZED_STATES);
   }
 
+  private RegExpTokenizerStage(Stage in, CharacterRunAutomaton runDFA) {
+    super(in);
+    this.runDFA = runDFA;
+  }
+
   @Override
   protected void init(Reader reader) {
     this.reader = reader;
@@ -256,5 +261,10 @@ public final class RegExpTokenizerStage extends BaseTokenizerStage {
     } else {
       return ch;
     }
+  }
+
+  @Override
+  public RegExpTokenizerStage duplicate() {
+    return new RegExpTokenizerStage(in.duplicate(), runDFA);
   }
 }

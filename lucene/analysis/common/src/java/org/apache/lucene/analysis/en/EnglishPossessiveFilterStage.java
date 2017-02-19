@@ -57,4 +57,9 @@ public final class EnglishPossessiveFilterStage extends Stage {
       return false;
     }
   }
+
+  @Override
+  public EnglishPossessiveFilterStage duplicate() {
+    return new EnglishPossessiveFilterStage(in.duplicate());
+  }
 }

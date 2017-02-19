@@ -28,4 +28,9 @@ public class WhitespaceTokenizerStage extends CharTokenizerStage {
   protected boolean isTokenChar(int c) {
     return Character.isWhitespace(c) == false;
   }
+
+  @Override
+  public WhitespaceTokenizerStage duplicate() {
+    return new WhitespaceTokenizerStage(in.duplicate());
+  }
 }

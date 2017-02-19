@@ -20,9 +20,9 @@ package org.apache.lucene.analysis.charfilter;
 import java.io.IOException;
 
 import org.apache.lucene.analysis.BaseTokenStreamTestCase;
+import org.apache.lucene.analysis.ReaderStage;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.stageattributes.TextAttribute;
-import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.stages.SpoonFeedingReaderStage;
 
 // nocommit extend LTC?

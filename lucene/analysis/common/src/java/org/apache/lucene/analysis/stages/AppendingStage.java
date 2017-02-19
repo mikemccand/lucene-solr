@@ -57,9 +57,13 @@ public final class AppendingStage extends Stage {
   }
 
   public AppendingStage(Stage in, String breakToken) {
+    this(in, breakToken.toCharArray());
+  }
+
+  private AppendingStage(Stage in, char[] breakToken) {
     super(in);
 
-    this.breakToken = breakToken.toCharArray();
+    this.breakToken = breakToken;
 
     termAttIn = in.get(TermAttribute.class);
     termAttOut = create(TermAttribute.class);
@@ -73,7 +77,7 @@ public final class AppendingStage extends Stage {
     offsetAttIn = in.get(OffsetAttribute.class);
     offsetAttOut = create(OffsetAttribute.class);
 
-    this.offsetGap = breakToken.length();
+    this.offsetGap = breakToken.length;
   }
 
   public void reset(Object item) {
@@ -138,5 +142,10 @@ public final class AppendingStage extends Stage {
     } else {
       return false;
     }
+  }
+
+  @Override
+  public AppendingStage duplicate() {
+    return new AppendingStage(in.duplicate(), breakToken);
   }
 }

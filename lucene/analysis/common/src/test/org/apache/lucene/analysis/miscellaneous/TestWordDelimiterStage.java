@@ -21,11 +21,11 @@ import java.util.*;
 
 import org.apache.lucene.analysis.*;
 import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.ReaderStage;
 import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.core.KeywordStage;
 import org.apache.lucene.analysis.core.KeywordTokenizer;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
-import org.apache.lucene.analysis.stages.ReaderStage;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
@@ -36,6 +36,12 @@ import static org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter.
 import static org.apache.lucene.analysis.miscellaneous.WordDelimiterIterator.DEFAULT_WORD_DELIM_TABLE;
 
 public class TestWordDelimiterStage extends BaseStageTestCase {
+
+  @Override
+  public Stage getStage() {
+    int flags = GENERATE_WORD_PARTS | GENERATE_NUMBER_PARTS | CATENATE_ALL | SPLIT_ON_CASE_CHANGE | SPLIT_ON_NUMERICS | STEM_ENGLISH_POSSESSIVE;    
+    return new WordDelimiterStage(new ReaderStage(), DEFAULT_WORD_DELIM_TABLE, flags, null);
+  }
 
   public void testOffsets() throws IOException {
     int flags = GENERATE_WORD_PARTS | GENERATE_NUMBER_PARTS | CATENATE_ALL | SPLIT_ON_CASE_CHANGE | SPLIT_ON_NUMERICS | STEM_ENGLISH_POSSESSIVE;

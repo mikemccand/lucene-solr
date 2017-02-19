@@ -27,7 +27,10 @@ import java.util.Map;
 
 import org.apache.lucene.analysis.AssertingStage;
 import org.apache.lucene.analysis.BaseStageTestCase;
+import org.apache.lucene.analysis.CannedTextStage;
 import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.LowerCaseFilterStage;
+import org.apache.lucene.analysis.ReaderStage;
 import org.apache.lucene.analysis.Stage;
 import org.apache.lucene.analysis.StopFilterStage;
 import org.apache.lucene.analysis.charfilter.MappingTextStage;
@@ -39,6 +42,7 @@ import org.apache.lucene.analysis.miscellaneous.SetKeywordMarkerFilterStage;
 import org.apache.lucene.analysis.stageattributes.ArcAttribute;
 import org.apache.lucene.analysis.stageattributes.Attribute;
 import org.apache.lucene.analysis.stageattributes.TermAttribute;
+import org.apache.lucene.analysis.stageattributes.TextAttribute;
 import org.apache.lucene.analysis.standard.StandardTokenizerStage;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.CharsRefBuilder;
@@ -50,6 +54,12 @@ import org.apache.lucene.util.automaton.Operations;
 import org.apache.lucene.util.fst.Util;
 
 public class TestStages extends BaseStageTestCase {
+
+  @Override
+  protected Stage getStage() {
+    // nocommit what to return?
+    return new WhitespaceTokenizerStage(new ReaderStage());
+  }
 
   public void testSimple() throws Exception {
     assertAllPaths(new LowerCaseFilterStage(new WhitespaceTokenizerStage(new ReaderStage())),
@@ -76,7 +86,6 @@ public class TestStages extends BaseStageTestCase {
   public void testStopFilterStage() throws Exception {
     final CharArraySet stopWords = new CharArraySet(1, false);
     stopWords.add("the");
-    // nocommit need better test (that checks deleted att)
     // nocommit make another test, adding syn filter, showing it works on 1) the decompounded term, and 2) the deleted term
     assertAllPaths(new StopFilterStage(new SplitOnDashFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), stopWords),
                    "the-dog barks",
@@ -108,34 +117,21 @@ public class TestStages extends BaseStageTestCase {
                    "the-foo-- bar", "the foo bar");
   }
 
-  // nocommit get offset corrections working again:
-  /*
-  public class SillyCharFilter extends CharFilter {
-    public SillyCharFilter(Reader input) {
-      super(input);
-    }
-
-    @Override
-    public int read(char[] buffer, int offset, int length) throws IOException {
-      return input.read(buffer, offset, length);
-    }
-
-    @Override
-    protected int correct(int currentOff) {
-      return currentOff+1;
-    }
-  }
-
-  public void testCharFilter() throws Exception {
-    // Same as testBasic, but all offsets
-    // (incl. finalOffset) have been "corrected" by +1:
-    assertStageContents(new LowerCaseFilterStage(new WhitespaceTokenizerStage(new ReaderStage())), new SillyCharFilter(new StringReader("This is a test")),
+  public void testShiftOffsets() throws Exception {
+    // all offsets shifted by +1 because a space got mapped to empty string before tokenization:
+    assertStageContents(new LowerCaseFilterStage(new WhitespaceTokenizerStage(new CannedTextStage())),
+                        new Object[] {
+                          new String[] {" ", "This is a test"},
+                          new String[] {"", "This is a test"},
+                        },
                         new String[] {"this", "is", "a", "test"},
                         new int[] {1, 6, 9, 11},
-                        new int[] {5, 8, 10, 15});
-    // nocommit what about final end offset?
+                        new int[] {5, 8, 10, 15},
+                        null,
+                        null,
+                        15);
   }
-  */
+  
 
   private static class ReplayTwiceStage extends Stage {
 
@@ -160,6 +156,11 @@ public class TestStages extends BaseStageTestCase {
 
       // nocommit test that a random other att is in fact preserved:
       otherAtts = copyOtherAtts();
+    }
+
+    @Override
+    public ReplayTwiceStage duplicate() {
+      return new ReplayTwiceStage(in.duplicate());
     }
 
     @Override
@@ -236,24 +237,6 @@ public class TestStages extends BaseStageTestCase {
                    "foo x:_ bar x:_ baz");
   }
 
-  public void testHTMLTag() throws Exception {
-    assertAllPaths(new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                   "foo <p> bar baz",
-                   "foo x:<p> bar baz");
-  }
-
-  public void testHTMLEscape1() throws Exception {
-    assertAllPaths(new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                   "foo &Eacute;mily bar baz",
-                   "foo \u00c9mily bar baz");
-  }
-
-  public void testHTMLEscape2() throws Exception {
-    assertAllPaths(new WhitespaceTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                   "foo&nbsp;bar",
-                   "foo bar");
-  }
-
   public void testStandardTokenizer1() throws Exception {
     assertAllPaths(new StandardTokenizerStage(new ReaderStage()),
                    "foo bar baz",
@@ -264,12 +247,6 @@ public class TestStages extends BaseStageTestCase {
     assertAllPaths(new StandardTokenizerStage(new ReaderStage()),
                    "foo <p> bar baz",
                    "foo p bar baz");
-  }
-
-  public void testStandardTokenizerWithHTMLText() throws Exception {
-    assertAllPaths(new StandardTokenizerStage(new HTMLTextStage(new ReaderStage())),
-                   "foo <p> bar baz",
-                   "foo x:<p> bar baz");
   }
 
   public void testPorterStemmerBasic() throws Exception {
@@ -335,8 +312,7 @@ public class TestStages extends BaseStageTestCase {
 
     Stage stage = new ReaderStage();
 
-    // nocommit put back:
-    // stage = new SpoonFeedingReaderStage(stage, random());
+    stage = new SpoonFeedingReaderStage(stage, random());
 
     // First map HTML escape code:
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
@@ -361,8 +337,7 @@ public class TestStages extends BaseStageTestCase {
 
     Stage stage = new ReaderStage();
 
-    // nocommit put back:
-    // stage = new SpoonFeedingReaderStage(stage, random());
+    stage = new SpoonFeedingReaderStage(stage, random());
 
     // First map parens away:
     NormalizeCharMap.Builder b = new NormalizeCharMap.Builder();
@@ -399,6 +374,37 @@ public class TestStages extends BaseStageTestCase {
                         new String[] {"icecream"},
                         new int[] {0},
                         new int[] {9});
+  }
+
+  public void testDeletedAttribute() throws Exception {
+    Stage firstStage = new Stage(null) {
+        {
+          create(TextAttribute.class);
+        }
+        @Override
+        public boolean next() {
+          return false;
+        }
+        @Override
+        public Stage duplicate() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    Stage secondStage = new Stage(firstStage) {
+        {
+          delete(TextAttribute.class);
+        }
+        @Override
+        public boolean next() {
+          return false;
+        }
+        @Override
+        public Stage duplicate() {
+          throw new UnsupportedOperationException();
+        }
+      };
+
+    assertNull(secondStage.getIfExists(TextAttribute.class));
   }
 
   public void testSplitDashCases() throws Exception {
@@ -451,9 +457,59 @@ public class TestStages extends BaseStageTestCase {
                         new int[] {16, 16, 16});
   }
 
+  public void testIllegalCreateAttribute() throws Exception {
+    Stage firstStage = new Stage(null) {
+        @Override
+        public boolean next() {
+          // Illegal to create an attribute except during init:
+          create(TextAttribute.class);
+          return false;
+        }
+        @Override
+        public Stage duplicate() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    Stage secondStage = new Stage(firstStage) {
+        @Override
+        public boolean next() {
+          return false;
+        }
+        @Override
+        public Stage duplicate() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    expectThrows(IllegalStateException.class, () -> {firstStage.next();});
+  }
+
+  public void testIllegalDeleteAttribute() throws Exception {
+    Stage firstStage = new Stage(null) {
+        @Override
+        public boolean next() {
+          // Illegal to create an attribute except during init:
+          delete(TextAttribute.class);
+          return false;
+        }
+        @Override
+        public Stage duplicate() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    Stage secondStage = new Stage(firstStage) {
+        @Override
+        public boolean next() {
+          return false;
+        }
+        @Override
+        public Stage duplicate() {
+          throw new UnsupportedOperationException();
+        }
+      };
+    expectThrows(IllegalStateException.class, () -> {firstStage.next();});
+  }
+
   // nocommit make end offset test, e.g. multi-valued fields with some fields ending with space
 
   // nocommit break out separate test classes for each
-
-
 }

@@ -71,7 +71,7 @@ public final class WordDelimiterIterator {
    */
   final boolean stemEnglishPossessive;
 
-  private final byte[] charTypeTable;
+  final byte[] charTypeTable;
   
   /** if true, need to skip over a possessive found in the last call to next() */
   private boolean skipPossessive = false;

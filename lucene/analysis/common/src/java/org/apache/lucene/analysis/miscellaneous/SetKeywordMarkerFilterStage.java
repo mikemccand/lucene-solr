@@ -48,4 +48,9 @@ public final class SetKeywordMarkerFilterStage extends KeywordMarkerFilterStage 
   protected boolean isKeyword() {
     return keywordSet.contains(termAtt.toString());
   }
+
+  @Override
+  public SetKeywordMarkerFilterStage duplicate() {
+    return new SetKeywordMarkerFilterStage(in.duplicate(), keywordSet);
+  }
 }

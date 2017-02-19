@@ -49,10 +49,8 @@ public class HTMLTextStage extends Stage {
 
   public HTMLTextStage(Stage in) {
     super(in);
-    System.out.println("PREV: " + in);
-    if (in.exists(TermAttribute.class)) {
-      // nocommit need test:
-      throw new IllegalArgumentException("this filter cannot handle incoming tokens");
+     if (in.exists(TermAttribute.class)) {
+       throw new IllegalArgumentException("this filter cannot handle incoming tokens");
     }
     buffer = new char[4096];
     textAttIn = in.get(TextAttribute.class);
@@ -66,8 +64,7 @@ public class HTMLTextStage extends Stage {
     assert end == false;
     if (inputNextRead == textAttIn.getLength()) {
       if (in.next() == false) {
-        //System.out.println("END");
-        end = true;
+         end = true;
         return -1;
       }
       assert textAttIn.getLength() > 0;
@@ -75,16 +72,14 @@ public class HTMLTextStage extends Stage {
     }
     char c = textAttIn.getBuffer()[inputNextRead++];
     offset++;
-    //System.out.println("NEXT: " + c);
-    return c;
+     return c;
   }
 
   private int peek() throws IOException {
     assert end == false;
     if (inputNextRead == textAttIn.getLength()) {
       if (in.next() == false) {
-        //System.out.println("END");
-        end = true;
+         end = true;
         return -1;
       }
       assert textAttIn.getLength() > 0;
@@ -105,7 +100,6 @@ public class HTMLTextStage extends Stage {
   }
 
   private void append(int ch) {
-    System.out.println("H: append " + (char) ch);
     if (ch < 0 || ch > Character.MAX_VALUE) {
       throw new IllegalArgumentException("ch=" + ch);
     }
@@ -119,7 +113,6 @@ public class HTMLTextStage extends Stage {
   private void fillToken(int startOffset, int endOffset) {
     termAttOut.clear();
     termAttOut.append(buffer, 0, outputNextWrite);
-    System.out.println("H: fillToken '" + termAttOut + "'");
     assert endOffset - startOffset == outputNextWrite;
     offsetAttOut.set(startOffset, endOffset);
     outputNextWrite = 0;
@@ -129,7 +122,6 @@ public class HTMLTextStage extends Stage {
 
   /** Return a chunk of text */
   private void fillText() {
-    System.out.println("H: fillText '" + new String(buffer, 0, outputNextWrite) + "'");
     textAttOut.set(buffer, outputNextWrite);
     outputNextWrite = 0;
     termAttOut.clear();
@@ -137,7 +129,6 @@ public class HTMLTextStage extends Stage {
   }
 
   private void fillMappedText(String mapped) {
-    System.out.println("H: fillMappedText '" + new String(buffer, 0, outputNextWrite) + "' -> '" + new String(mapped) + "'");
     char[] mappedChars = mapped.toCharArray();
     textAttOut.set(buffer, outputNextWrite, mappedChars, mappedChars.length);
     outputNextWrite = 0;
@@ -146,7 +137,6 @@ public class HTMLTextStage extends Stage {
   }
 
   private void parseTag() throws IOException {
-    System.out.println("H: parseTag");
     int startOffset = offset;
     int c = nextInputChar();
     assert c == '<';
@@ -168,7 +158,6 @@ public class HTMLTextStage extends Stage {
   }
 
   private void parseEscape() throws IOException {
-    System.out.println("H: parseEscape");
     int c = nextInputChar();
     assert c == '&';
     append(c);
@@ -223,7 +212,6 @@ public class HTMLTextStage extends Stage {
   }
 
   private void parseText() throws IOException {
-    System.out.println("H: parseText");
     while (true) {
       int c = peek();
       if (c == -1) {
@@ -258,7 +246,6 @@ public class HTMLTextStage extends Stage {
     if (c == -1) {
       return false;
     }
-    System.out.println("H: peek: " + (char) c);
 
     if (c == '<') {
       parseTag();
@@ -272,5 +259,10 @@ public class HTMLTextStage extends Stage {
 
     parseText();
     return true;
+  }
+
+  @Override
+  public HTMLTextStage duplicate() {
+    return new HTMLTextStage(in.duplicate());
   }
 }
